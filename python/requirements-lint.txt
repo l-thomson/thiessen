@@ -1,6 +1,6 @@
 # Pinned so the lint gate does not change with a release of the tools.
 # Dependabot keeps them current.
-ruff==0.16.4
+ruff==0.16.6
 mypy==2.3.1
 numpy==2.5.2
 # mypy covers the tests, which import pytest.
