@@ -15,10 +15,3 @@ perf-bench filter="":
 perf-instructions:
     cargo bench --locked --manifest-path bench/Cargo.toml \
         --bench instructions
-
-# The precomputed experimental articles of the R site: the landing page
-# from a default build, the feature articles from an opt-in build. Knits
-# every `*.Rmd.orig` under r/vignettes/articles into its `.Rmd` and
-# figures, which are committed.
-articles what="all":
-    tools/articles.sh {{what}}

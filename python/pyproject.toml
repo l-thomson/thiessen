@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT OR Apache-2.0"
 license-files = ["LICENSE-MIT", "LICENSE-APACHE", "NOTICE"]
-authors = [{ name = "Leo Thomson", email = "leo@feasibly.co.uk" }]
+authors = [{ name = "Leo Thomson", email = "hello@leothomson.dev" }]
 keywords = ["bayesian", "mcmc", "regression", "voronoi", "nonparametric"]
 classifiers = [
   "Development Status :: 3 - Alpha",

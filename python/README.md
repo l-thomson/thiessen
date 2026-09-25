@@ -4,6 +4,8 @@ Python bindings to the `thiessen` Rust crate, an implementation of
 AddiVortes: Bayesian regression on a sum of Voronoi tessellations (Stone and
 Gosling, 2025, *Journal of Computational and Graphical Statistics* 34(3),
 859-871, [doi:10.1080/10618600.2024.2414104](https://doi.org/10.1080/10618600.2024.2414104)).
+The documentation, with the API reference, is at
+<https://l-thomson.github.io/thiessen/python/>.
 
 ## Statement of need
 
@@ -27,8 +29,10 @@ The package builds the core crate from source, so a Rust toolchain
 (`cargo`, `rustc` >= 1.74) is required until wheels are published.
 
 ```sh
-pip install -e python/
+pip install "thiessen @ git+https://github.com/l-thomson/thiessen#subdirectory=python"
 ```
+
+or, from a checkout of the repository, `pip install -e python/`.
 
 ## Usage
 

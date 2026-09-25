@@ -10,5 +10,5 @@ first release, `dev` is the supported line.
 
 Report vulnerabilities privately through GitHub security advisories
 (Security tab, "Report a vulnerability") or by email to
-leo@feasibly.co.uk. Do not open a public issue. You will receive an
+hello@leothomson.dev. Do not open a public issue. You will receive an
 acknowledgement within a week.

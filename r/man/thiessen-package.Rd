@@ -26,11 +26,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Leo Thomson \email{leo@feasibly.co.uk}
+\strong{Maintainer}: Leo Thomson \email{hello@leothomson.dev}
 
 Authors:
 \itemize{
-  \item Leo Thomson \email{leo@feasibly.co.uk}
+  \item Leo Thomson \email{hello@leothomson.dev}
 }
 
 Other contributors:

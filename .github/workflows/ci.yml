@@ -511,16 +511,16 @@ jobs:
         shell: Rscript {0}
         working-directory: r
       - run: git diff --exit-code -- r/README.md
-      # Published under /r/, leaving the root for the shared index. Without
-      # `clean`, the deploy touches nothing outside that folder, so a second
-      # site can live beside it.
+      # Published under /r/, leaving the root for the shared index. `clean`
+      # deletes stale files under `target-folder` only (the action rsyncs
+      # into it with --delete), so the sites beside it are untouched.
       - if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
         with:
           branch: gh-pages
           folder: r/docs
           target-folder: r
-          clean: false
+          clean: true
       # A pull request reads the site as an artefact instead.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -568,6 +568,8 @@ jobs:
   py-docs:
     name: py-docs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
@@ -582,10 +584,35 @@ jobs:
         working-directory: python
       - run: mkdocs build --strict
         working-directory: python
+      # Published under /python/; `clean` is confined to that folder, as
+      # for the R site.
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        with:
+          branch: gh-pages
+          folder: python/site
+          target-folder: python
+          clean: true
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: py-docs
           path: python/site
+
+  # The landing page at the site root. Without `clean`, the deploy adds
+  # its files and removes nothing, so r/ and python/ are untouched.
+  pages-root:
+    name: pages-root
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        with:
+          branch: gh-pages
+          folder: docs/site-root
+          clean: false
 
   py-test:
     name: py-test

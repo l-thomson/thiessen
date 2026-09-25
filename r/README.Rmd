@@ -96,24 +96,28 @@ fit.
 ## Documentation
 
 The [package website](https://l-thomson.github.io/thiessen/r/) renders
-every page below with its output, beside the reference pages.
+every page below with its output, beside the reference pages. Pages
+marked (website) take longer to run than a package check allows and are
+not installed as vignettes.
 
 - Get started: `vignette("thiessen")`, one data set end to end.
-- Models: `vignette("gaussian")`, `vignette("binary-addivortes")` and
-  `vignette("h-addivortes")`, one page per published model on one
-  template, with `vignette("model-description")` holding the notation
-  and the symbol-to-argument table.
+- Models: [Gaussian regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.html)
+  (website), `vignette("binary-addivortes")` and
+  [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html)
+  (website), one page per published model on one template, with
+  `vignette("model-description")` holding the notation and the
+  symbol-to-argument table.
 - Using a fit: `vignette("posterior")` for the draws through
-  posterior, bayesplot, loo and tidybayes; `vignette("convergence")`
-  for the chains, R-hat, effective sample size and compute;
+  posterior, bayesplot, loo and tidybayes;
+  [chains and convergence](https://l-thomson.github.io/thiessen/r/articles/convergence.html)
+  (website) for the chains, R-hat, effective sample size and compute;
   `vignette("priors")` for what each prior does;
-  `vignette("covariates")` for factors, scaling and the covariate
-  space; `vignette("control-surface")` for every configuration group.
+  [covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.html)
+  (website) for factors, scaling and the covariate space;
+  `vignette("control-surface")` for every configuration group.
 - Building your own model: `vignette("sampler-api")`, the Gibbs loop
   driven from R, so an outcome family the package does not ship is
   built without Rust.
-- Experimental: the opt-in build, its catalogue, and one case study
-  per experimental item, on the website only.
 - Help: `vignette("troubleshooting")` and
   `vignette("related-software")`.
 

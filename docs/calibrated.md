@@ -58,6 +58,12 @@ separately verified (`docs/models.md`, Validation).
 {"outcome":{"laplace":{"nu":6.0,"q":0.85}},"mean_params":{"tessellations":3,"k":3.0,"lambda_c":2.0,"geometry":{"metric":[],"sigma_c":0.8},"structure":{"omega":0.8},"cell":{}},"variance_params":{"tessellations":null,"k":3.0,"lambda_c":2.0,"geometry":{"metric":[],"sigma_c":0.8},"structure":{"omega":0.8},"cell":{}},"general_params":{"burn_in":200,"draws":1000,"thinning":1,"prior_only":false}}
 ```
 
+## ordinal (experimental)
+
+```json
+{"outcome":{"ordinal":{"categories":4,"offset":-0.1,"cutpoint_sd":1.0}},"mean_params":{"tessellations":3,"k":3.0,"lambda_c":2.0,"geometry":{"metric":[],"sigma_c":0.8},"structure":{"omega":0.8},"cell":{}},"variance_params":{"tessellations":null,"k":3.0,"lambda_c":2.0,"geometry":{"metric":[],"sigma_c":0.8},"structure":{"omega":0.8},"cell":{}},"general_params":{"burn_in":200,"draws":1000,"thinning":1,"prior_only":false}}
+```
+
 ## spherical metric
 
 ```json

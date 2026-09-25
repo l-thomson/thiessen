@@ -30,6 +30,11 @@ concentration theta is drawn on a grid with lambda = theta / (theta +
 rho) under a Beta(a, b) prior. The sampled weights and concentration
 are carried by \code{\link[posterior:as_draws_df]{posterior::as_draws_df()}} as \code{inclusion_weight[j]} and
 \code{concentration}.
+
+This is the prior of Linero (2018) carried over from trees. It is not the
+Dirichlet AddiVortes of Stone and Gosling (in preparation), whose subset
+prior draws covariates sequentially without replacement and whose weights
+have an exact Gibbs update by latent augmentation.
 }
 \section{Experimental}{
 
