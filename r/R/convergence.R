@@ -38,9 +38,13 @@ convergence_of <- function(object, points = CONVERGENCE_POINTS) {
   if (length(sigma) > 0L) {
     latent <- cbind(sigma = sigma, latent)
   }
+  # The measures are passed as functions: summarise_draws() resolves a bare
+  # name through the calling environment, where a user's own rhat() would
+  # shadow posterior's.
   summary <- posterior::summarise_draws(
     posterior::as_draws_array(chain_array(latent, object$n_chains)),
-    posterior::default_convergence_measures()
+    rhat = posterior::rhat, ess_bulk = posterior::ess_bulk,
+    ess_tail = posterior::ess_tail
   )
   list(
     n_chains = object$n_chains,

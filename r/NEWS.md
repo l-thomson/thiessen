@@ -172,3 +172,8 @@
   naming an item the build gates signals `thiessen_requires_feature`
   through the core's typed load path, and an `NA` event flag is refused
   at the boundary.
+* Bug fix: a fit no longer fails where the calling environment defines a
+  function named `rhat`, `ess_bulk` or `ess_tail`. The convergence
+  measures are passed to `posterior::summarise_draws()` as functions
+  rather than by name, so a user's function of the same name is not
+  resolved in their place.

@@ -39,15 +39,23 @@
 //! term: the weight draw is a Gibbs step against a fixed ensemble.
 //!
 //! With `df` a grid, the degrees of freedom are drawn each sweep, before
-//! the weight refresh, from the exact discrete conditional
+//! the weight refresh, from the exact discrete conditional with the
+//! weights integrated out,
 //!
 //! ```text
-//! P(df = g | w) proportional to prod_i Gamma(w_i; g / 2, rate g / 2),
+//! P(df = g | r, sigma^2) proportional to prod_i t_g(r_i; 0, sigma),
 //! ```
 //!
-//! uniform over the grid a priori: given the weights the likelihood does
-//! not involve df, so the conditional is exact and no Metropolis step is
-//! involved.
+//! the location-scale t density of the residuals, uniform over the grid
+//! a priori; the weights then follow from their conditional under the
+//! new df. The pair is one draw of (df, w) from
+//! p(df | r, sigma^2) p(w | df, r, sigma^2), the joint conditional, so the
+//! scan stays a Gibbs sampler with no Metropolis step. The conditional
+//! given the weights alone, prod_i Gamma(w_i; g / 2, rate g / 2), is
+//! also exact but cannot move: weights drawn under one grid value favour
+//! that value again, and the chain sits where it starts. Under prior-only
+//! sampling the residual carries no likelihood and df comes from its
+//! uniform prior.
 //!
 //! # Priors
 //!
@@ -164,23 +172,37 @@ impl OutcomeModel for StudentTOutcome {
         }
     }
 
-    /// The df grid draw (one uniform, standing weights), then the weight
-    /// refresh (one gamma per observation, fresh df).
+    /// The df grid draw (one uniform, the residuals against the
+    /// recovered 1 / sigma^2), then the weight refresh (one gamma per
+    /// observation, fresh df).
     fn draw_extra(&mut self, y: &[f64], total: &[f64], precision: &[f64], rng: &mut Rng) {
         if !self.grid.is_empty() {
-            let n = self.weights.len() as f64;
-            let (mut sum, mut log_sum) = (0.0, 0.0);
-            for &w in &self.weights {
-                sum += w;
-                log_sum += maths::ln(w);
-            }
+            // precision_i = w_i / sigma^2 on every row, so the first row
+            // gives 1 / sigma^2; zero under prior-only sampling.
+            let scale_precision = precision
+                .first()
+                .zip(self.weights.first())
+                .map_or(0.0, |(&p, &w)| p / w);
+            let n = y.len() as f64;
             let log_conditional: Vec<f64> = self
                 .grid
                 .iter()
                 .map(|&g| {
-                    let half = 0.5 * g;
-                    n * (half * maths::ln(half) - maths::lgamma(half)) + (half - 1.0) * log_sum
-                        - half * sum
+                    if scale_precision <= 0.0 {
+                        return 0.0;
+                    }
+                    let constant = maths::lgamma(0.5 * (g + 1.0))
+                        - maths::lgamma(0.5 * g)
+                        - 0.5 * maths::ln(g);
+                    let kernel: f64 = y
+                        .iter()
+                        .zip(total)
+                        .map(|(&value, &f)| {
+                            let residual = value - f;
+                            maths::ln(1.0 + scale_precision * residual * residual / g)
+                        })
+                        .sum();
+                    n * constant - 0.5 * (g + 1.0) * kernel
                 })
                 .collect();
             self.df = self.grid[rng::draw_discrete(&log_conditional, rng)];
@@ -324,31 +346,59 @@ mod outcome_tests {
         assert!((variance - 2.0 / df).abs() < 0.02, "{variance}");
     }
 
-    /// With weights generated under one grid value, the exact discrete
-    /// conditional concentrates on it.
+    /// Residuals drawn as sigma t_3 pick 3 from the grid whatever the
+    /// standing weights, here drawn under the grid's top value, the
+    /// state the conditional given the weights alone could not leave.
     #[test]
     fn the_grid_conditional_concentrates_on_the_generating_df() {
-        let generating = 12.0;
+        let generating = 3.0;
+        let standing = 24.0;
         let grid = vec![3.0, 6.0, 12.0, 24.0];
         let n = 400;
+        let sigma_sq: f64 = 0.25;
         let mut rng = chain_rng(31);
-        let weights: Vec<f64> = (0..n)
-            .map(|_| rng::gamma(0.5 * generating, 2.0 / generating, &mut rng))
+        let residuals: Vec<f64> = (0..n)
+            .map(|_| {
+                let w = rng::gamma(0.5 * generating, 2.0 / generating, &mut rng);
+                sigma_sq.sqrt() * rng::standard_normal(&mut rng) / w.sqrt()
+            })
             .collect();
+        let weights: Vec<f64> = (0..n)
+            .map(|_| rng::gamma(0.5 * standing, 2.0 / standing, &mut rng))
+            .collect();
+        let precision: Vec<f64> = weights.iter().map(|w| w / sigma_sq).collect();
         let zeros = vec![0.0; n];
-        let mut outcome = StudentTOutcome::new(6.0, grid);
+        let mut outcome = StudentTOutcome::new(standing, grid);
         outcome.init(&zeros);
-        outcome.weights.copy_from_slice(&weights);
         let mut hits = 0;
         let draws = 200;
         for _ in 0..draws {
             outcome.weights.copy_from_slice(&weights);
-            outcome.draw_extra(&zeros, &zeros, &zeros, &mut rng);
+            outcome.draw_extra(&residuals, &zeros, &precision, &mut rng);
             if outcome.df() == generating {
                 hits += 1;
             }
         }
         assert!(hits > draws * 9 / 10, "{hits} of {draws}");
+    }
+
+    /// Zero precisions draw df from its uniform prior over the grid.
+    #[test]
+    fn prior_only_draws_df_from_the_grid_prior() {
+        let grid = vec![3.0, 6.0, 12.0, 24.0];
+        let mut outcome = StudentTOutcome::new(3.0, grid.clone());
+        outcome.init(&[0.4, -0.2]);
+        let mut rng = chain_rng(17);
+        let draws = 8_000;
+        let mut counts = vec![0; grid.len()];
+        for _ in 0..draws {
+            outcome.draw_extra(&[0.4, -0.2], &[0.0, 0.0], &[0.0, 0.0], &mut rng);
+            counts[grid.iter().position(|&g| g == outcome.df()).unwrap()] += 1;
+        }
+        for count in counts {
+            let share = count as f64 / draws as f64;
+            assert!((share - 0.25).abs() < 0.03, "{share}");
+        }
     }
 }
 

@@ -56,3 +56,21 @@ test_that("the monitored rows are a subsample of the design", {
   expect_identical(length(monitored_rows(1000L, 20L)), 20L)
   expect_identical(range(monitored_rows(1000L, 20L)), c(1L, 1000L))
 })
+
+test_that("a user function named after a measure does not break the fit", {
+  fixture <- small_fixture()
+  assign("rhat", function(...) stop("shadowed"), envir = globalenv())
+  assign("ess_bulk", function(...) stop("shadowed"), envir = globalenv())
+  assign("ess_tail", function(...) stop("shadowed"), envir = globalenv())
+  withr::defer(
+    rm(list = c("rhat", "ess_bulk", "ess_tail"), envir = globalenv())
+  )
+
+  fit <- suppressWarnings(
+    thiessen(fixture$x, fixture$y, small_control(), seed = 1, chains = 2)
+  )
+
+  expect_true(is.numeric(fit$convergence$rhat))
+  expect_true(is.numeric(fit$convergence$ess_bulk))
+  expect_true(is.numeric(fit$convergence$ess_tail))
+})
