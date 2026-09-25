@@ -8,6 +8,15 @@ says "Sampled values changed" with the reason.
 
 ## [Unreleased]
 
+### Fixed
+
+- The Student-t df grid draws the degrees of freedom from their
+  conditional given the residuals and sigma^2, the weights integrated
+  out, then the weights under the new df. The conditional given the
+  weights alone could not leave the grid value the weights were drawn
+  under, so a fit sat at the top of its grid whatever the data. Sampled
+  values changed under a df grid; a fixed df is untouched.
+
 ### Added
 
 - `Fitted::load`: a saved model read through any serde deserialiser with
