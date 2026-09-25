@@ -590,9 +590,14 @@ w | f, sigma^2 then sigma^2 | w, f then f | w, sigma^2 is a valid Gibbs
 sampler; no structural move gains an acceptance-ratio term. Under
 prior-only sampling the weights come from their prior. With `df` a
 grid the degrees of freedom are drawn each sweep, before the weights,
-from the exact discrete conditional P(df = g | w) proportional to
-prod_i Gamma(w_i; g / 2, rate g / 2), uniform over the grid a priori.
-No continuous-df sampler exists: df is weakly identified and
+from the exact discrete conditional with the weights integrated out,
+P(df = g | r, sigma^2) proportional to prod_i t_g(r_i; 0, sigma), uniform
+over the grid a priori; the weights then follow under the new df, so
+the pair is one draw from the joint conditional of (df, w). The
+conditional given the weights alone, prod_i Gamma(w_i; g / 2, rate g / 2),
+is exact too but cannot move: weights drawn under one grid value favour
+that value again. Under prior-only sampling df comes from its uniform
+prior. No continuous-df sampler exists: df is weakly identified and
 random-walk samplers over it mix poorly. A variance ensemble is
 rejected at validation: per-observation weights and a per-observation
 variance product both model dispersion, and their joint identification
