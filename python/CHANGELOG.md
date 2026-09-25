@@ -8,6 +8,15 @@ the core crate version the package builds against, which
 
 ## [Unreleased]
 
+### Fixed
+
+- The `posterior_predictive` replicates of `to_inference_data` under the
+  Student-t and Laplace families are drawn at sigma, the scale of the t
+  or Laplace error, where they were drawn at the error standard
+  deviation, sigma sqrt(df / (df - 2)) or sigma sqrt(2), and so were too
+  wide; a Student-t grid admitting df <= 2 no longer fails for want of
+  a variance.
+
 ### Changed
 
 - `to_inference_data` names the AFT replicate and log-likelihood

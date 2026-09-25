@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from thiessen import Model, TermParams, probit
+from thiessen import Model, TermParams, _native, laplace, probit, student_t
+from thiessen._inference import _replicates
 
 from .conftest import SMALL
 
@@ -128,3 +129,30 @@ def test_arviz_reads_the_result(gaussian_fixture):
     summary = az.summary(data, var_names=["sigma"])
 
     assert "sigma" in str(summary)
+
+
+@pytest.mark.skipif(not _native.EXPERIMENTAL, reason="built without the feature")
+def test_the_heavy_tailed_replicates_are_at_sigma(gaussian_fixture):
+    x, y = gaussian_fixture
+
+    model = Model(outcome=student_t(df=3.0), **SMALL)
+    fitted = model.fit(x, y, random_state=1, n_chains=1)
+    latent = fitted._fitted.predict_latent(x)
+    sigma = np.asarray(fitted._fitted.sigma())[:, None]
+    errors = np.random.default_rng(1).standard_t(3.0, size=latent.shape)
+    expected = latent + sigma * errors
+    np.testing.assert_array_equal(_replicates(fitted._fitted, x, 1), expected)
+    np.testing.assert_allclose(
+        sigma[:, 0] * np.sqrt(3.0), np.sqrt(fitted._fitted.predict_variance(x)[:, 0])
+    )
+
+    fitted = Model(outcome=laplace(), **SMALL).fit(x, y, random_state=1, n_chains=1)
+    latent = fitted._fitted.predict_latent(x)
+    sigma = np.asarray(fitted._fitted.sigma())[:, None]
+    errors = np.random.default_rng(1).laplace(0.0, 1.0, size=latent.shape)
+    expected = latent + sigma * errors
+    np.testing.assert_array_equal(_replicates(fitted._fitted, x, 1), expected)
+
+    model = Model(outcome=student_t(df=[2.0, 4.0]), **SMALL)
+    fitted = model.fit(x, y, random_state=1, n_chains=1)
+    assert np.isfinite(_replicates(fitted._fitted, x, 1)).all()
