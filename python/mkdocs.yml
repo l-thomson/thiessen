@@ -1,4 +1,5 @@
 site_name: thiessen
+site_url: https://l-thomson.github.io/thiessen/python/
 site_description: Bayesian additive Voronoi tessellations (AddiVortes)
 repo_url: https://github.com/l-thomson/thiessen
 edit_uri: ""
