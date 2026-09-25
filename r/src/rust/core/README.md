@@ -35,11 +35,24 @@ reproducible sampler underneath both.
 
 ## Install
 
-Rust, until the first crates.io release:
+Until the first release, each package installs from this repository
+and compiles the Rust core, so each needs rustc 1.74 or later with Cargo.
+
+Rust:
 
     cargo add thiessen --git https://github.com/l-thomson/thiessen
 
-Python and R packages are coming; their epics track the work.
+R (the [R package documentation](https://l-thomson.github.io/thiessen/r/)
+lists the platform prerequisites):
+
+```r
+install.packages("remotes")
+remotes::install_github("l-thomson/thiessen", subdir = "r")
+```
+
+Python ([documentation](https://l-thomson.github.io/thiessen/python/)):
+
+    pip install "thiessen @ git+https://github.com/l-thomson/thiessen#subdirectory=python"
 
 ## Example
 
@@ -66,8 +79,10 @@ draws; the full contract is in the crate-root documentation
 
 ## Models
 
-`Config::model` selects the Gaussian, probit or heteroscedastic model;
-their statements, priors and parameter correspondence with CRAN
+`Config::with_outcome` selects the model: `Outcome::gaussian()` for
+AddiVortes, `Outcome::probit()` for Binary AddiVortes, and the Gaussian
+outcome with a variance ensemble (`Config::with_m_var` above 0) for
+H-AddiVortes. Their statements, priors and parameter correspondence with CRAN
 AddiVortes and the BART family are in [docs/models.md](docs/models.md).
 Components and models beyond the published method are compiled only with
 the `experimental` Cargo feature and are outside the semver promise; see
