@@ -41,8 +41,6 @@ Suggests:
     knitr,
     loo,
     rmarkdown,
-    scoringRules,
-    SoftBart,
     spelling,
     srr,
     survival,

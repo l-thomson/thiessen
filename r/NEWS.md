@@ -53,12 +53,8 @@
   bayesplot, loo and tidybayes; chains, convergence and compute; what
   each prior does; covariates and the covariate space; the control
   surface; the sampler API with a worked censored-response imputation;
-  troubleshooting; and related software. A precomputed article group
-  for the experimental build, knitted by `tools/articles.sh` from an
-  opt-in build, opens with the catalogue and takes one case study per
-  item, the first on soft membership against SoftBart, scored through
-  scoringRules with the mixing of every method beside its accuracy. A
-  pkgdown site configuration groups the reference by surface.
+  troubleshooting; and related software. A pkgdown site configuration
+  groups the reference by surface.
 * `thiessen_sampler()` (experimental) drives the core's Gibbs loop one
   call at a time: `$step(n)`, `$keep()`, `$set_response()`,
   `$fitted_values()`, `$noise_variances()`, `$finish()` returning the fit

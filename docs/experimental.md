@@ -38,9 +38,9 @@ The stabilisation rule is stated once, in the crate-root documentation
 (`crates/thiessen/src/lib.rs`, Stability): graduation is a pull request
 against that rule, not a ticket. This file is the status table for every
 gated item; the pull-request column is the public record of each item's
-history. The R site renders the table for R readers on its
-[experimental page](https://l-thomson.github.io/thiessen/r/articles/experimental.html),
-where each item gains a case-study article as it is written.
+history. In R, each item's help page carries the experimental badge, and
+[`experimental_outcomes`](https://l-thomson.github.io/thiessen/r/reference/experimental_outcomes.html)
+states the policy.
 
 ## Table
 
@@ -54,7 +54,7 @@ where each item gains a case-study article as it is written.
 | Weighted inclusion | inclusion prior | `structure.inclusion` entry `{"weighted": {"weights": [...]}}` | `structure_params(inclusion = weighted_inclusion(w))` | `StructureParams(inclusion=weighted_inclusion(w))` | 0.3.0 | conformance, small SBC | experimental | [#66](https://github.com/l-thomson/thiessen/pull/66) |
 | DART inclusion | inclusion prior (model-grade validation) | `structure.inclusion` entry `{"dart": {"a": ..., "b": ..., "rho": ...}}` | `structure_params(inclusion = dart_inclusion())` | `StructureParams(inclusion=dart_inclusion())` | 0.3.0 | SBC and Geweke, both sizes; broken-sampler fixture | experimental | [#67](https://github.com/l-thomson/thiessen/pull/67) |
 | Linear cell basis | cell basis (model-grade validation) | `mean_params.cell.basis` entry `"linear"` | `term_params(cell = cell_params(basis = "linear"))` | `TermParams(cell=CellParams(basis="linear"))` | 0.3.0 | known answer; SBC and Geweke, both sizes; broken-sampler fixture | experimental | [#68](https://github.com/l-thomson/thiessen/pull/68) |
-| [Soft membership](https://l-thomson.github.io/thiessen/r/articles/soft-membership.html) | membership rule (model-grade validation) | `mean_params.geometry.membership` entry `{"soft": {"rate": ...}}` | `geometry_params(membership = soft_membership())` | `GeometryParams(membership=soft_membership())` | 0.3.0 | known answer; SBC and Geweke, both sizes; broken-sampler fixture | experimental | [#78](https://github.com/l-thomson/thiessen/pull/78) |
+| Soft membership | membership rule (model-grade validation) | `mean_params.geometry.membership` entry `{"soft": {"rate": ...}}` | `geometry_params(membership = soft_membership())` | `GeometryParams(membership=soft_membership())` | 0.3.0 | known answer; SBC and Geweke, both sizes; broken-sampler fixture | experimental | [#78](https://github.com/l-thomson/thiessen/pull/78) |
 | Tobit outcome | outcome model (model-grade validation) | `outcome` entry `{"tobit": {"lower": ..., "upper": ...}}` | `thiessen_control(outcome = tobit_outcome(lower = 0))` | `Model(outcome=tobit(lower=0.0))` | 0.3.0 | known answer (censored-likelihood quadrature); SBC and Geweke, both sizes | experimental | [#81](https://github.com/l-thomson/thiessen/pull/81) |
 | AFT outcome | outcome model (model-grade validation) | `outcome` entry `{"aft": {}}` with `fit_aft(x, times, events)` | `thiessen(x, Surv(time, event))`, `aft_outcome()` | `Model().fit(X, Surv.from_arrays(event, time))`, `aft()` | 0.3.0 | known answer (censored-likelihood quadrature); SBC and Geweke, both sizes; informational `abart` comparison | experimental | [#82](https://github.com/l-thomson/thiessen/pull/82) |
 | Interval-censored outcome | outcome model (model-grade validation) | `outcome` entry `{"interval_censored": {}}` with `fit_interval_censored(x, lower, upper)` | `thiessen(x, Surv(lower, upper, type = "interval2"))`, `interval_censored_outcome()` | `Model().fit(X, np.column_stack([lower, upper]))`, `interval_censored()` | 0.3.0 | known answer (interval-likelihood quadrature); SBC and Geweke, both sizes | experimental | [#83](https://github.com/l-thomson/thiessen/pull/83) |

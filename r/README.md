@@ -107,8 +107,6 @@ every page below with its output, beside the reference pages.
 - Building your own model: `vignette("sampler-api")`, the Gibbs loop
   driven from R, so an outcome family the package does not ship is built
   without Rust.
-- Experimental: the opt-in build, its catalogue, and one case study per
-  experimental item, on the website only.
 - Help: `vignette("troubleshooting")` and
   `vignette("related-software")`.
 
