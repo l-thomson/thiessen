@@ -132,7 +132,7 @@ replicate_draws.thiessen_student_t <- function(outcome, state, design) {
   if (length(df) == 0L) {
     df <- outcome$df
   }
-  latent + scale_at(state, design) * matrix(
+  latent + sigma_draws(state) * matrix(
     stats::rt(length(latent), df = df), nrow = nrow(latent)
   )
 }
@@ -143,7 +143,20 @@ replicate_draws.thiessen_laplace <- function(outcome, state, design) {
   # Laplace(0, 1) by inversion of the distribution function.
   u <- stats::runif(length(latent)) - 0.5
   errors <- -sign(u) * log1p(-2 * abs(u))
-  latent + scale_at(state, design) * matrix(errors, nrow = nrow(latent))
+  latent + sigma_draws(state) * matrix(errors, nrow = nrow(latent))
+}
+
+#' The scale sigma of the error per kept draw, on the caller's scale
+#'
+#' Under the Student-t and Laplace models the scale of the t or Laplace
+#' error, not the error standard deviation `predict_variance` squares.
+#'
+#' @param state An external pointer to the fitted state.
+#' @return A double vector, one value per kept draw, recycled down the
+#'   columns of a draws by rows matrix.
+#' @noRd
+sigma_draws <- function(state) {
+  core_call(core_sigma(state))
 }
 
 #' The residual scale of y given f at each row, per draw

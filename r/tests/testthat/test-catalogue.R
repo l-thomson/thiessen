@@ -335,4 +335,34 @@ test_that("posterior_predict draws on each family's support", {
   ))))
   expect_true(all(is.finite(replicates(y, outcome = student_t_outcome()))))
   expect_true(all(is.finite(replicates(y, outcome = laplace_outcome()))))
+  expect_true(all(is.finite(replicates(
+    y, outcome = student_t_outcome(df = c(2, 4))
+  ))))
+})
+
+test_that("the Student-t and Laplace replicates are the mean plus errors at sigma", {
+  skip_if_not(core_experimental())
+  fixture <- small_fixture()
+  x <- fixture$x
+  y <- fixture$y
+
+  fit <- thiessen(x, y, small_control(outcome = student_t_outcome(df = 3)), seed = 1)
+  state <- fit_state(fit)
+  latent <- core_predict_draws(state, x, "latent")
+  sigma <- core_sigma(state)
+  set.seed(6)
+  expected <- latent + sigma * matrix(stats::rt(length(latent), df = 3), nrow = nrow(latent))
+  set.seed(6)
+  expect_identical(posterior_predict(fit), expected)
+  expect_true(all(sigma * sqrt(3) - sqrt(core_predict_draws(state, x, "variance")[, 1]) < 1e-12))
+
+  fit <- thiessen(x, y, small_control(outcome = laplace_outcome()), seed = 1)
+  state <- fit_state(fit)
+  latent <- core_predict_draws(state, x, "latent")
+  sigma <- core_sigma(state)
+  set.seed(7)
+  u <- stats::runif(length(latent)) - 0.5
+  expected <- latent + sigma * matrix(-sign(u) * log1p(-2 * abs(u)), nrow = nrow(latent))
+  set.seed(7)
+  expect_identical(posterior_predict(fit), expected)
 })
