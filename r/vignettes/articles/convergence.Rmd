@@ -1,10 +1,5 @@
 ---
 title: "Chains, convergence and compute"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Chains, convergence and compute}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}

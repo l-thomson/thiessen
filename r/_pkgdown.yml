@@ -20,9 +20,9 @@ articles:
     against a known truth. The model description page holds the
     notation the others cite.
   contents:
-  - gaussian
+  - articles/gaussian
   - binary-addivortes
-  - h-addivortes
+  - articles/h-addivortes
   - model-description
 - title: Using a fit
   navbar: Using a fit
@@ -32,9 +32,9 @@ articles:
     space, and every configuration group.
   contents:
   - posterior
-  - convergence
+  - articles/convergence
   - priors
-  - covariates
+  - articles/covariates
   - control-surface
 - title: Building your own model
   navbar: Extending
@@ -43,16 +43,6 @@ articles:
     censoring scheme the package does not ship is written without Rust.
   contents:
   - sampler-api
-- title: Experimental
-  navbar: Experimental
-  desc: >
-    Outcome families and component options compiled only into a build
-    made with `THIESSEN_EXPERIMENTAL=1`, tested to the standard of the
-    published models and outside the semantic-versioning promise until
-    each graduates. These pages are precomputed from an opt-in build.
-  contents:
-  - articles/experimental
-  - articles/soft-membership
 - title: Help
   navbar: Help
   contents:

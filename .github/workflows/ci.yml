@@ -511,16 +511,16 @@ jobs:
         shell: Rscript {0}
         working-directory: r
       - run: git diff --exit-code -- r/README.md
-      # Published under /r/, leaving the root for the shared index. Without
-      # `clean`, the deploy touches nothing outside that folder, so a second
-      # site can live beside it.
+      # Published under /r/, leaving the root for the shared index. `clean`
+      # deletes stale files under `target-folder` only (the action rsyncs
+      # into it with --delete), so the sites beside it are untouched.
       - if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
         with:
           branch: gh-pages
           folder: r/docs
           target-folder: r
-          clean: false
+          clean: true
       # A pull request reads the site as an artefact instead.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
