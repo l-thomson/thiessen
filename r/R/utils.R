@@ -443,11 +443,7 @@ resolve_chains <- function(chains, call = rlang::caller_env()) {
 #' @return An integer.
 #' @noRd
 resolve_threads <- function(threads, call = rlang::caller_env()) {
-  if (!is.numeric(threads) || length(threads) != 1L || is.na(threads) ||
-        threads < 1 || threads != trunc(threads)) {
-    thiessen_abort("`threads` must be a whole number of at least 1.",
-                   call = call)
-  }
+  check_whole_number(threads, min = 1, call = call)
   as.integer(threads)
 }
 
