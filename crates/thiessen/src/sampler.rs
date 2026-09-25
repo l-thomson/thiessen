@@ -270,9 +270,12 @@ struct Dart {
 impl Dart {
     const GRID: usize = 1000;
 
-    /// The grid for (a, b, rho), the state drawn from its prior: theta
-    /// from the grid, then s ~ Dirichlet(theta / p). Draw order: one
-    /// uniform for theta, then p gammas.
+    /// The grid for (a, b, rho), theta drawn from its grid prior and s
+    /// started uniform at 1 / p, as the BART package starts it. A prior
+    /// draw of s is spiky when theta is small, and the structural moves
+    /// pick columns in proportion to s, so a column starting near zero
+    /// is never proposed and the chain sits there. Draw order: one
+    /// uniform for theta.
     fn draw(a: f64, b: f64, rho: f64, p: usize, rng: &mut rng::Rng) -> Self {
         let k = Self::GRID;
         let mut grid_theta = Vec::with_capacity(k);
@@ -291,7 +294,7 @@ impl Dart {
         };
         let index = rng::draw_discrete(&dart.log_grid_prior, rng);
         dart.theta = dart.grid_theta[index];
-        dart.s = draw_dirichlet(&vec![dart.theta / p as f64; p], rng);
+        dart.s = vec![1.0 / p as f64; p];
         dart
     }
 }

@@ -48,14 +48,17 @@ def _replicates(fitted: _native.Fitted, design: Float, seed: int) -> Float:
         cutpoints = np.concatenate([np.zeros((n_draws, 1)), interior], axis=1)
         z = latent + rng.standard_normal(latent.shape)
         return (z[:, :, None] > cutpoints[:, None, :]).sum(axis=2).astype(np.float64)
-    scale = np.sqrt(fitted.predict_variance(design))
     outcome: dict[str, Any] = json.loads(fitted.config)["outcome"]
-    if model == "student_t":
-        dfs = np.asarray(fitted.dfs())
-        df = dfs[:, None] if dfs.size else float(outcome["student_t"]["df"])
-        return latent + scale * rng.standard_t(df, size=latent.shape)
-    if model == "laplace":
-        return latent + rng.laplace(0.0, scale)
+    if model in ("student_t", "laplace"):
+        # The scale of the t or Laplace error per draw, not the error
+        # standard deviation `predict_variance` squares.
+        sigma = np.asarray(fitted.sigma())[:, None]
+        if model == "student_t":
+            dfs = np.asarray(fitted.dfs())
+            df = dfs[:, None] if dfs.size else float(outcome["student_t"]["df"])
+            return latent + sigma * rng.standard_t(df, size=latent.shape)
+        return latent + sigma * rng.laplace(0.0, 1.0, size=latent.shape)
+    scale = np.sqrt(fitted.predict_variance(design))
     values = latent + rng.normal(0.0, scale)
     if model == "aft":
         return np.exp(values)

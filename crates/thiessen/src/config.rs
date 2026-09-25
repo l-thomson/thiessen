@@ -784,12 +784,12 @@ pub enum Inclusion {
     /// weights, and the concentration theta is sampled on the BART grid,
     /// lambda = theta / (theta + rho) uniform over 1000 points of (0, 1)
     /// with prior weights Beta(a, b); the grid is the prior, not an
-    /// approximation of one. s is updated by a Metropolis step whose
-    /// Dirichlet(theta / p + counts) proposal leaves exactly the
-    /// subset-prior normalisers in the ratio. In the API this is a
-    /// component of the term group; in validation it is model-grade,
-    /// because the sampled weights change the posterior. Experimental
-    /// (`docs/experimental.md`).
+    /// approximation of one. s starts uniform at 1 / p and is updated by
+    /// a Metropolis step whose Dirichlet(theta / p + counts) proposal
+    /// leaves exactly the subset-prior normalisers in the ratio. In the
+    /// API this is a component of the term group; in validation it is
+    /// model-grade, because the sampled weights change the posterior.
+    /// Experimental (`docs/experimental.md`).
     #[cfg(feature = "experimental")]
     #[cfg_attr(docsrs, doc(cfg(feature = "experimental")))]
     Dart {

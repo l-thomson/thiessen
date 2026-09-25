@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      cargo:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
     ignore:
       # The reproducibility contract pins distribution sampling to a
       # minor series; rand-family bumps change sampled values.
@@ -22,7 +26,15 @@ updates:
     directory: "/python"
     schedule:
       interval: weekly
+    groups:
+      pip:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

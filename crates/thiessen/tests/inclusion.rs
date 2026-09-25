@@ -283,3 +283,51 @@ fn loading_checks_the_dart_draws_against_the_prior() {
     }
     assert!(invalid(&wide));
 }
+
+/// Friedman #1 on the first five of `p` uniform columns, unit noise.
+fn friedman(n: usize, p: usize, seed: u64) -> (thiessen::Data, Vec<f64>) {
+    let mut rng = common::TestRng(seed);
+    let mut rows = Vec::with_capacity(n);
+    let mut y = Vec::with_capacity(n);
+    for _ in 0..n {
+        let x: Vec<f64> = (0..p).map(|_| rng.uniform()).collect();
+        let f = 10.0 * (std::f64::consts::PI * x[0] * x[1]).sin()
+            + 20.0 * (x[2] - 0.5) * (x[2] - 0.5)
+            + 10.0 * x[3]
+            + 5.0 * x[4];
+        y.push(f + rng.normal());
+        rows.push(x);
+    }
+    (thiessen::Data::from_rows(&rows).unwrap(), y)
+}
+
+/// Four chains at p = 50 agree on the weight of the five informative
+/// columns. The structural moves pick columns in proportion to the
+/// weights, so a chain whose weights start spiky never proposes the
+/// columns that start near zero; started uniform, every chain finds
+/// them. omega = 1 keeps the dimension budget near the informative
+/// count.
+#[test]
+#[ignore = "four chains at p = 50, nightly"]
+fn dart_chains_agree_on_the_informative_columns() {
+    let (x, y) = friedman(300, 50, 1);
+    let config = Config::new()
+        .with_omega(1.0)
+        .with_burn_in(1000)
+        .with_draws(1000)
+        .with_inclusion(dart());
+    let shares: Vec<f64> = (1..=4)
+        .map(|seed| {
+            let fitted = fit(&config, &x, &y, seed).unwrap();
+            let draws = fitted.inclusion_weight_draws();
+            draws
+                .iter()
+                .map(|s| s[..5].iter().sum::<f64>())
+                .sum::<f64>()
+                / draws.len() as f64
+        })
+        .collect();
+    for share in &shares {
+        assert!(*share > 0.5, "{shares:?}");
+    }
+}

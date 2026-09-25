@@ -258,8 +258,12 @@ e_d is the elementary symmetric polynomial, the subset-prior
 normaliser. Defaults a = 0.5, b = 1, rho = p (Linero 2018; the BART
 package's `sparse = TRUE` defaults). The grid is the prior, not an
 approximation of one: theta's conditional is sampled exactly on it. s
-is updated by a Metropolis step whose Dirichlet(theta / p + counts)
-proposal leaves exactly the normalisers e_d in the acceptance ratio.
+starts uniform at 1 / p, as the BART package starts it, and is updated
+by a Metropolis step whose Dirichlet(theta / p + counts) proposal
+leaves exactly the normalisers e_d in the acceptance ratio. A prior
+draw of s is spiky when theta is small, and the structural moves pick
+columns in proportion to s, so a chain started there never proposes
+the columns that start near zero.
 The weights are shared between the mean and the variance ensembles,
 whose declared structure is one group. Validation: SBC and Geweke at
 both sizes, and a broken-sampler fixture dropping the normalisers from

@@ -289,6 +289,14 @@ says "Sampled values changed" with the reason.
 
 ### Changed
 
+- (experimental) `Inclusion::Dart` starts the inclusion weights uniform
+  at 1 / p, as the BART package does, in place of a draw from their
+  prior. A prior draw is spiky when theta is small, and the structural
+  moves pick columns in proportion to the weights, so a column starting
+  near zero was never proposed and the chain sat there: at p = 50 two
+  of four chains held the informative columns below a tenth of the
+  weight for 2000 sweeps. Sampled values changed under `Inclusion::Dart`
+  (one draw fewer at start); every other configuration is unchanged.
 - A configuration naming an item the build gates behind `experimental` is
   reported by `Config::validate` as `Error::RequiresFeature` naming the
   item, in place of a serde unknown-variant or unknown-field error, so a
