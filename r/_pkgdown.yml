@@ -21,7 +21,7 @@ articles:
     notation the others cite.
   contents:
   - articles/gaussian
-  - binary-addivortes
+  - articles/binary-addivortes
   - articles/h-addivortes
   - model-description
 - title: Using a fit
