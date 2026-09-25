@@ -279,7 +279,7 @@ weighted_inclusion <- function(weights) {
 #' are carried by [posterior::as_draws_df()] as `inclusion_weight[j]` and
 #' `concentration`.
 #'
-#' This is Linero's (2018) prior carried over from trees. It is not the
+#' This is the prior of Linero (2018) carried over from trees. It is not the
 #' Dirichlet AddiVortes of Stone and Gosling (in preparation), whose subset
 #' prior draws covariates sequentially without replacement and whose weights
 #' have an exact Gibbs update by latent augmentation.
