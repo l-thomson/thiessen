@@ -101,13 +101,13 @@ not installed as vignettes.
 - Get started:
   [`vignette("thiessen")`](https://l-thomson.github.io/thiessen/r/articles/thiessen.md),
   one data set end to end.
-- Models: [Gaussian
-  regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.html)
-  (website),
-  [`vignette("binary-addivortes")`](https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.md)
+- Models (website): [Gaussian
+  regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.html),
+  [Binary
+  AddiVortes](https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.html)
   and
-  [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html)
-  (website), one page per published model on one template, with
+  [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html),
+  one page per published model on one template, with
   [`vignette("model-description")`](https://l-thomson.github.io/thiessen/r/articles/model-description.md)
   holding the notation and the symbol-to-argument table.
 - Using a fit:

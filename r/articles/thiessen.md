@@ -231,7 +231,7 @@ static document. Reporting does not change the draws.
 - [Gaussian
   regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.html),
   [Binary
-  AddiVortes](https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.md)
+  AddiVortes](https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.html)
   and
   [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html):
   one page per published model, with the likelihood, the priors and a

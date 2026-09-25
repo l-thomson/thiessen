@@ -86,8 +86,8 @@
   bayesplot, loo and tidybayes; chains, convergence and compute; what
   each prior does; covariates and the covariate space; the control
   surface; the sampler API with a worked censored-response imputation;
-  troubleshooting; and related software. Nine are installed as
-  vignettes; the Gaussian, H-AddiVortes, convergence and covariates
+  troubleshooting; and related software. Eight are installed as
+  vignettes; the three model pages and the convergence and covariates
   guides run longer than a package check allows and are website
   articles. A pkgdown site configuration groups the reference by
   surface.
