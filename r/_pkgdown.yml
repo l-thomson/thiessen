@@ -20,9 +20,9 @@ articles:
     against a known truth. The model description page holds the
     notation the others cite.
   contents:
-  - gaussian
+  - articles/gaussian
   - binary-addivortes
-  - h-addivortes
+  - articles/h-addivortes
   - model-description
 - title: Using a fit
   navbar: Using a fit
@@ -32,9 +32,9 @@ articles:
     space, and every configuration group.
   contents:
   - posterior
-  - convergence
+  - articles/convergence
   - priors
-  - covariates
+  - articles/covariates
   - control-surface
 - title: Building your own model
   navbar: Extending

@@ -1,10 +1,5 @@
 ---
 title: "H-AddiVortes: heteroscedastic regression"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{H-AddiVortes: heteroscedastic regression}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
