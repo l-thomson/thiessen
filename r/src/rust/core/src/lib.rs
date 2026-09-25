@@ -41,6 +41,12 @@
 //! Monte Carlo error. The testing strategy, from unit tests to
 //! simulation-based calibration, is `docs/testing.md` in the repository.
 //!
+//! A [`Fitted`] reloads bit-exact from a serde format that restores each
+//! `f64` exactly: a binary format such as MessagePack, or `serde_json` with
+//! its `float_roundtrip` feature. Without that feature `serde_json` parses
+//! to within one ULP, and a reloaded fit's state and predictions can differ
+//! in the last bits.
+//!
 //! Configurations using options behind the `experimental` feature are
 //! deterministic under the same contract and carry fixed-seed snapshots on
 //! the reference target, but their sampled values may change in any
