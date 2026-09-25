@@ -2,7 +2,7 @@ Package: thiessen
 Title: Bayesian Additive Voronoi Tessellations
 Version: 0.0.0.9000
 Authors@R: c(
-    person("Leo", "Thomson", , "leo@feasibly.co.uk", role = c("aut", "cre")),
+    person("Leo", "Thomson", , "hello@leothomson.dev", role = c("aut", "cre")),
     person("The authors of the vendored Rust crates", role = "cph",
            comment = "listed in inst/AUTHORS"))
 Description: Bayesian regression on a sum of Voronoi tessellations

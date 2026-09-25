@@ -5,7 +5,7 @@ type: software
 authors:
   - family-names: Thomson
     given-names: Leo
-    email: leo@feasibly.co.uk
+    email: hello@leothomson.dev
 repository-code: "https://github.com/l-thomson/thiessen"
 license:
   - MIT
