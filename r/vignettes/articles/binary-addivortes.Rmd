@@ -1,10 +1,5 @@
 ---
 title: "Binary AddiVortes: probit classification"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Binary AddiVortes: probit classification}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
