@@ -40,18 +40,6 @@ censoring scheme the package does not ship is written without Rust.
 - [The sampler
   API](https://l-thomson.github.io/thiessen/r/articles/sampler-api.md):
 
-### Experimental
-
-Outcome families and component options compiled only into a build made
-with `THIESSEN_EXPERIMENTAL=1`, tested to the standard of the published
-models and outside the semantic-versioning promise until each graduates.
-These pages are precomputed from an opt-in build.
-
-- [The experimental build and the
-  catalogue](https://l-thomson.github.io/thiessen/r/articles/experimental.md):
-- [Soft
-  membership](https://l-thomson.github.io/thiessen/r/articles/soft-membership.md):
-
 ### Help
 
 - [Troubleshooting](https://l-thomson.github.io/thiessen/r/articles/troubleshooting.md):

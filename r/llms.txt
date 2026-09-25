@@ -94,36 +94,38 @@ and `loo::loo(log_lik(fit))` all take the fit.
 ## Documentation
 
 The [package website](https://l-thomson.github.io/thiessen/r/) renders
-every page below with its output, beside the reference pages.
+every page below with its output, beside the reference pages. Pages
+marked (website) take longer to run than a package check allows and are
+not installed as vignettes.
 
 - Get started:
   [`vignette("thiessen")`](https://l-thomson.github.io/thiessen/r/articles/thiessen.md),
   one data set end to end.
-- Models:
-  [`vignette("gaussian")`](https://l-thomson.github.io/thiessen/r/articles/gaussian.md),
+- Models: [Gaussian
+  regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.html)
+  (website),
   [`vignette("binary-addivortes")`](https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.md)
   and
-  [`vignette("h-addivortes")`](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.md),
-  one page per published model on one template, with
+  [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html)
+  (website), one page per published model on one template, with
   [`vignette("model-description")`](https://l-thomson.github.io/thiessen/r/articles/model-description.md)
   holding the notation and the symbol-to-argument table.
 - Using a fit:
   [`vignette("posterior")`](https://l-thomson.github.io/thiessen/r/articles/posterior.md)
-  for the draws through posterior, bayesplot, loo and tidybayes;
-  [`vignette("convergence")`](https://l-thomson.github.io/thiessen/r/articles/convergence.md)
-  for the chains, R-hat, effective sample size and compute;
+  for the draws through posterior, bayesplot, loo and tidybayes; [chains
+  and
+  convergence](https://l-thomson.github.io/thiessen/r/articles/convergence.html)
+  (website) for the chains, R-hat, effective sample size and compute;
   [`vignette("priors")`](https://l-thomson.github.io/thiessen/r/articles/priors.md)
   for what each prior does;
-  [`vignette("covariates")`](https://l-thomson.github.io/thiessen/r/articles/covariates.md)
-  for factors, scaling and the covariate space;
+  [covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.html)
+  (website) for factors, scaling and the covariate space;
   [`vignette("control-surface")`](https://l-thomson.github.io/thiessen/r/articles/control-surface.md)
   for every configuration group.
 - Building your own model:
   [`vignette("sampler-api")`](https://l-thomson.github.io/thiessen/r/articles/sampler-api.md),
   the Gibbs loop driven from R, so an outcome family the package does
   not ship is built without Rust.
-- Experimental: the opt-in build, its catalogue, and one case study per
-  experimental item, on the website only.
 - Help:
   [`vignette("troubleshooting")`](https://l-thomson.github.io/thiessen/r/articles/troubleshooting.md)
   and
@@ -342,18 +344,6 @@ censoring scheme the package does not ship is written without Rust.
 
 - [The sampler
   API](https://l-thomson.github.io/thiessen/r/articles/sampler-api.md):
-
-### Experimental
-
-Outcome families and component options compiled only into a build made
-with `THIESSEN_EXPERIMENTAL=1`, tested to the standard of the published
-models and outside the semantic-versioning promise until each graduates.
-These pages are precomputed from an opt-in build.
-
-- [The experimental build and the
-  catalogue](https://l-thomson.github.io/thiessen/r/articles/experimental.md):
-- [Soft
-  membership](https://l-thomson.github.io/thiessen/r/articles/soft-membership.md):
 
 ### Help
 

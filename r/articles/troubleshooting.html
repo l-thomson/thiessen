@@ -51,10 +51,6 @@
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
-    <li><a class="dropdown-item" href="../articles/experimental.html">The experimental build and the catalogue</a></li>
-    <li><a class="dropdown-item" href="../articles/soft-membership.html">Soft membership</a></li>
-    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Help</h6></li>
     <li><a class="dropdown-item" href="../articles/troubleshooting.html">Troubleshooting</a></li>
     <li><a class="dropdown-item" href="../articles/related-software.html">Related software</a></li>
@@ -136,8 +132,8 @@ and report too.</p>
 More draws per chain, <code>general_params(draws = )</code>, is the
 first remedy, then more chains; <code>thinning</code> reduces the stored
 draws without adding information, so it is not the remedy for a low
-effective sample size. The <a href="convergence.html">chains and
-convergence</a> page shows a fit that warns beside one that does
+effective sample size. The <a href="https://l-thomson.github.io/thiessen/r/articles/convergence.html">chains
+and convergence</a> page shows a fit that warns beside one that does
 not.</p>
 <p>The warning fires on any short schedule, this page’s included, and
 carries the condition class <code>thiessen_warning</code>, so a script
@@ -176,7 +172,8 @@ types; a factor needs the same levels.</p>
 entry per column of the data and a factor column must be declared
 <code>"categorical"</code>; the factor then passes as level codes rather
 than as indicators. Without a declared metric every column is Euclidean
-and a factor becomes d - 1 indicators. The <a href="covariates.html">covariates</a> page shows both.</p>
+and a factor becomes d - 1 indicators. The <a href="https://l-thomson.github.io/thiessen/r/articles/covariates.html">covariates</a>
+page shows both.</p>
 </div>
 <div class="section level2">
 <h2 id="a-configuration-is-rejected">A configuration is rejected<a class="anchor" aria-label="anchor" href="#a-configuration-is-rejected"></a>

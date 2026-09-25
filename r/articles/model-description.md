@@ -28,7 +28,7 @@ oblique to the axes is one cell boundary here and many splits there.
 
 Distance is Euclidean on covariates scaled to \[-0.5, 0.5\] over their
 training range, with two exceptions the
-[covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.md)
+[covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.html)
 page describes: a categorical column takes a mismatch distance, and the
 columns of a sphere take the great-circle angle.
 

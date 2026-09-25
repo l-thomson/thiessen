@@ -35,10 +35,6 @@
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
-    <li><a class="dropdown-item" href="../articles/experimental.html">The experimental build and the catalogue</a></li>
-    <li><a class="dropdown-item" href="../articles/soft-membership.html">Soft membership</a></li>
-    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Help</h6></li>
     <li><a class="dropdown-item" href="../articles/troubleshooting.html">Troubleshooting</a></li>
     <li><a class="dropdown-item" href="../articles/related-software.html">Related software</a></li>
@@ -102,6 +98,10 @@ concentration theta is drawn on a grid with lambda = theta / (theta +
 rho) under a Beta(a, b) prior. The sampled weights and concentration
 are carried by <code><a href="https://mc-stan.org/posterior/reference/draws_df.html" class="external-link">posterior::as_draws_df()</a></code> as <code>inclusion_weight[j]</code> and
 <code>concentration</code>.</p>
+<p>This is the prior of Linero (2018) carried over from trees. It is not the
+Dirichlet AddiVortes of Stone and Gosling (in preparation), whose subset
+prior draws covariates sequentially without replacement and whose weights
+have an exact Gibbs update by latent augmentation.</p>
     </div>
     <div class="section level2">
     <h2 id="experimental">Experimental<a class="anchor" aria-label="anchor" href="#experimental"></a></h2>

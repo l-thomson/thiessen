@@ -53,10 +53,6 @@
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="articles/sampler-api.html">The sampler API</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
-    <li><a class="dropdown-item" href="articles/experimental.html">The experimental build and the catalogue</a></li>
-    <li><a class="dropdown-item" href="articles/soft-membership.html">Soft membership</a></li>
-    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Help</h6></li>
     <li><a class="dropdown-item" href="articles/troubleshooting.html">Troubleshooting</a></li>
     <li><a class="dropdown-item" href="articles/related-software.html">Related software</a></li>
@@ -131,13 +127,12 @@
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<p>The <a href="https://l-thomson.github.io/thiessen/r/">package website</a> renders every page below with its output, beside the reference pages.</p>
+<p>The <a href="https://l-thomson.github.io/thiessen/r/">package website</a> renders every page below with its output, beside the reference pages. Pages marked (website) take longer to run than a package check allows and are not installed as vignettes.</p>
 <ul>
 <li>Get started: <code><a href="articles/thiessen.html">vignette("thiessen")</a></code>, one data set end to end.</li>
-<li>Models: <code><a href="articles/gaussian.html">vignette("gaussian")</a></code>, <code><a href="articles/binary-addivortes.html">vignette("binary-addivortes")</a></code> and <code><a href="articles/h-addivortes.html">vignette("h-addivortes")</a></code>, one page per published model on one template, with <code><a href="articles/model-description.html">vignette("model-description")</a></code> holding the notation and the symbol-to-argument table.</li>
-<li>Using a fit: <code><a href="articles/posterior.html">vignette("posterior")</a></code> for the draws through posterior, bayesplot, loo and tidybayes; <code><a href="articles/convergence.html">vignette("convergence")</a></code> for the chains, R-hat, effective sample size and compute; <code><a href="articles/priors.html">vignette("priors")</a></code> for what each prior does; <code><a href="articles/covariates.html">vignette("covariates")</a></code> for factors, scaling and the covariate space; <code><a href="articles/control-surface.html">vignette("control-surface")</a></code> for every configuration group.</li>
+<li>Models: <a href="https://l-thomson.github.io/thiessen/r/articles/gaussian.html">Gaussian regression</a> (website), <code><a href="articles/binary-addivortes.html">vignette("binary-addivortes")</a></code> and <a href="https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html">H-AddiVortes</a> (website), one page per published model on one template, with <code><a href="articles/model-description.html">vignette("model-description")</a></code> holding the notation and the symbol-to-argument table.</li>
+<li>Using a fit: <code><a href="articles/posterior.html">vignette("posterior")</a></code> for the draws through posterior, bayesplot, loo and tidybayes; <a href="https://l-thomson.github.io/thiessen/r/articles/convergence.html">chains and convergence</a> (website) for the chains, R-hat, effective sample size and compute; <code><a href="articles/priors.html">vignette("priors")</a></code> for what each prior does; <a href="https://l-thomson.github.io/thiessen/r/articles/covariates.html">covariates</a> (website) for factors, scaling and the covariate space; <code><a href="articles/control-surface.html">vignette("control-surface")</a></code> for every configuration group.</li>
 <li>Building your own model: <code><a href="articles/sampler-api.html">vignette("sampler-api")</a></code>, the Gibbs loop driven from R, so an outcome family the package does not ship is built without Rust.</li>
-<li>Experimental: the opt-in build, its catalogue, and one case study per experimental item, on the website only.</li>
 <li>Help: <code><a href="articles/troubleshooting.html">vignette("troubleshooting")</a></code> and <code><a href="articles/related-software.html">vignette("related-software")</a></code>.</li>
 </ul>
 </div>

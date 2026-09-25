@@ -36,11 +36,11 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Leo Thomson <leo@feasibly.co.uk>
+**Maintainer**: Leo Thomson <hello@leothomson.dev>
 
 Authors:
 
-- Leo Thomson <leo@feasibly.co.uk>
+- Leo Thomson <hello@leothomson.dev>
 
 Other contributors:
 

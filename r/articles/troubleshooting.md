@@ -51,7 +51,7 @@ effective sample sizes. More draws per chain,
 `general_params(draws = )`, is the first remedy, then more chains;
 `thinning` reduces the stored draws without adding information, so it is
 not the remedy for a low effective sample size. The [chains and
-convergence](https://l-thomson.github.io/thiessen/r/articles/convergence.md)
+convergence](https://l-thomson.github.io/thiessen/r/articles/convergence.html)
 page shows a fit that warns beside one that does not.
 
 The warning fires on any short schedule, this page’s included, and
@@ -94,7 +94,7 @@ of the data and a factor column must be declared `"categorical"`; the
 factor then passes as level codes rather than as indicators. Without a
 declared metric every column is Euclidean and a factor becomes d - 1
 indicators. The
-[covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.md)
+[covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.html)
 page shows both.
 
 ## A configuration is rejected

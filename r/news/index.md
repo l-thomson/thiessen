@@ -79,19 +79,18 @@
   p = 10 the default schedule reaches a smallest effective sample size
   of about 100 and a largest R-hat of about 1.05, so a default fit
   warns; more draws per chain is the remedy.
-- Thirteen vignettes, executed at build and grouped on the site: getting
+- Thirteen guides, executed at build and grouped on the site: getting
   started; one page per published model on one template (likelihood,
   priors, posterior, example against a known truth) with a model
   description page holding the notation; the draws through posterior,
   bayesplot, loo and tidybayes; chains, convergence and compute; what
   each prior does; covariates and the covariate space; the control
   surface; the sampler API with a worked censored-response imputation;
-  troubleshooting; and related software. A precomputed article group for
-  the experimental build, knitted by `tools/articles.sh` from an opt-in
-  build, opens with the catalogue and takes one case study per item, the
-  first on soft membership against SoftBart, scored through scoringRules
-  with the mixing of every method beside its accuracy. A pkgdown site
-  configuration groups the reference by surface.
+  troubleshooting; and related software. Nine are installed as
+  vignettes; the Gaussian, H-AddiVortes, convergence and covariates
+  guides run longer than a package check allows and are website
+  articles. A pkgdown site configuration groups the reference by
+  surface.
 - [`thiessen_sampler()`](https://l-thomson.github.io/thiessen/r/reference/thiessen_sampler.md)
   (experimental) drives the core’s Gibbs loop one call at a time:
   `$step(n)`, `$keep()`, `$set_response()`, `$fitted_values()`,

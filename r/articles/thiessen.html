@@ -51,10 +51,6 @@
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
-    <li><a class="dropdown-item" href="../articles/experimental.html">The experimental build and the catalogue</a></li>
-    <li><a class="dropdown-item" href="../articles/soft-membership.html">Soft membership</a></li>
-    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Help</h6></li>
     <li><a class="dropdown-item" href="../articles/troubleshooting.html">Troubleshooting</a></li>
     <li><a class="dropdown-item" href="../articles/related-software.html">Related software</a></li>
@@ -135,12 +131,13 @@ in <code>a</code>, linear in <code>b</code>, shifted for one level of
 <p>The defaults are the published configuration: 200 tessellations, 200
 burn-in sweeps and 1000 kept draws, run as four chains whose draws are
 pooled. The last line of the print is the convergence check over the
-four chains, R-hat and the smallest effective sample size; the <a href="convergence.html">chains and convergence</a> page says what it
-monitors and what to do when it warns.</p>
+four chains, R-hat and the smallest effective sample size; the <a href="https://l-thomson.github.io/thiessen/r/articles/convergence.html">chains
+and convergence</a> page says what it monitors and what to do when it
+warns.</p>
 <p>A factor covariate becomes d - 1 treatment-contrast indicators, the
 first level as reference, as <code><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix()</a></code> encodes one;
-the <a href="covariates.html">covariates</a> page covers the encoding
-and the alternatives.</p>
+the <a href="https://l-thomson.github.io/thiessen/r/articles/covariates.html">covariates</a>
+page covers the encoding and the alternatives.</p>
 </div>
 <div class="section level2">
 <h2 id="predictions-and-intervals">Predictions and intervals<a class="anchor" aria-label="anchor" href="#predictions-and-intervals"></a>
@@ -282,16 +279,19 @@ static document. Reporting does not change the draws.</p>
 </h2>
 <ul>
 <li>
-<a href="gaussian.html">Gaussian regression</a>, <a href="binary-addivortes.html">Binary AddiVortes</a> and <a href="h-addivortes.html">H-AddiVortes</a>: one page per published model,
-with the likelihood, the priors and a worked example against a known
-truth. <a href="model-description.html">Model description</a> holds the
-notation and the symbol-to-argument table.</li>
+<a href="https://l-thomson.github.io/thiessen/r/articles/gaussian.html">Gaussian
+regression</a>, <a href="binary-addivortes.html">Binary AddiVortes</a>
+and <a href="https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html">H-AddiVortes</a>:
+one page per published model, with the likelihood, the priors and a
+worked example against a known truth. <a href="model-description.html">Model description</a> holds the notation
+and the symbol-to-argument table.</li>
 <li>
 <a href="posterior.html">Working with the posterior</a>: the draws
 through posterior, bayesplot, loo and tidybayes.</li>
 <li>
-<a href="convergence.html">Chains, convergence and compute</a>: what
-the four chains monitor, when the fit warns, and what a fit costs.</li>
+<a href="https://l-thomson.github.io/thiessen/r/articles/convergence.html">Chains,
+convergence and compute</a>: what the four chains monitor, when the fit
+warns, and what a fit costs.</li>
 <li>
 <a href="control-surface.html">The control surface</a>: every
 configuration group and the defaults the core resolves.</li>

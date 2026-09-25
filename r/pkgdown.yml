@@ -4,20 +4,18 @@ pkgdown_sha: ~
 articles:
   binary-addivortes: binary-addivortes.html
   control-surface: control-surface.html
-  convergence: convergence.html
-  covariates: covariates.html
-  articles/experimental: experimental.html
-  gaussian: gaussian.html
-  h-addivortes: h-addivortes.html
+  articles/convergence: convergence.html
+  articles/covariates: covariates.html
+  articles/gaussian: gaussian.html
+  articles/h-addivortes: h-addivortes.html
   model-description: model-description.html
   posterior: posterior.html
   priors: priors.html
   related-software: related-software.html
   sampler-api: sampler-api.html
-  articles/soft-membership: soft-membership.html
   thiessen: thiessen.html
   troubleshooting: troubleshooting.html
-last_built: 2026-09-25T19:24Z
+last_built: 2026-09-25T20:09Z
 urls:
   reference: https://l-thomson.github.io/thiessen/r/reference
   article: https://l-thomson.github.io/thiessen/r/articles

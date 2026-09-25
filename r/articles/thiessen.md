@@ -51,14 +51,14 @@ burn-in sweeps and 1000 kept draws, run as four chains whose draws are
 pooled. The last line of the print is the convergence check over the
 four chains, R-hat and the smallest effective sample size; the [chains
 and
-convergence](https://l-thomson.github.io/thiessen/r/articles/convergence.md)
+convergence](https://l-thomson.github.io/thiessen/r/articles/convergence.html)
 page says what it monitors and what to do when it warns.
 
 A factor covariate becomes d - 1 treatment-contrast indicators, the
 first level as reference, as
 [`model.matrix()`](https://rdrr.io/r/stats/model.matrix.html) encodes
 one; the
-[covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.md)
+[covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.html)
 page covers the encoding and the alternatives.
 
 ## Predictions and intervals
@@ -229,11 +229,11 @@ static document. Reporting does not change the draws.
 ## Where next
 
 - [Gaussian
-  regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.md),
+  regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.html),
   [Binary
   AddiVortes](https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.md)
   and
-  [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.md):
+  [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html):
   one page per published model, with the likelihood, the priors and a
   worked example against a known truth. [Model
   description](https://l-thomson.github.io/thiessen/r/articles/model-description.md)
@@ -242,7 +242,7 @@ static document. Reporting does not change the draws.
   posterior](https://l-thomson.github.io/thiessen/r/articles/posterior.md):
   the draws through posterior, bayesplot, loo and tidybayes.
 - [Chains, convergence and
-  compute](https://l-thomson.github.io/thiessen/r/articles/convergence.md):
+  compute](https://l-thomson.github.io/thiessen/r/articles/convergence.html):
   what the four chains monitor, when the fit warns, and what a fit
   costs.
 - [The control
