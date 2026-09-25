@@ -25,8 +25,9 @@ The pages in this group are one case study per item: what the item
 changes in the model, a task where the change shows, the item beside
 the default and beside the strongest external method on CRAN, the
 calibration evidence, and a paragraph on what has not been derived.
-They are precomputed from an opt-in build and knitted again each month,
-so the site build itself needs no opt-in.
+They are precomputed from an opt-in build, so the site build itself
+needs no opt-in. They are preprint-stage pages: at release, proper
+documentation supersedes them.
 
 ## The opt-in build
 
