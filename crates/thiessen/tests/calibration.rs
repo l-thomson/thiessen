@@ -2073,7 +2073,7 @@ fn write_csv(name: &str, lines: &[String]) {
 #[cfg(feature = "experimental")]
 #[test]
 fn calibrated_configuration_list_is_current() {
-    let entries: [(&str, Model); 19] = [
+    let entries: [(&str, Model); 20] = [
         ("gaussian", gaussian_model()),
         ("probit", probit_model()),
         ("heteroscedastic", heteroscedastic_model()),
@@ -2085,6 +2085,7 @@ fn calibrated_configuration_list_is_current() {
         ),
         ("student_t (experimental)", student_t_model()),
         ("laplace (experimental)", laplace_model()),
+        ("ordinal (experimental)", ordinal_model()),
         ("spherical metric", spherical_model()),
         ("categorical metric", categorical_model()),
         ("minkowski metric (experimental)", minkowski_model()),
@@ -2097,6 +2098,15 @@ fn calibrated_configuration_list_is_current() {
         ("linear cell basis (experimental)", linear_model()),
         ("soft membership (experimental)", soft_model()),
     ];
+    let constructors = include_str!("calibration.rs")
+        .lines()
+        .filter(|line| line.starts_with("fn ") && line.ends_with("_model() -> Model {"))
+        .count();
+    assert_eq!(
+        entries.len(),
+        constructors,
+        "every model constructor needs an entry in docs/calibrated.md"
+    );
     let mut rendered = String::from(
         "# Calibrated configurations\n\n\
          The configurations the calibration suite covers, one entry per\n\
