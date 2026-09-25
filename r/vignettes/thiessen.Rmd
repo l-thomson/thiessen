@@ -184,7 +184,7 @@ static document. Reporting does not change the draws.
 ## Where next
 
 - [Gaussian regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.html), [Binary
-  AddiVortes](binary-addivortes.html) and
+  AddiVortes](https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.html) and
   [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html): one page per published model, with
   the likelihood, the priors and a worked example against a known
   truth. [Model description](model-description.html) holds the
