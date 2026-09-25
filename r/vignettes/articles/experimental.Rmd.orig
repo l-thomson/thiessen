@@ -82,7 +82,7 @@ the pull request that added each item is
 | Student-t outcome | outcome model | `thiessen_control(outcome = student_t_outcome(df = 4))`, or a grid `df = c(3, 6, 12)` | known answer; SBC and Geweke |
 | Laplace outcome | outcome model | `thiessen_control(outcome = laplace_outcome())` | known answer; SBC and Geweke |
 | [Soft membership](soft-membership.html) | membership rule | `geometry_params(membership = soft_membership())` | known answer; SBC and Geweke |
-| Linear cell basis | cell basis | `term_params(cell = cell_params(basis = "linear"))` | known answer; SBC and Geweke |
+| [Linear cell basis](linear-cells.html) | cell basis | `term_params(cell = cell_params(basis = "linear"))` | known answer; SBC and Geweke |
 | DART inclusion | inclusion prior | `structure_params(inclusion = dart_inclusion())` | SBC and Geweke |
 | Weighted inclusion | inclusion prior | `structure_params(inclusion = weighted_inclusion(w))` | conformance; small SBC |
 | Minkowski distance | distance | `geometry_params(metric = list(list(minkowski = list(p = 3))))`; `"manhattan"` for p = 1 | conformance; small SBC |

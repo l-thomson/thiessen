@@ -61,6 +61,28 @@ smooth_surface <- function(n, sd = 0.1, seed, n_test = 500, f = c("sine", "linea
   list(train = draw(n), test = draw(n_test))
 }
 
+# A plane in five covariates with one oblique crease,
+# 3 |x1 + x2 - 1| / sqrt(2) + x . (1, -0.5, 1.5, -1, 0.5), which a Voronoi
+# boundary can lie along and an axis-aligned split cannot; `f = "plane"`
+# drops the crease.
+creased_plane_f <- function(x, f = c("crease", "plane")) {
+  f <- match.arg(f)
+  plane <- drop(x %*% c(1, -0.5, 1.5, -1, 0.5))
+  if (f == "plane") plane else 3 * abs(x[, 1] + x[, 2] - 1) / sqrt(2) + plane
+}
+
+# The creased plane observed with Gaussian noise of standard deviation
+# `sd`.
+creased_plane <- function(n, sd = 0.3, seed, n_test = 500, f = c("crease", "plane")) {
+  set.seed(seed)
+  draw <- function(n) {
+    x <- matrix(runif(n * 5), n, 5, dimnames = list(NULL, paste0("x", 1:5)))
+    truth <- creased_plane_f(x, f)
+    list(x = x, f = truth, y = truth + rnorm(n, sd = sd))
+  }
+  list(train = draw(n), test = draw(n_test))
+}
+
 # Lognormal accelerated failure times on Friedman #1 over p columns, log
 # time = f / 10 + N(0, sd^2), with independent lognormal censoring times
 # scaled so that about `censored` of the training rows are censored. The
@@ -143,11 +165,11 @@ softbart_chains <- function(formula, data, newdata, seeds, ...) {
   ))
 }
 
-# The rows of `x` among the rows a SoftBart fit predicted at.
-softbart_rows <- function(fit, x) {
+# The rows of `x` among the rows a fit predicted at.
+predicted_rows <- function(fit, x) {
   key <- function(m) apply(m, 1, paste, collapse = ",")
   rows <- match(key(x), key(fit$newdata))
-  if (anyNA(rows)) stop("rows of `x` were not given as `newdata` to softbart_chains()")
+  if (anyNA(rows)) stop("rows of `x` are not among the rows the fit predicted at")
   rows
 }
 
@@ -170,13 +192,72 @@ predictive.softbart_chains <- function(fit, x) {
        })))
 }
 
+# stochtree BART with a linear regression in every leaf, as one fit: one
+# chain per seed in a forked worker, each returning its draws of the mean
+# at the rows of `newdata` and of the residual standard deviation, pooled
+# as the SoftBart chains are.
+stochtree_chains <- function(data, newdata, seeds, num_trees, burn_in, draws) {
+  basis <- function(x) cbind(1, x)
+  timed(structure(
+    list(
+      newdata = newdata,
+      chains = parallel::mclapply(seeds, function(seed) {
+        fit <- stochtree::bart(
+          data$train$x, data$train$y, leaf_basis_train = basis(data$train$x),
+          X_test = newdata, leaf_basis_test = basis(newdata),
+          num_gfr = 0, num_burnin = burn_in, num_mcmc = draws,
+          general_params = list(random_seed = seed),
+          mean_forest_params = list(num_trees = num_trees)
+        )
+        list(mean = t(fit$y_hat_test), sigma = sqrt(fit$sigma2_global_samples))
+      }, mc.cores = length(seeds))
+    ),
+    class = "stochtree_chains"
+  ))
+}
+
+predictive.stochtree_chains <- predictive.softbart_chains
+
+# A fit without draws, as its predictions at the rows of `newdata`: a
+# normal predictive (tgp's kriging mean and standard deviation) or a
+# point prediction (Cubist, `sd` absent), scored on what it returns.
+normal_fit <- function(newdata, mean, sd = NULL) {
+  structure(list(newdata = newdata, mean = mean, sd = sd), class = "normal_fit")
+}
+
+predictive.normal_fit <- function(fit, x) {
+  rows <- predicted_rows(fit, x)
+  sd <- if (is.null(fit$sd)) rep(NA_real_, length(rows)) else fit$sd[rows]
+  list(mean = matrix(fit$mean[rows], 1), sd = matrix(sd, 1))
+}
+
+# tgp's Bayesian treed linear model, predicting at the rows of `newdata`.
+# `btlm()` draws from R's generator, so the seed is set here.
+tgp_fit <- function(data, newdata, seed, burn_in, draws) {
+  set.seed(seed)
+  timed({
+    fit <- tgp::btlm(data$train$x, data$train$y, XX = newdata,
+                     BTE = c(burn_in, burn_in + draws, 1), R = 1, verb = 0)
+    normal_fit(newdata, fit$ZZ.mean, sqrt(fit$ZZ.ks2))
+  })
+}
+
+# Cubist's rules with a linear model in each, a point prediction at the
+# rows of `newdata`.
+cubist_fit <- function(data, newdata) {
+  timed({
+    fit <- Cubist::cubist(as.data.frame(data$train$x), data$train$y)
+    normal_fit(newdata, predict(fit, as.data.frame(newdata)))
+  })
+}
+
 # The quantile of each row's mixture, by bisection on the mixture CDF.
 mixture_quantile <- function(p, m, s) {
   lower <- apply(m - 8 * s, 1, min)
   upper <- apply(m + 8 * s, 1, max)
   for (step in seq_len(60)) {
     mid <- (lower + upper) / 2
-    below <- rowMeans(pnorm(mid, m, s)) < p
+    below <- rowMeans(matrix(pnorm(mid, m, s), nrow(m))) < p
     lower[below] <- mid[below]
     upper[!below] <- mid[!below]
   }
@@ -188,15 +269,19 @@ mixture_quantile <- function(p, m, s) {
 # and mean width of the central predictive interval, and the CRPS and the
 # log score of the response, exact for the mixture (scoringRules). The
 # mixture is thinned to at most 400 draws, since the CRPS of a mixture
-# costs the square of its size.
+# costs the square of its size. A point prediction scores its error alone.
 score_one <- function(p, data, level = 0.95) {
+  rmse <- sqrt(mean((colMeans(p$mean) - data$test$f)^2))
+  if (anyNA(p$sd)) {
+    return(c(rmse = rmse, coverage = NA, width = NA, crps = NA, log_score = NA))
+  }
   keep <- unique(round(seq(1, nrow(p$mean), length.out = min(nrow(p$mean), 400))))
   m <- t(p$mean[keep, , drop = FALSE])
   s <- t(p$sd[keep, , drop = FALSE])
   y <- data$test$y
   lower <- mixture_quantile((1 - level) / 2, m, s)
   upper <- mixture_quantile((1 + level) / 2, m, s)
-  c(rmse = sqrt(mean((colMeans(p$mean) - data$test$f)^2)),
+  c(rmse = rmse,
     coverage = mean(y >= lower & y <= upper),
     width = mean(upper - lower),
     crps = mean(scoringRules::crps_mixnorm(y, m, s)),
@@ -220,9 +305,11 @@ score <- function(fits, data, level = 0.95) {
 }
 
 # The mean over fits with its standard error in parentheses, one row per
-# model; a model with one fit shows the value alone.
+# model; a model with one fit shows the value alone, a score it lacks an
+# empty cell.
 score_table <- function(scores) {
   cell <- function(value) {
+    if (anyNA(value)) return("")
     if (length(value) == 1) return(sprintf("%.3f", value))
     sprintf("%.3f (%.3f)", mean(value), sd(value) / sqrt(length(value)))
   }
@@ -235,6 +322,26 @@ score_table <- function(scores) {
 # Held-out root mean squared error of one fit against the truth.
 rmse <- function(fit, data) {
   sqrt(mean((colMeans(predictive(fit, data$test$x)$mean) - data$test$f)^2))
+}
+
+# One row per ensemble size and model for a list of `paired_fits()`
+# results, one per size: the mean and standard error of the held-out
+# RMSE over the fits, the largest R-hat among them, and the mean number
+# of cells per tessellation.
+size_table <- function(fits_by_size, sizes, data) {
+  do.call(rbind, lapply(seq_along(sizes), function(i) {
+    do.call(rbind, lapply(names(fits_by_size[[i]]), function(model) {
+      fits <- fits_by_size[[i]][[model]]
+      errors <- sapply(fits, rmse, data = data)
+      data.frame(
+        tessellations = sizes[i], model = model,
+        RMSE = mean(errors), SE = sd(errors) / sqrt(length(errors)),
+        `largest R-hat` = max(sapply(fits, function(fit) fit$convergence$rhat)),
+        cells = mean(sapply(fits, function(fit) mean(thiessen_diagnostics(fit)$cell_count))),
+        check.names = FALSE
+      )
+    }))
+  }))
 }
 
 # The draws of the mean function at the rows of `x`, one draws by rows
@@ -250,9 +357,11 @@ chains.thiessen <- function(fit, x) {
 }
 
 chains.softbart_chains <- function(fit, x) {
-  rows <- softbart_rows(fit, x)
+  rows <- predicted_rows(fit, x)
   lapply(fit$chains, function(chain) chain$mean[, rows, drop = FALSE])
 }
+
+chains.stochtree_chains <- chains.softbart_chains
 
 # The convergence of one fit over the mean function at the rows of `x`:
 # the largest and median split R-hat and the smallest and median bulk

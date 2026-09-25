@@ -1,7 +1,6 @@
 ---
 title: "Linear cell basis"
 output: rmarkdown::html_vignette
-draft: true
 ---
 
 [![Experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
@@ -9,77 +8,264 @@ draft: true
 Needs a build made with `THIESSEN_EXPERIMENTAL=1 R CMD INSTALL r`; the
 [experimental](experimental.html) page has the catalogue and the rule.
 
-Draft: the skeleton of the article, on the template every article in
-this group follows. `tools/articles.sh` skips it until the `draft` line
-leaves the front matter.
-
 ## Introduction
 
-Each cell carries a local linear function of the active coordinates
-centred at the cell's centre, g(x) = mu_k + beta_k'(x_A - c_k), in place
-of a constant; the cell update draws the (d + 1)-vector from its
-conjugate normal and the structural moves integrate it out. This is the
-Voronoi analogue of model trees in a BART ensemble (Prado, Moral and
-Parnell 2021, MOTR-BART). Reach for it when the truth is locally linear
-and rows are few: constant cells need many small cells, linear cells
-need few large ones. Mean ensemble only; needs min-max scaled columns.
+Under the published model each cell carries one value, so a
+tessellation is a piecewise-constant function and a slope is a
+staircase of cells. The linear cell basis gives each cell a local
+linear function of the active coordinates, centred at the cell's
+centre; the cell update draws the level and the slopes together from
+their conjugate normal, and the structural moves integrate them out.
+This is the Voronoi analogue of model trees in a BART ensemble (Prado,
+Moral and Parnell 2021, MOTR-BART). Reach for it when the truth is
+locally linear and rows are few: constant cells need many small cells
+to follow a slope, linear cells need few large ones. At the default
+ensemble size the two bases tie, because the prior scale the slopes
+share with the levels falls with the size; the page shows where the
+gain is and why it goes.
 
 Prerequisite: BART (Chipman, George and McCulloch 2010) and AddiVortes
-(Stone and Gosling 2025).
+(Stone and Gosling 2025). The [model description](../model-description.html)
+page has the notation.
 
 ## The model
 
-The prior (mu_k, beta_k) ~ N(0, sigma_mu^2 I) and the integrated
-likelihood in the (d + 1)-dimensional form, from `docs/models.md`,
-"Linear cell basis". Link to `crates/thiessen/src/cells.rs`.
+    g(x; T, M) = mu_k + beta_k' (x_A - c_k)   for x in cell k
+    (mu_k, beta_k) ~ N(0, sigma_mu^2 I_(d+1)),   sigma_mu = 0.5 / (k sqrt(m)),   k = 3
+
+with x_A the active coordinates, c_k the cell's centre, so mu_k keeps
+its role as the level at the centre, and m the number of
+tessellations. The cell update draws (mu_k, beta_k) jointly from the
+(d + 1)-dimensional conjugate normal, and the structural moves
+integrate the coefficient vector out: per cell
+-ln det(I + sigma_mu^2 A_k) / 2 + b_k' (sigma_mu^-2 I + A_k)^-1 b_k / 2,
+with A_k and b_k the normal equations of the within-cell design
+(1, x_A - c_k), the (d + 1)-dimensional form of the constant-basis
+expression. The statement in full is the "Linear cell basis" section
+of
+[`docs/models.md`](https://github.com/l-thomson/thiessen/blob/dev/docs/models.md)
+and the derivation note is
+[`crates/thiessen/src/cells.rs`](https://github.com/l-thomson/thiessen/blob/dev/crates/thiessen/src/cells.rs).
+Mean ensemble only, under hard membership, on min-max scaled columns.
 
 ## Example
 
-```{r example}
+The truth is a plane in five covariates with one oblique crease,
+3 |x1 + x2 - 1| / sqrt(2) + x1 - 0.5 x2 + 1.5 x3 - x4 + 0.5 x5, observed
+with noise of standard deviation 0.3 at 150 rows, with 500 held-out
+rows and their noise-free values. A Voronoi boundary can lie along the
+crease and an axis-aligned split cannot. The published rule, labelled
+AddiVortes in the tables, and the linear basis are fitted at the
+default ensemble size of 200 tessellations, on four chains, at the same
+five seeds. The schedule is 1000 burn-in and 1000 kept sweeps per
+chain, longer than the 300 and 300 the other pages in this group use.
+Even so every fit warns: the largest R-hat over the four chains sits
+between 1.01 and 1.03 for both bases, above the 1.01 the check asks
+for, on the cell count, the residual scale or a training row. The
+mixing table below puts that beside stochtree on the same quantity.
+
+```{r setup}
 source("_setup.R")
-data <- smooth_surface(n = 150, sd = 0.2, seed = 1, f = "linear")
-control <- thiessen_control(tessellations = 20, general_params = schedule)
-linear <- thiessen_control(
-  tessellations = 20, general_params = schedule,
-  mean_params = term_params(cell = cell_params(basis = "linear"))
-)
-fits <- paired_fits(data, list(default = control, linear = linear), seeds)
-summary(fits$linear[[1]])
-score(fits, data)
 ```
 
-No external comparator: MOTR-BART has no CRAN package; it is cited as
-the precedent.
+```{r example}
+data <- creased_plane(n = 150, sd = 0.3, seed = 1)
+schedule <- general_params(burn_in = 1000, draws = 1000)
+constant <- thiessen_control(tessellations = 200, general_params = schedule)
+linear <- thiessen_control(
+  tessellations = 200, general_params = schedule,
+  mean_params = term_params(cell = cell_params(basis = "linear"))
+)
+fits <- paired_fits(data, list(AddiVortes = constant, "linear cells" = linear), seeds)
+summary(fits[["linear cells"]][[1]])
+```
+
+Three comparators fit a linear model inside each region of a
+partition. stochtree (Herren and others 2026) is the BART
+implementation with a regression in every leaf, `leaf_basis_train`;
+it is fitted with 200 trees on the same schedule as four chains, one
+run per chain seed on four cores, pooled as one fit, so it is treated
+as the two bases are. MOTR-BART itself has no package and is cited as
+the precedent. tgp (Gramacy 2007) fits the Bayesian treed linear model
+of Chipman, George and McCulloch (2002), `btlm()`, one chain per seed
+on the same schedule, and returns a normal predictive at the held-out
+rows. Cubist (Quinlan 1992) fits rules with a linear model in each; it
+has no chains and no predictive distribution, so it is fitted once and
+scored on its error alone.
+
+```{r comparators, message = FALSE}
+rows <- rbind(data$train$x, data$test$x)
+stochtree <- lapply(seeds, function(seed) {
+  stochtree_chains(data, rows, seeds = 10 * seed + 1:4, num_trees = 200, burn_in = 1000, draws = 1000)
+})
+tgp <- lapply(seeds, function(seed) tgp_fit(data, data$test$x, seed, burn_in = 1000, draws = 1000))
+cubist <- list(cubist_fit(data, data$test$x))
+```
+
+Every method is scored on the same 500 held-out rows through its
+predictive distribution: the root mean squared error of the posterior
+mean against the noise-free truth, the coverage and mean width of the
+central 95 per cent predictive interval, the CRPS (lower is better)
+and the log score (higher is better) of the held-out response, both
+exact for the predictive mixture (Jordan, Krueger and Lerch 2019). The
+mean over the five seeds with its standard error in parentheses:
+
+```{r scores}
+scores <- score(c(fits, list(stochtree = stochtree, tgp = tgp, Cubist = cubist)), data)
+knitr::kable(score_table(scores))
+```
+
+The three sampled methods with draws of the mean function are also
+compared on how they sample: the split R-hat and bulk effective sample
+size (Vehtari and others 2021) of the mean function at the 150
+training rows over the four chains, the wall-clock of the four chains
+on four cores, and the smallest effective sample size per second. The
+fit at seed 1 of each.
+
+```{r mixing}
+at_200 <- list(AddiVortes = fits$AddiVortes[[1]], "linear cells" = fits[["linear cells"]][[1]],
+               stochtree = stochtree[[1]])
+knitr::kable(mixing_table(at_200, data$train$x), digits = c(NA, 3, 3, 0, 0, 0, 1))
+```
+
+The two bases tie at this size, on every score, and both are ahead of
+the three comparators on this truth: the tessellation ensembles put a
+boundary along the crease, the tree methods approach it with a
+staircase of axis-aligned splits, and Cubist's few rules leave most of
+it unfitted. The linear basis costs about the same per sweep as the
+constant one and mixes about as well. stochtree at 200 trees does not
+mix in 1000 sweeps on five covariates and costs minutes where the
+tessellations cost seconds.
 
 ## What it shows
 
-Figure 1, mechanism: a transect at x2 = 0.5, truth, constant-cell fit,
-linear-cell fit, steps against pieces.
+Figure 1, the comparison: the error and the CRPS of every fit, one
+point per seed, so the gaps between methods are read against the
+spread over seeds. Cubist has no CRPS.
 
-```{r mechanism}
+```{r comparison, fig.height = 3.5, fig.cap = "Figure 1. Held-out RMSE and CRPS of every fit at 200 tessellations or trees, one point per seed."}
+ggplot(subset(scores, metric %in% c("rmse", "crps") & !is.na(value)), aes(model, value)) +
+  geom_point(position = position_jitter(width = 0.1, height = 0, seed = 1)) +
+  facet_wrap(~ metric, scales = "free_y") +
+  labs(x = NULL, y = NULL)
 ```
 
-Figure 2, comparison: paired RMSE and width per seed beside the table
-above; second panel, the distribution over draws of
-`thiessen_diagnostics()$cell_count`, constant against linear: the linear
-basis uses fewer cells.
+Figure 2, the mechanism, at a size small enough that the cells are
+visible: 5 tessellations, the same schedule, four chains, seed 1. The
+transect along x1 with the other four covariates at 0.5 crosses the
+crease at x1 = 0.5. The constant basis is a staircase; the linear
+basis is a few pieces with the right slopes. Both fits warn, and the
+section after the figure says why.
 
-```{r comparison}
+```{r small}
+controls <- function(m) list(
+  AddiVortes = thiessen_control(tessellations = m, general_params = schedule),
+  "linear cells" = thiessen_control(tessellations = m, general_params = schedule,
+    mean_params = term_params(cell = cell_params(basis = "linear")))
+)
+small <- lapply(paired_fits(data, controls(5), seeds = 1), `[[`, 1)
 ```
 
-Figure 3, boundary: the RMSE gap at n = 150 against n = 500; the gap
-closes as the constant basis gets the rows it needs.
+```{r mechanism, fig.height = 3.5, fig.cap = "Figure 2. The creased plane along x1, the other covariates at 0.5, at 5 tessellations: the truth and the posterior mean of each basis at seed 1."}
+grid <- cbind(x1 = seq(0, 1, length.out = 200), x2 = 0.5, x3 = 0.5, x4 = 0.5, x5 = 0.5)
+curves <- vapply(small, function(fit) colMeans(predictive(fit, grid)$mean), numeric(nrow(grid)))
+transect <- data.frame(
+  x1 = grid[, "x1"],
+  method = factor(rep(c("truth", names(small)), each = nrow(grid)), c("truth", names(small))),
+  f = c(creased_plane_f(grid), curves)
+)
+ggplot(transect, aes(x1, f, colour = method, linetype = method)) +
+  geom_line() +
+  scale_linetype_manual(values = c("dashed", "solid", "solid")) +
+  labs(y = "f(x1, 0.5, 0.5, 0.5, 0.5)", colour = NULL, linetype = NULL)
+```
+
+### Mixing at small ensembles
+
+Small ensembles mix badly, for trees and tessellations alike: each
+component carries a large share of the fit, so a structural move is
+rarely accepted and a chain sits in one partition of the covariate
+space. R-hat on the mean at a training row reports the step between
+the partitions the four chains found. The same table as above for the
+fits at 5:
+
+```{r mixing_small}
+knitr::kable(mixing_table(small, data$train$x), digits = c(NA, 3, 3, 0, 0, 0, 1))
+```
+
+Neither basis is at its posterior here, and the warnings say so; the
+accuracy table rests on the fits at 200, where they are.
+
+### The prior scale
+
+The pure plane, the same truth without its crease, isolates the
+slopes. At one tessellation the linear basis is a Voronoi partition
+with a plane in each cell, and with one or two cells it is the least
+squares fit under a normal prior, so its error should sit on the least
+squares line, the oracle for this truth; it does. The error then rises
+with the ensemble size to meet the constant basis. The prior scale is
+the BART rule, sigma_mu = 0.5 / (k sqrt(m)), which keeps the sum of m
+levels at the scale of the response; the slopes share it, so each
+cell's slopes shrink towards zero by 1 / sqrt(m), and at 200 the
+ensemble carries the plane in its levels, as the constant basis does.
+The table carries the largest R-hat over the seeds at each size, which
+is why the accuracy table is at 200.
+
+```{r prior_scale, fig.height = 3.5, fig.cap = "Figure 3. Held-out RMSE on the pure plane against the ensemble size, the mean and standard error over five seeds; the dashed line is least squares."}
+plane <- creased_plane(n = 150, sd = 0.3, seed = 1, f = "plane")
+sizes <- c(1, 5, 20, 50, 200)
+on_plane <- size_table(lapply(sizes, function(m) paired_fits(plane, controls(m), seeds)), sizes, plane)
+ols <- lm(y ~ ., data.frame(plane$train$x, y = plane$train$y))
+ols_rmse <- sqrt(mean((predict(ols, data.frame(plane$test$x)) - plane$test$f)^2))
+knitr::kable(on_plane, digits = c(0, 0, 3, 4, 3, 1))
+ggplot(on_plane, aes(tessellations, RMSE, colour = model)) +
+  geom_line() +
+  geom_pointrange(aes(ymin = RMSE - SE, ymax = RMSE + SE)) +
+  geom_hline(yintercept = ols_rmse, linetype = "dashed") +
+  scale_x_log10(breaks = sizes) +
+  labs(x = "tessellations", y = "held-out RMSE", colour = NULL)
+```
+
+### The boundary
+
+The creased plane at the same sizes, five seeds each, the fits at 200
+being the ones above. The linear basis is ahead at every size below
+the default, most at one tessellation, where it uses under half the
+cells of the constant basis; the gap closes by 200, where both are at
+their posterior.
 
 ```{r boundary}
+by_size <- c(lapply(sizes[-5], function(m) paired_fits(data, controls(m), seeds)), list(fits))
+knitr::kable(size_table(by_size, sizes, data), digits = c(0, 0, 3, 4, 3, 1))
+```
+
+### Recovery with the sample size
+
+The linear basis at 200 on the creased plane as the rows grow, five
+seeds each: the error falls with n and the coverage of the 95 per cent
+interval stays at its nominal level.
+
+```{r recovery}
+recovery <- do.call(rbind, lapply(c(150, 500, 1500), function(n) {
+  larger <- creased_plane(n = n, sd = 0.3, seed = 1)
+  at_n <- if (n == 150) fits["linear cells"] else paired_fits(larger, list("linear cells" = linear), seeds)
+  cbind(n = n, score_table(score(at_n, larger))[c("RMSE", "coverage", "width")])
+}))
+knitr::kable(recovery)
 ```
 
 ## Validity
 
-Stem `linear`. Mention the known-answer tests of the marginal and the
-joint draw and the broken-sampler fixture dropping the determinant
-term.
+Validation is the calibration battery in the core's test suite; this
+page is illustration. The linear basis carries known-answer tests of
+the marginal likelihood and of the joint cell draw against quadrature,
+simulation-based calibration and Geweke tests at two sizes, and a
+broken-sampler fixture that drops the determinant term from the
+integrated likelihood, which the gates reject. The figures are the
+SBC rank-ECDF difference and the Geweke ECDF from the nightly run
+named below.
 
-```{r battery, results = "asis"}
+```{r battery, results = "asis", echo = FALSE}
 cat(readLines("figures/linear-cells/battery.md"), sep = "\n")
 ```
 
@@ -89,25 +275,54 @@ cat(readLines("figures/linear-cells/battery.md"), sep = "\n")
 
 ## Limits
 
-State only what the module note supports. Candidates: one prior scale
-sigma_mu^2 for both level and slopes, where Prado, Moral and Parnell
-give the slopes their own prior, with no argument for the common
-scale's calibration under min-max scaling; nothing on identifiability
-of beta in a small or thin cell, or on the interaction between the slope
-prior and lambda_c; no weighted update under soft membership, and the
-variance ensemble keeps the constant basis; no approximation or
-contraction result for piecewise-linear Voronoi ensembles.
+One prior scale serves the level and the slopes, so the slopes shrink
+by 1 / sqrt(m) with the ensemble size and the basis changes nothing at
+the default size; Prado, Moral and Parnell (2021) give the slopes a
+prior of their own, and a slope scale that does not fall with m, with
+its calibration under min-max scaling, is open. Nothing is said about
+the identifiability of beta_k in a small or thin cell, or about the
+interaction between the slope prior and the cell-count prior. There is
+no weighted update under soft membership, and the variance ensemble
+keeps the constant basis. No approximation or contraction result
+exists for piecewise-linear Voronoi ensembles.
 
 ## References
+
+Chipman, H. A., George, E. I. and McCulloch, R. E. (2002). Bayesian
+treed models. *Machine Learning* 48, 299-320.
+doi:10.1023/A:1013916107446
 
 Chipman, H. A., George, E. I. and McCulloch, R. E. (2010). BART:
 Bayesian additive regression trees. *The Annals of Applied Statistics*
 4(1), 266-298. doi:10.1214/09-AOAS285
 
+Gramacy, R. B. (2007). tgp: an R package for Bayesian nonstationary,
+semiparametric nonlinear regression and design by treed Gaussian
+process models. *Journal of Statistical Software* 19(9), 1-46.
+doi:10.18637/jss.v019.i09
+
+Herren, D., Hahn, P. R., Murray, J. S., Carvalho, C. M. and He, J.
+(2026). stochtree: stochastic tree ensembles (XBART and BART) for
+supervised learning and causal inference. R package version 0.4.5.
+https://stochtree.ai/
+
+Jordan, A., Krueger, F. and Lerch, S. (2019). Evaluating probabilistic
+forecasts with scoringRules. *Journal of Statistical Software* 90(12),
+1-37. doi:10.18637/jss.v090.i12
+
 Prado, E. B., Moral, R. A. and Parnell, A. C. (2021). Bayesian additive
 regression trees with model trees. *Statistics and Computing* 31, 20.
 doi:10.1007/s11222-021-09997-3
 
+Quinlan, J. R. (1992). Learning with continuous classes. In
+*Proceedings of the 5th Australian Joint Conference on Artificial
+Intelligence*, 343-348. World Scientific.
+
 Stone, A. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive
 Voronoi tessellations. *Journal of Computational and Graphical
 Statistics* 34(3), 859-871. doi:10.1080/10618600.2024.2414104
+
+Vehtari, A., Gelman, A., Simpson, D., Carpenter, B. and Buerkner, P.-C.
+(2021). Rank-normalization, folding, and localization: an improved
+R-hat for assessing convergence of MCMC. *Bayesian Analysis* 16(2),
+667-718. doi:10.1214/20-BA1221

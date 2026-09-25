@@ -53,6 +53,7 @@ articles:
   contents:
   - articles/experimental
   - articles/soft-membership
+  - articles/linear-cells
 - title: Help
   navbar: Help
   contents:
