@@ -36,6 +36,10 @@ fn config(json: &str) -> PyResult<thiessen::Config> {
     serde_json::from_str(json).map_err(|e| ThiessenError::new_err(e.to_string()))
 }
 
+fn xaddivortes_params(json: &str) -> PyResult<thiessen::XAddiVortesParams> {
+    serde_json::from_str(json).map_err(|e| ThiessenError::new_err(e.to_string()))
+}
+
 fn design(x: &PyReadonlyArray2<'_, f64>) -> PyResult<thiessen::Data> {
     let view = x.as_array();
     let (n_rows, n_cols) = view.dim();
@@ -496,6 +500,16 @@ impl Sampler {
     /// The fitted model from the kept draws, pooled as a one-chain fit;
     /// the in-sample fit is measured against the response the core
     /// reports.
+    /// The XAddiVortes fast fit under the settings `params_json` (the
+    /// core's `XAddiVortesParams` as JSON): replaces the chain's state, so
+    /// the chain can be kept as a point fit or stepped on as a warm start.
+    /// Returns the core's `FastFit` as JSON.
+    fn xaddivortes(&mut self, params_json: &str) -> PyResult<String> {
+        let params = xaddivortes_params(params_json)?;
+        let fast = self.live_mut()?.xaddivortes(&params).map_err(core_error)?;
+        serde_json::to_string(&fast).map_err(|e| ThiessenError::new_err(e.to_string()))
+    }
+
     fn finish(&mut self) -> PyResult<Fitted> {
         let sampler = self
             .inner
@@ -664,6 +678,72 @@ fn fit_interval_censored(
     Ok(Fitted { inner })
 }
 
+/// The XAddiVortes fast fit as a fitted model: one sampler on the chain-0
+/// seed of `seed`, the fit under `params_json`, kept as the single draw
+/// ([`thiessen::fit_xaddivortes`]). Returns the model and the core's
+/// `FastFit` as JSON. The GIL is released for the fit.
+#[pyfunction]
+fn fit_xaddivortes(
+    py: Python<'_>,
+    config_json: &str,
+    x: PyReadonlyArray2<'_, f64>,
+    y: PyReadonlyArray1<'_, f64>,
+    seed: u64,
+    params_json: &str,
+) -> PyResult<(Fitted, String)> {
+    let config = config(config_json)?;
+    let params = xaddivortes_params(params_json)?;
+    let data = design(&x)?;
+    let y = response(&y);
+    let (inner, fast) = py
+        .detach(|| thiessen::fit_xaddivortes(&config, &data, &y, seed, &params))
+        .map_err(core_error)?;
+    let fast = serde_json::to_string(&fast).map_err(|e| ThiessenError::new_err(e.to_string()))?;
+    Ok((Fitted { inner }, fast))
+}
+
+/// As [`fit`], every chain started from its own fast fit under
+/// `params_json` ([`thiessen::fit_chains_from_fast`]). The GIL is released
+/// for the fit.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+fn fit_from_fast(
+    py: Python<'_>,
+    config_json: &str,
+    x: PyReadonlyArray2<'_, f64>,
+    y: PyReadonlyArray1<'_, f64>,
+    seed: u64,
+    n_chains: usize,
+    n_threads: usize,
+    params_json: &str,
+) -> PyResult<Fitted> {
+    let config = config(config_json)?;
+    let params = xaddivortes_params(params_json)?;
+    let data = design(&x)?;
+    let y = response(&y);
+    let (inner, _) = py
+        .detach(|| {
+            thiessen::fit_chains_from_fast(
+                &config,
+                &data,
+                &y,
+                seed,
+                n_chains.max(1),
+                n_threads.max(1),
+                &params,
+            )
+        })
+        .map_err(core_error)?;
+    Ok(Fitted { inner })
+}
+
+/// The default XAddiVortes settings as JSON.
+#[pyfunction]
+fn xaddivortes_defaults() -> PyResult<String> {
+    serde_json::to_string(&thiessen::XAddiVortesParams::default())
+        .map_err(|e| ThiessenError::new_err(e.to_string()))
+}
+
 /// Load a fitted model from the JSON of `Fitted.to_json`, predicting on
 /// `n_threads` threads.
 #[pyfunction]
@@ -713,6 +793,9 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fit_aft, m)?)?;
     m.add_function(wrap_pyfunction!(fit_interval_censored, m)?)?;
     m.add_function(wrap_pyfunction!(fitted_from_json, m)?)?;
+    m.add_function(wrap_pyfunction!(fit_xaddivortes, m)?)?;
+    m.add_function(wrap_pyfunction!(fit_from_fast, m)?)?;
+    m.add_function(wrap_pyfunction!(xaddivortes_defaults, m)?)?;
     m.add_function(wrap_pyfunction!(validate_config, m)?)?;
     m.add_function(wrap_pyfunction!(default_config, m)?)?;
     m.add_function(wrap_pyfunction!(outcome_defaults, m)?)?;

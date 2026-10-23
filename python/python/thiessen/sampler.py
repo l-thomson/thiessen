@@ -23,6 +23,7 @@ cell internals.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from typing import Any
 
 import numpy as np
@@ -31,6 +32,7 @@ import numpy.typing as npt
 from . import _native
 from ._arrays import _as_design
 from ._config import _config_json
+from ._fast import _fast_json
 from ._params import Outcome
 from ._response import (
     _as_response,
@@ -154,6 +156,42 @@ class Sampler:
         if count != n or count < 0:
             raise ValueError(f"n must be a whole number of sweeps; got {n!r}")
         self._sampler.step(count)
+
+    def xaddivortes(self, settings: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        """Replace the chain's state by an XAddiVortes fast fit.
+
+        The sweeps that follow run the exact sampler from the fast fit
+        instead of the cold start; kept at once, the fit is a one-draw
+        model whose noise draw is the fit's sigma. Experimental: needs a
+        core built with the ``experimental`` feature.
+
+        Parameters
+        ----------
+        settings : dict, optional
+            XAddiVortes settings, by the names of
+            `thiessen.estimators.XAddiVortesRegressor`; unset settings take
+            its defaults.
+
+        Returns
+        -------
+        dict
+            The fit's summary: ``sigma``, the in-sample residual root mean
+            square on the response scale; ``rounds``; ``planned_sweeps``;
+            ``column_scores``; ``zeroed``; and ``train_score``, the residual
+            root mean square after the build and after each round.
+
+        Raises
+        ------
+        RequiresFeatureError
+            If the core was built without the ``experimental`` feature.
+        ThiessenError
+            After `finish`, once the chain has swept or kept a draw, or for
+            an outcome family other than the Gaussian with a constant
+            spread.
+        """
+        raw = self._sampler.xaddivortes(_fast_json(settings))
+        summary: dict[str, Any] = json.loads(raw)
+        return summary
 
     def keep(self) -> None:
         """Record the current state as a posterior draw.

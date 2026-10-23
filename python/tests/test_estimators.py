@@ -36,11 +36,12 @@ PARAMETERS = {
 
 
 def test_the_parameters_are_the_groups_and_the_run_length_settings():
-    for estimator in (
-        AddiVortesRegressor(n_chains=1),
-        AddiVortesClassifier(n_chains=1),
-    ):
-        assert set(estimator.get_params(deep=False)) == PARAMETERS
+    assert set(AddiVortesClassifier(n_chains=1).get_params(deep=False)) == PARAMETERS
+    regressor = AddiVortesRegressor(n_chains=1)
+    assert set(regressor.get_params(deep=False)) == PARAMETERS | {
+        "start",
+        "fast_settings",
+    }
 
 
 def test_deep_params_route_into_the_groups():
