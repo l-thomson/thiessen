@@ -615,10 +615,16 @@ fn core_finish(samplers: List, threads: i32) -> Result<List> {
 /// chain's state, so it can be kept as a point fit or advanced as a warm
 /// start. Returns the core's `FastFit` as JSON.
 #[extendr]
-fn core_sampler_xaddivortes(sampler: ExternalPtr<SamplerHandle>, params_json: &str) -> Result<String> {
+fn core_sampler_xaddivortes(
+    sampler: ExternalPtr<SamplerHandle>,
+    params_json: &str,
+) -> Result<String> {
     let params: thiessen::XAddiVortesParams =
         serde_json::from_str(params_json).map_err(json_error)?;
-    let fast = sampler.live_mut()?.xaddivortes(&params).map_err(core_error)?;
+    let fast = sampler
+        .live_mut()?
+        .xaddivortes(&params)
+        .map_err(core_error)?;
     serde_json::to_string(&fast).map_err(json_error)
 }
 
