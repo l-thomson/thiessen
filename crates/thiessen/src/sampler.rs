@@ -1516,8 +1516,17 @@ impl Sampler {
                 reason: reason.into(),
             };
             let theirs = previous.config();
-            if theirs.outcome != self.config.outcome {
+            // The probit and ordinal offsets resolve from the labels, so
+            // the same family with another offset is other data.
+            let same_family = std::mem::discriminant(&theirs.outcome)
+                == std::mem::discriminant(&self.config.outcome);
+            if !same_family {
                 return Err(bad("the previous fit has a different outcome model"));
+            }
+            if theirs.outcome != self.config.outcome {
+                return Err(bad(
+                    "the previous fit was fitted to different data or outcome settings",
+                ));
             }
             if theirs.mean_params != self.config.mean_params {
                 return Err(bad("the previous fit has different mean settings"));

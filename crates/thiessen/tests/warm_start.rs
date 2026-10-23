@@ -251,6 +251,39 @@ mod experimental {
         }
     }
 
+    /// A clone given its own state back runs on as the original does, so
+    /// the restore rebuilds every cache a sweep reads (precisions,
+    /// variance totals, inclusion weights) and not only the fit.
+    #[test]
+    fn a_chain_given_its_own_state_runs_on_unchanged() {
+        for case in cases() {
+            let mut a = stepped(&case, SEED, 30);
+            let mut b = a.clone();
+            b.restore(&a.state()).unwrap();
+            for _ in 0..10 {
+                a.step();
+                b.step();
+            }
+            let (fa, fb) = (a.fitted_values(), b.fitted_values());
+            let scale = fa.iter().fold(1.0_f64, |m, v| m.max(v.abs()));
+            let gap = fa
+                .iter()
+                .zip(&fb)
+                .fold(0.0_f64, |m, (u, v)| m.max((u - v).abs()));
+            assert!(
+                gap <= 1e-9 * scale,
+                "{}: fits differ by {gap} after 10 sweeps",
+                case.name
+            );
+            assert_eq!(
+                a.tessellations().len(),
+                b.tessellations().len(),
+                "{}",
+                case.name
+            );
+        }
+    }
+
     #[test]
     fn states_round_trip_through_json() {
         for case in cases() {
