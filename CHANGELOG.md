@@ -19,6 +19,13 @@ says "Sampled values changed" with the reason.
 
 ### Added
 
+- (experimental) XAddiVortes, a fast point fit of the ensemble under a
+  budget in approximate sweep-equivalents of the exact sampler:
+  `XAddiVortesParams`, `Sampler::xaddivortes`, `fit_xaddivortes` (the fit
+  as a one-draw model whose noise draw is the fit's sigma) and
+  `fit_chains_from_fast` (the exact sampler from per-chain fast fits).
+  `FastFit` reports sigma, the rounds, the planned sweeps, the column
+  scores and the training-score path.
 - (experimental) Warm start from a previous fit: a chain starts from a
   kept draw of an earlier fit of the same model to the same data in
   place of the cold start; the transition kernel and the posterior are
