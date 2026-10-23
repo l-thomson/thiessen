@@ -74,6 +74,37 @@ impl Posterior {
         }
     }
 
+    pub(crate) fn push_state(&mut self, state: crate::state::EnsembleState) {
+        let variance = state.variance_tessellations().to_vec();
+        let cutpoints = state.cutpoints().to_vec();
+        let inclusion = state.inclusion().map(|(s, theta)| (s.to_vec(), theta));
+        self.push(
+            state.sigma_sq(),
+            state.tessellations().to_vec(),
+            (!variance.is_empty()).then_some(variance),
+            (!cutpoints.is_empty()).then_some(cutpoints),
+            state.df(),
+            inclusion,
+        );
+    }
+
+    /// The state of kept draw `draw`.
+    pub(crate) fn state(&self, draw: usize) -> crate::state::EnsembleState {
+        crate::state::EnsembleState::new(
+            self.tessellations[draw].clone(),
+            self.variance_tessellations
+                .get(draw)
+                .cloned()
+                .unwrap_or_default(),
+            self.sigma_sq.get(draw).copied(),
+            self.cutpoints.get(draw).cloned().unwrap_or_default(),
+            self.dfs.get(draw).copied(),
+            self.inclusion_weights
+                .get(draw)
+                .map(|s| (s.clone(), self.concentration[draw])),
+        )
+    }
+
     /// Number of kept draws.
     pub fn n_draws(&self) -> usize {
         self.tessellations.len()
@@ -1648,6 +1679,32 @@ impl Fitted {
     /// The kept draws, scaled space.
     pub fn posterior(&self) -> &Posterior {
         &self.posterior
+    }
+
+    /// The chain state at kept draw `draw` (0-based, in pooled chain
+    /// order), from which [`Sampler::start_from`](crate::Sampler::start_from)
+    /// continues a chain.
+    ///
+    /// # Errors
+    ///
+    /// `InvalidHyperparameter` for `init_draw` at or beyond
+    /// [`n_draws`](Self::n_draws).
+    pub fn state(&self, draw: usize) -> Result<crate::state::EnsembleState> {
+        let n = self.posterior.n_draws();
+        if draw >= n {
+            return Err(crate::error::invalid(
+                "init_draw",
+                format!("draw {draw} of a fit with {n} draws"),
+            ));
+        }
+        Ok(self.posterior.state(draw))
+    }
+
+    /// The levels of each categorical column; empty for the other
+    /// columns.
+    #[cfg_attr(not(feature = "experimental"), allow(dead_code))]
+    pub(crate) fn categories(&self) -> &[Vec<f64>] {
+        &self.categories
     }
 
     /// The scaling the model was fitted with.

@@ -1,5 +1,10 @@
 # thiessen 0.0.0.9000
 
+* (experimental) `thiessen(init = , init_draw = )`: each chain starts from
+  a kept draw of a previous fit of the same model to the same data,
+  counting back from `init_draw` (stochtree's rule), and the convergence
+  warning of such a fit says the chains did not start apart.
+
 * `thiessen()` fits the Gaussian, binary probit and heteroscedastic models
   to a numeric matrix, with `thiessen_control()` carrying the configuration
   in the shape the core stores it: an outcome family from

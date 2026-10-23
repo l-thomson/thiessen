@@ -147,6 +147,21 @@ impl OrdinalOutcome {
         &self.gamma[1..]
     }
 
+    /// Replace the interior cutpoints, which must number K - 2 and,
+    /// after gamma_1 = 0, increase strictly; returns whether they did.
+    pub(crate) fn set_free_cutpoints(&mut self, free: &[f64]) -> bool {
+        let valid = free.len() + 2 == self.categories
+            && std::iter::once(0.0)
+                .chain(free.iter().copied())
+                .collect::<Vec<f64>>()
+                .windows(2)
+                .all(|w| w[0] < w[1] && w[1].is_finite());
+        if valid {
+            self.gamma[1..].copy_from_slice(free);
+        }
+        valid
+    }
+
     /// Replace the codes; the caller validates them. The offset and the
     /// cutpoints stand: they are a constant of the fit and sampled
     /// state, and the next sweep's refresh redraws every latent from

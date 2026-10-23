@@ -155,6 +155,16 @@ impl StudentTOutcome {
     pub(crate) fn grid_sampled(&self) -> bool {
         !self.grid.is_empty()
     }
+
+    /// Set the degrees of freedom to a point of the grid; returns whether
+    /// `df` is one.
+    pub(crate) fn set_df(&mut self, df: f64) -> bool {
+        let on_grid = self.grid.contains(&df);
+        if on_grid {
+            self.df = df;
+        }
+        on_grid
+    }
 }
 
 impl OutcomeModel for StudentTOutcome {

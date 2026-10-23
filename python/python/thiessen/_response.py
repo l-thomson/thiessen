@@ -336,17 +336,53 @@ def _fit(
     seed: int,
     n_chains: int,
     n_threads: int,
+    init: _native.Fitted | None = None,
+    init_draw: int | None = None,
+    init_draws: list[int] | None = None,
 ) -> _native.Fitted:
-    """Fit through the core entry point the response reaches."""
+    """Fit through the core entry point the response reaches.
+
+    The chains start from the cold start, or from draws of `init`: by the
+    rule counting back from `init_draw`, or at the draw `init_draws` names
+    for each chain.
+    """
     if response.kind == "aft":
         return _native.fit_aft(
-            config, design, response.times, response.events, seed, n_chains, n_threads
+            config,
+            design,
+            response.times,
+            response.events,
+            seed,
+            n_chains,
+            n_threads,
+            init=init,
+            init_draw=init_draw,
+            init_draws=init_draws,
         )
     if response.kind == "interval_censored":
         return _native.fit_interval_censored(
-            config, design, response.lower, response.upper, seed, n_chains, n_threads
+            config,
+            design,
+            response.lower,
+            response.upper,
+            seed,
+            n_chains,
+            n_threads,
+            init=init,
+            init_draw=init_draw,
+            init_draws=init_draws,
         )
-    return _native.fit(config, design, response.y, seed, n_chains, n_threads)
+    return _native.fit(
+        config,
+        design,
+        response.y,
+        seed,
+        n_chains,
+        n_threads,
+        init=init,
+        init_draw=init_draw,
+        init_draws=init_draws,
+    )
 
 
 def _new_sampler(

@@ -104,6 +104,10 @@ core_samplers_advance <- function(samplers, burn_in, draws, thinning, threads) {
   .Call(wrap__core_samplers_advance, samplers, burn_in, draws, thinning, threads)
 }
 
+core_samplers_start <- function(samplers, previous, draw, draws) {
+  .Call(wrap__core_samplers_start, samplers, previous, draw, draws)
+}
+
 core_sampler_keep <- function(sampler) .Call(wrap__core_sampler_keep, sampler)
 
 core_sampler_n_kept <- function(sampler) .Call(wrap__core_sampler_n_kept, sampler)

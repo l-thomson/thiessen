@@ -19,6 +19,20 @@ says "Sampled values changed" with the reason.
 
 ### Added
 
+- (experimental) Warm start from a previous fit: a chain starts from a
+  kept draw of an earlier fit of the same model to the same data in
+  place of the cold start; the transition kernel and the posterior are
+  unchanged. `EnsembleState` is one chain's state at one draw, read with
+  `Sampler::state` and `Fitted::state`, applied with `Sampler::restore`,
+  and checked against the fit's model and data by
+  `Sampler::start_from`. `Init` chooses the start of every chain of a
+  fit, through `Sampler::start_all`, `fit_chains_with_init`,
+  `fit_aft_chains_with_init` and `fit_interval_censored_chains_with_init`:
+  chain k from draw `draw - k` (stochtree's rule, with
+  `Warning::WarmStartDrawsReused` when every chain shares one draw), or
+  the draw `Init::Draws` names for it. A mismatched state is
+  `Error::IncompatibleState`. Sampled values are unchanged under the cold
+  start.
 - `Fitted::load`: a saved model read through any serde deserialiser with
   every error typed, `RequiresFeature` for a configuration the build
   gates among them, where the `Deserialize` impl reports each through

@@ -11,6 +11,7 @@ use crate::data::Data;
 use crate::error::Result;
 use crate::fitted::Fitted;
 use crate::sampler::Sampler;
+use crate::state::Init;
 
 #[cfg(feature = "experimental")]
 #[cfg_attr(docsrs, doc(cfg(feature = "experimental")))]
@@ -114,9 +115,32 @@ pub fn fit_chains_with_threads(
     n_chains: usize,
     n_threads: usize,
 ) -> Result<(Fitted, Vec<f64>)> {
-    let samplers = chain_samplers(n_chains, |k| {
+    fit_chains_with_init(config, x, y, seed, n_chains, n_threads, Init::Cold)
+}
+
+/// Fit as [`fit_chains_with_threads`], each chain starting where `init`
+/// says: the cold start, or a kept draw of a previous fit of the same
+/// model to the same data ([`Init::From`], [`Sampler::start_from`]).
+/// Under the cold start the draws are those of
+/// [`fit_chains_with_threads`] bit for bit.
+///
+/// # Errors
+///
+/// [`fit_chains`]; under [`Init::From`], `RequiresFeature` in a build
+/// without the feature, then [`Sampler::start_from`].
+pub fn fit_chains_with_init(
+    config: &Config,
+    x: &Data,
+    y: &[f64],
+    seed: u64,
+    n_chains: usize,
+    n_threads: usize,
+    init: Init<'_>,
+) -> Result<(Fitted, Vec<f64>)> {
+    let mut samplers = chain_samplers(n_chains, |k| {
         Sampler::new(config, x, y, chain_seed(seed, k))
     })?;
+    start_chains(&mut samplers, init)?;
     fit_samplers_with_threads(samplers, config, x, y, n_threads)
 }
 
@@ -166,13 +190,46 @@ pub fn fit_aft_chains_with_threads(
     n_chains: usize,
     n_threads: usize,
 ) -> Result<(Fitted, Vec<f64>)> {
+    fit_aft_chains_with_init(
+        config,
+        x,
+        times,
+        events,
+        seed,
+        n_chains,
+        n_threads,
+        Init::Cold,
+    )
+}
+
+/// Fit the AFT model as [`fit_aft_chains_with_threads`], each chain
+/// starting where `init` says ([`fit_chains_with_init`]).
+/// Experimental (`docs/experimental.md`).
+///
+/// # Errors
+///
+/// [`fit_aft_chains_with_threads`]; under [`Init::From`],
+/// [`Sampler::start_from`].
+#[allow(clippy::too_many_arguments)]
+#[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
+pub fn fit_aft_chains_with_init(
+    config: &Config,
+    x: &Data,
+    times: &[f64],
+    events: &[bool],
+    seed: u64,
+    n_chains: usize,
+    n_threads: usize,
+    init: Init<'_>,
+) -> Result<(Fitted, Vec<f64>)> {
     #[cfg(not(feature = "experimental"))]
     return Err(crate::config::Gated::AFT.requires_feature());
     #[cfg(feature = "experimental")]
     {
-        let samplers = chain_samplers(n_chains, |k| {
+        let mut samplers = chain_samplers(n_chains, |k| {
             Sampler::aft(config, x, times, events, chain_seed(seed, k))
         })?;
+        start_chains(&mut samplers, init)?;
         let y = samplers[0].training_response();
         fit_samplers_with_threads(samplers, config, x, &y, n_threads)
     }
@@ -225,16 +282,56 @@ pub fn fit_interval_censored_chains_with_threads(
     n_chains: usize,
     n_threads: usize,
 ) -> Result<(Fitted, Vec<f64>)> {
+    fit_interval_censored_chains_with_init(
+        config,
+        x,
+        lower,
+        upper,
+        seed,
+        n_chains,
+        n_threads,
+        Init::Cold,
+    )
+}
+
+/// Fit the interval-censored model as
+/// [`fit_interval_censored_chains_with_threads`], each chain starting
+/// where `init` says ([`fit_chains_with_init`]). Experimental
+/// (`docs/experimental.md`).
+///
+/// # Errors
+///
+/// [`fit_interval_censored_chains_with_threads`]; under [`Init::From`],
+/// [`Sampler::start_from`].
+#[allow(clippy::too_many_arguments)]
+#[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
+pub fn fit_interval_censored_chains_with_init(
+    config: &Config,
+    x: &Data,
+    lower: &[f64],
+    upper: &[f64],
+    seed: u64,
+    n_chains: usize,
+    n_threads: usize,
+    init: Init<'_>,
+) -> Result<(Fitted, Vec<f64>)> {
     #[cfg(not(feature = "experimental"))]
     return Err(crate::config::Gated::INTERVAL_CENSORED.requires_feature());
     #[cfg(feature = "experimental")]
     {
-        let samplers = chain_samplers(n_chains, |k| {
+        let mut samplers = chain_samplers(n_chains, |k| {
             Sampler::interval_censored(config, x, lower, upper, chain_seed(seed, k))
         })?;
+        start_chains(&mut samplers, init)?;
         let y = samplers[0].training_response();
         fit_samplers_with_threads(samplers, config, x, &y, n_threads)
     }
+}
+
+/// Start each sampler where `init` says ([`Sampler::start_all`]).
+fn start_chains(samplers: &mut [Sampler], init: Init<'_>) -> Result<()> {
+    let mut chains: Vec<&mut Sampler> = samplers.iter_mut().collect();
+    Sampler::start_all(&mut chains, init)
 }
 
 /// One sampler per chain, chain k on [`chain_seed`]`(seed, k)`.

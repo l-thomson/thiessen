@@ -16,6 +16,8 @@ thiessen(x, ...)
   seed = NULL,
   chains = 4,
   threads = getOption("mc.cores", 1L),
+  init = NULL,
+  init_draw = NULL,
   ...
 )
 
@@ -26,6 +28,8 @@ thiessen(x, ...)
   seed = NULL,
   chains = 4,
   threads = getOption("mc.cores", 1L),
+  init = NULL,
+  init_draw = NULL,
   ...
 )
 
@@ -36,6 +40,8 @@ thiessen(x, ...)
   seed = NULL,
   chains = 4,
   threads = getOption("mc.cores", 1L),
+  init = NULL,
+  init_draw = NULL,
   ...
 )
 }
@@ -72,6 +78,20 @@ the fit splits the rows over the same number. The default reads
 interfaces do, so \code{options(mc.cores = 4)} is the one-line opt-in and
 a session that sets nothing runs on one thread, where a default fit
 is four chains long.}
+
+\item{init}{\code{NULL}, the default, for the cold start; or a previous
+fit of the same model to the same data, from \code{thiessen()}. Each chain
+then starts from one of its kept draws instead of the cold start;
+only the starting state changes, not the posterior. Chain k (from 1)
+starts from draw \code{init_draw - k + 1}; with fewer draws than chains up
+to \code{init_draw}, every chain starts from \code{init_draw} and the fit warns.
+This is the rule of stochtree's warm start. A clean R-hat across
+chains started from one previous fit is a check within that run, not
+across dispersed starts (Vehtari and others, 2021). Experimental:
+needs a build with the \code{experimental} feature.}
+
+\item{init_draw}{The draw of \code{init} the first chain starts from, a
+whole number from 1; \code{NULL}, the default, is the last.}
 
 \item{formula}{A two-sided formula. The left side names the response and
 the right side the covariates, \code{.} for every remaining column.}

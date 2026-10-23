@@ -100,6 +100,12 @@ convergence_message <- function(convergence) {
 #' @noRd
 warn_convergence <- function(object, call = rlang::caller_env()) {
   message <- convergence_message(object$convergence)
+  if (!is.null(message) && isTRUE(object$warm_start)) {
+    message <- paste(
+      message, "The chains were warm-started from draws of a previous",
+      "fit, so these diagnostics compare chains that did not start apart."
+    )
+  }
   if (!is.null(message)) {
     rlang::warn(message, class = "thiessen_warning", call = call)
   }

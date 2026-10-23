@@ -40,6 +40,7 @@ use crate::moves::Prior;
 use crate::outcome::{OutcomeModel, RequiredData, Sigma2Mode};
 use crate::rng::{self, Rng};
 use crate::scaler::{self, Scaler};
+use crate::state::EnsembleState;
 use crate::tessellation::Tessellation;
 
 /// The outcome model in force, one variant per shipped model; the
@@ -140,6 +141,14 @@ impl Outcome {
 
     #[cfg(feature = "experimental")]
     fn as_student_t(&self) -> Option<&StudentTOutcome> {
+        match self {
+            Outcome::StudentT(outcome) => Some(outcome),
+            _ => None,
+        }
+    }
+
+    #[cfg(feature = "experimental")]
+    fn as_student_t_mut(&mut self) -> Option<&mut StudentTOutcome> {
         match self {
             Outcome::StudentT(outcome) => Some(outcome),
             _ => None,
@@ -411,6 +420,39 @@ fn log_times(times: &[f64], events: &[bool]) -> Result<Vec<f64>> {
         return Err(Error::InvalidSurvivalTime { row });
     }
     Ok(times.iter().map(|&t| maths::ln(t)).collect())
+}
+
+/// Why `t` cannot be a tessellation of a sampler over `p` columns with
+/// this cell basis and membership rule; `None` when it can.
+#[cfg(feature = "experimental")]
+fn structure_mismatch(t: &Tessellation, p: usize, linear: bool, soft: bool) -> Option<String> {
+    let (b, d) = (t.n_cells(), t.n_dims());
+    if b == 0 || d == 0 {
+        return Some("needs at least one cell and one dimension".into());
+    }
+    if let Some(&dim) = t.dims.iter().find(|&&dim| dim >= p) {
+        return Some(format!("dimension {dim} is not below p = {p}"));
+    }
+    if (1..d).any(|k| t.dims[..k].contains(&t.dims[k])) {
+        return Some("repeats a dimension".into());
+    }
+    if t.centres.len() != b * d {
+        return Some("centre buffer length does not match cells by dimensions".into());
+    }
+    if linear != (t.betas.len() == b * d) || (!linear && !t.betas.is_empty()) {
+        return Some("does not match the cell basis".into());
+    }
+    if soft != t.tau.is_some() {
+        return Some("does not match the membership rule".into());
+    }
+    if t.tau.is_some_and(|tau| !(tau.is_finite() && tau > 0.0)) {
+        return Some("the bandwidth is not positive and finite".into());
+    }
+    let finite = |v: &[f64]| v.iter().all(|x| x.is_finite());
+    if !(finite(&t.centres) && finite(&t.mus) && finite(&t.betas)) {
+        return Some("a value is not finite".into());
+    }
+    None
 }
 
 impl Sampler {
@@ -1213,8 +1255,75 @@ impl Sampler {
         });
     }
 
+    /// Start the chains of one fit where `init` says, chain k being
+    /// `samplers[k]`: nothing under [`Init::Cold`](crate::Init::Cold);
+    /// under [`Init::From`](crate::Init::From) the draw stochtree's rule
+    /// gives it, recording
+    /// [`Warning::WarmStartDrawsReused`] when every chain shares one;
+    /// under [`Init::Draws`](crate::Init::Draws) the draw named for it.
+    /// Each start is [`start_from`](Sampler::start_from).
+    ///
+    /// # Errors
+    ///
+    /// `RequiresFeature` for a warm start in a build without the feature;
+    /// `InvalidHyperparameter` for `init` (a fit with no draws) or
+    /// `init_draw` (out of range, or a count of draws other than the
+    /// chains'); then [`start_from`](Sampler::start_from).
+    pub fn start_all(samplers: &mut [&mut Sampler], init: crate::Init<'_>) -> Result<()> {
+        if matches!(init, crate::Init::Cold) {
+            return Ok(());
+        }
+        #[cfg(not(feature = "experimental"))]
+        {
+            let _ = samplers;
+            Err(Error::RequiresFeature {
+                item: "Init".into(),
+                feature: "experimental",
+            })
+        }
+        #[cfg(feature = "experimental")]
+        {
+            let (fitted, draws, shared) = match init {
+                crate::Init::Cold => unreachable!("returned above"),
+                crate::Init::From { fitted, draw } => {
+                    let (draws, shared) =
+                        crate::state::starting_draws(fitted.n_draws(), samplers.len(), draw)?;
+                    (fitted, draws, shared)
+                }
+                crate::Init::Draws { fitted, draws } => {
+                    if draws.len() != samplers.len() {
+                        return Err(crate::error::invalid(
+                            "init_draw",
+                            format!("{} draws for {} chains", draws.len(), samplers.len()),
+                        ));
+                    }
+                    (fitted, draws.to_vec(), false)
+                }
+            };
+            for (sampler, &d) in samplers.iter_mut().zip(&draws) {
+                sampler.start_from(fitted, d)?;
+            }
+            if shared {
+                if let Some(first) = samplers.first_mut() {
+                    first.add_warning(Warning::WarmStartDrawsReused {
+                        chains: draws.len(),
+                        draws: draws[0] + 1,
+                    });
+                }
+            }
+            Ok(())
+        }
+    }
+
     /// Record the current state as a posterior draw.
     pub fn keep(&mut self) {
+        let state = self.state();
+        self.kept.push_state(state);
+        self.accumulate_fit();
+    }
+
+    /// The chain's current state, as [`keep`](Sampler::keep) records it.
+    pub fn state(&self) -> EnsembleState {
         let sigma_sq = (self.outcome.sigma2_mode().samples_global_sigma_sq()
             && self.variance.is_none())
         .then_some(self.sigma_sq);
@@ -1223,11 +1332,10 @@ impl Sampler {
         let cutpoints = self
             .outcome
             .as_ordinal()
-            .map(|o| o.free_cutpoints())
-            .filter(|free| !free.is_empty())
-            .map(<[f64]>::to_vec);
+            .map(|o| o.free_cutpoints().to_vec())
+            .unwrap_or_default();
         #[cfg(not(feature = "experimental"))]
-        let cutpoints = None;
+        let cutpoints = Vec::new();
         #[cfg(feature = "experimental")]
         let df = self
             .outcome
@@ -1237,15 +1345,14 @@ impl Sampler {
         #[cfg(not(feature = "experimental"))]
         let df = None;
         let inclusion = self.inclusion_state().map(|(s, theta)| (s.to_vec(), theta));
-        self.kept.push(
-            sigma_sq,
+        EnsembleState::new(
             self.mean.tessellations().to_vec(),
-            variance,
+            variance.unwrap_or_default(),
+            sigma_sq,
             cutpoints,
             df,
             inclusion,
-        );
-        self.accumulate_fit();
+        )
     }
 
     /// Add this draw's mean function at every training row to the fit
@@ -1342,6 +1449,258 @@ impl Sampler {
     /// Number of draws kept so far.
     pub fn n_kept(&self) -> usize {
         self.kept.n_draws()
+    }
+
+    /// Record a fit-time warning, once.
+    #[cfg(feature = "experimental")]
+    pub(crate) fn add_warning(&mut self, warning: Warning) {
+        if !self.warnings.contains(&warning) {
+            self.warnings.push(warning);
+        }
+    }
+
+    /// Continue the chain from `state`, a state of the same model on the
+    /// same training data ([`Sampler::state`], [`Fitted::state`]): the
+    /// tessellations, the noise scale and the outcome's and the inclusion
+    /// prior's sampled parameters are replaced, and the assignment caches
+    /// and the running fit rebuilt. The latent responses and the
+    /// scale-mixture weights stand, and the next sweep redraws them from
+    /// their full conditionals before anything conditions on them. The
+    /// transition kernel is unchanged, so only the chain's initial state
+    /// differs from the cold start's. Nothing is drawn. Experimental
+    /// (`docs/experimental.md`); `RequiresFeature` without the feature.
+    ///
+    /// # Errors
+    ///
+    /// `IncompatibleState` after a draw has been kept, or for a state
+    /// whose parts do not match this sampler's model: the tessellation
+    /// counts, a dimension outside the columns or repeated, the cell
+    /// basis, the membership rule, a non-finite value, a cell no training
+    /// row falls in, a non-positive variance cell or sigma^2, the
+    /// cutpoints, the degrees of freedom or the inclusion state. The
+    /// sampler is unchanged on error.
+    #[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
+    pub fn restore(&mut self, state: &EnsembleState) -> Result<()> {
+        #[cfg(not(feature = "experimental"))]
+        return Err(Error::RequiresFeature {
+            item: "Sampler::restore".into(),
+            feature: "experimental",
+        });
+        #[cfg(feature = "experimental")]
+        self.restore_state(state)
+    }
+
+    /// [`restore`](Sampler::restore) from kept draw `draw` (0-based, in
+    /// pooled order) of `previous`, after checking that `previous` is a
+    /// fit of this sampler's model to its training data: the same
+    /// outcome, mean and variance settings, the same scaler (and so the
+    /// same design shape and ranges) and the same categorical levels. The
+    /// sweep schedule may differ. Experimental; `RequiresFeature` without
+    /// the feature.
+    ///
+    /// # Errors
+    ///
+    /// `IncompatibleState` naming the first mismatch;
+    /// `InvalidHyperparameter` for `init_draw` out of range; then
+    /// [`restore`](Sampler::restore).
+    #[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
+    pub fn start_from(&mut self, previous: &Fitted, draw: usize) -> Result<()> {
+        #[cfg(not(feature = "experimental"))]
+        return Err(Error::RequiresFeature {
+            item: "Sampler::start_from".into(),
+            feature: "experimental",
+        });
+        #[cfg(feature = "experimental")]
+        {
+            let bad = |reason: &str| Error::IncompatibleState {
+                reason: reason.into(),
+            };
+            let theirs = previous.config();
+            if theirs.outcome != self.config.outcome {
+                return Err(bad("the previous fit has a different outcome model"));
+            }
+            if theirs.mean_params != self.config.mean_params {
+                return Err(bad("the previous fit has different mean settings"));
+            }
+            if theirs.variance_params != self.config.variance_params {
+                return Err(bad("the previous fit has different variance settings"));
+            }
+            if previous.scaler() != &self.scaler
+                || previous.categories() != self.mean.geometry().categories()
+            {
+                return Err(bad("the previous fit was fitted to different data"));
+            }
+            let state = previous.state(draw)?;
+            self.restore_state(&state)
+        }
+    }
+
+    #[cfg(feature = "experimental")]
+    fn restore_state(&mut self, state: &EnsembleState) -> Result<()> {
+        let bad = |reason: String| Error::IncompatibleState { reason };
+        if self.n_kept() > 0 {
+            return Err(bad("a chain is restored before any draw is kept".into()));
+        }
+        let p = self.x.n_cols();
+        let linear = matches!(
+            self.config.mean_params.cell.basis,
+            crate::config::Basis::Linear
+        );
+        let soft = matches!(
+            self.config.mean_params.geometry.membership,
+            crate::config::Membership::Soft { .. }
+        );
+        let check = |kind: &str, ts: &[Tessellation], want: usize, linear: bool, soft: bool| {
+            if ts.len() != want {
+                return Err(bad(format!(
+                    "{} {kind} tessellations for an ensemble of {want}",
+                    ts.len()
+                )));
+            }
+            for (j, t) in ts.iter().enumerate() {
+                if let Some(reason) = structure_mismatch(t, p, linear, soft) {
+                    return Err(bad(format!("{kind} tessellation {j}: {reason}")));
+                }
+                if kind == "variance" && t.mus.iter().any(|&v| v <= 0.0) {
+                    return Err(bad(format!(
+                        "variance tessellation {j}: a cell value is not positive"
+                    )));
+                }
+            }
+            Ok(())
+        };
+        check(
+            "mean",
+            state.tessellations(),
+            self.mean.tessellations().len(),
+            linear,
+            soft,
+        )?;
+        let m_var = self
+            .variance
+            .as_ref()
+            .map_or(0, |v| v.tessellations().len());
+        check(
+            "variance",
+            state.variance_tessellations(),
+            m_var,
+            false,
+            false,
+        )?;
+
+        let global =
+            self.outcome.sigma2_mode().samples_global_sigma_sq() && self.variance.is_none();
+        match (global, state.sigma_sq()) {
+            (true, Some(v)) if v.is_finite() && v > 0.0 => {}
+            (true, Some(v)) => return Err(bad(format!("sigma^2 {v} is not positive and finite"))),
+            (true, None) => {
+                return Err(bad("the model draws sigma^2 and the state has none".into()))
+            }
+            (false, Some(_)) => return Err(bad("the model draws no global sigma^2".into())),
+            (false, None) => {}
+        }
+        let mut outcome = self.outcome.clone();
+        match outcome.as_ordinal_mut() {
+            Some(ordinal) => {
+                if !ordinal.set_free_cutpoints(state.cutpoints()) {
+                    return Err(bad("the cutpoints do not suit the ordinal model".into()));
+                }
+            }
+            None if !state.cutpoints().is_empty() => {
+                return Err(bad("only the ordinal model has cutpoints".into()));
+            }
+            None => {}
+        }
+        match (
+            outcome.as_student_t_mut().filter(|t| t.grid_sampled()),
+            state.df(),
+        ) {
+            (Some(t), Some(df)) => {
+                if !t.set_df(df) {
+                    return Err(bad(format!("df {df} is not on the grid")));
+                }
+            }
+            (Some(_), None) => return Err(bad("the model draws df and the state has none".into())),
+            (None, Some(_)) => return Err(bad("the model draws no degrees of freedom".into())),
+            (None, None) => {}
+        }
+        let mut dart = self.dart.clone();
+        match (&mut dart, state.inclusion()) {
+            (Some(dart), Some((weights, theta))) => {
+                let total: f64 = weights.iter().sum();
+                if weights.len() != p
+                    || weights.iter().any(|&w| !(w.is_finite() && w > 0.0))
+                    || (total - 1.0).abs() > 1e-9
+                {
+                    return Err(bad(
+                        "the inclusion weights are not a distribution over the columns".into(),
+                    ));
+                }
+                if !dart.grid_theta.contains(&theta) {
+                    return Err(bad(format!("the concentration {theta} is not on the grid")));
+                }
+                dart.s = weights.to_vec();
+                dart.theta = theta;
+            }
+            (Some(_), None) => {
+                return Err(bad(
+                    "the model samples inclusion weights and the state has none".into(),
+                ))
+            }
+            (None, Some(_)) => return Err(bad("the model samples no inclusion weights".into())),
+            (None, None) => {}
+        }
+
+        let mut mean = self.mean.clone();
+        let mut variance = self.variance.clone();
+        if let Some(dart) = &dart {
+            let weights = crate::moves::InclusionWeights::sampled(dart.s.clone());
+            mean.set_inclusion_weights(weights.clone());
+            if let Some(variance) = &mut variance {
+                variance.set_inclusion_weights(weights);
+            }
+        }
+        mean.restore(&self.x, state.tessellations().to_vec(), 0.0)
+            .map_err(|j| {
+                bad(format!(
+                    "mean tessellation {j} has a cell no training row falls in"
+                ))
+            })?;
+        if let Some(variance) = &mut variance {
+            variance
+                .restore(&self.x, state.variance_tessellations().to_vec(), 1.0)
+                .map_err(|j| {
+                    bad(format!(
+                        "variance tessellation {j} has a cell no training row falls in"
+                    ))
+                })?;
+        }
+
+        self.mean = mean;
+        self.variance = variance;
+        self.outcome = outcome;
+        self.dart = dart;
+        if let Some(v) = state.sigma_sq() {
+            self.sigma_sq = v;
+        }
+        if !self.config.general_params.prior_only {
+            if let Some(variance) = &self.variance {
+                for (w, &s) in self.precision.iter_mut().zip(variance.total()) {
+                    *w = 1.0 / s;
+                }
+            } else if global {
+                let scale_precision = 1.0 / self.sigma_sq;
+                match self.outcome.weights() {
+                    None => self.precision.iter_mut().for_each(|w| *w = scale_precision),
+                    Some(weights) => {
+                        for (w, &weight) in self.precision.iter_mut().zip(weights) {
+                            *w = weight * scale_precision;
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Replace the response (caller scale; labels in {0, 1} under the

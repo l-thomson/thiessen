@@ -436,6 +436,40 @@ resolve_chains <- function(chains, call = rlang::caller_env()) {
   as.integer(chains)
 }
 
+#' Resolve the warm start of a fit
+#'
+#' @param init `NULL`, or an object of class `"thiessen"`.
+#' @param init_draw `NULL`, or the 1-based draw of `init` the first chain
+#'   starts from.
+#' @param call The calling environment to report.
+#' @return `NULL` for the cold start; otherwise a list of the live fitted
+#'   state and the 0-based draw, `NULL` for the last.
+#' @noRd
+resolve_init <- function(init, init_draw, call = rlang::caller_env()) {
+  if (is.null(init)) {
+    if (!is.null(init_draw)) {
+      thiessen_abort("`init_draw` needs `init`.", call = call)
+    }
+    return(NULL)
+  }
+  if (!inherits(init, "thiessen")) {
+    thiessen_abort("`init` must be a fit from `thiessen()`.", call = call)
+  }
+  draw <- NULL
+  if (!is.null(init_draw)) {
+    check_whole_number(init_draw, min = 1, call = call)
+    if (init_draw > init$n_draws) {
+      thiessen_abort(
+        sprintf("`init_draw` is %s but `init` holds %d draws.",
+                format(init_draw), init$n_draws),
+        call = call
+      )
+    }
+    draw <- as.numeric(init_draw) - 1
+  }
+  list(state = fit_state(init, call = call), draw = draw)
+}
+
 #' Resolve the number of threads of a fit
 #'
 #' @param threads A whole number of threads.

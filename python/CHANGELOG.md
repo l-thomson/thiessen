@@ -42,6 +42,13 @@ the core crate version the package builds against, which
 
 ### Added
 
+- (experimental) `Model.fit(init=, init_draw=)`: each chain starts from a
+  kept draw of a previous fit of the same model to the same data, counting
+  back from `init_draw` (stochtree's rule); and `warm_start=True` on the
+  estimators, a repeated `fit` continuing every chain from its own last
+  draw. The convergence warning of a warm-started fit says the chains did
+  not start apart.
+
 - The response selects the outcome family where `Model` and `Sampler`
   name none: a numeric array the Gaussian family, a boolean array or a
   two-category pandas `Categorical` the probit family, an ordered
