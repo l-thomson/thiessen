@@ -1,5 +1,11 @@
 # thiessen 0.0.0.9000
 
+* (experimental) `xaddivortes()`, the XAddiVortes fast fit, with
+  `xaddivortes_params()` and `xaddivortes_defaults()`, `predict()` with
+  prediction intervals from the fit's sigma, and `thiessen(start = "fast")`
+  starting each chain from its own fast fit. The fit's sigma is its noise
+  draw, so every method of the fit uses one value.
+
 * (experimental) `thiessen(init = , init_draw = )`: each chain starts from
   a kept draw of a previous fit of the same model to the same data, by
   default the last draw of its counterpart chain, or counting back from
