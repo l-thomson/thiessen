@@ -441,11 +441,14 @@ resolve_chains <- function(chains, call = rlang::caller_env()) {
 #' @param init `NULL`, or an object of class `"thiessen"`.
 #' @param init_draw `NULL`, or the 1-based draw of `init` the first chain
 #'   starts from.
+#' @param chains The number of chains of the new fit.
 #' @param call The calling environment to report.
 #' @return `NULL` for the cold start; otherwise a list of the live fitted
-#'   state and the 0-based draw, `NULL` for the last.
+#'   state, the 0-based draw (`NULL` for the last) and the 0-based draw of
+#'   each chain (`NULL` unless each chain continues its counterpart).
 #' @noRd
-resolve_init <- function(init, init_draw, call = rlang::caller_env()) {
+resolve_init <- function(init, init_draw, chains,
+                         call = rlang::caller_env()) {
   if (is.null(init)) {
     if (!is.null(init_draw)) {
       thiessen_abort("`init_draw` needs `init`.", call = call)
@@ -456,6 +459,11 @@ resolve_init <- function(init, init_draw, call = rlang::caller_env()) {
     thiessen_abort("`init` must be a fit from `thiessen()`.", call = call)
   }
   draw <- NULL
+  draws <- NULL
+  if (is.null(init_draw) && identical(as.integer(init$n_chains), chains)) {
+    per_chain <- init$n_draws %/% chains
+    draws <- as.numeric(seq_len(chains) * per_chain - 1)
+  }
   if (!is.null(init_draw)) {
     check_whole_number(init_draw, min = 1, call = call)
     if (init_draw > init$n_draws) {
@@ -467,7 +475,7 @@ resolve_init <- function(init, init_draw, call = rlang::caller_env()) {
     }
     draw <- as.numeric(init_draw) - 1
   }
-  list(state = fit_state(init, call = call), draw = draw)
+  list(state = fit_state(init, call = call), draw = draw, draws = draws)
 }
 
 #' Resolve the number of threads of a fit

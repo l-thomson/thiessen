@@ -82,16 +82,19 @@ is four chains long.}
 \item{init}{\code{NULL}, the default, for the cold start; or a previous
 fit of the same model to the same data, from \code{thiessen()}. Each chain
 then starts from one of its kept draws instead of the cold start;
-only the starting state changes, not the posterior. Chain k (from 1)
-starts from draw \code{init_draw - k + 1}; with fewer draws than chains up
-to \code{init_draw}, every chain starts from \code{init_draw} and the fit warns.
-This is the rule of stochtree's warm start. A clean R-hat across
+only the starting state changes, not the posterior. Without
+\code{init_draw} and with as many chains as \code{init}, chain k continues from
+the last draw of chain k of \code{init}. Otherwise chain k (from 1) starts
+from pooled draw \code{init_draw - k + 1}, \code{init_draw} defaulting to the
+last; with fewer draws than chains up to it, every chain starts from
+it and the fit warns. This is the rule of stochtree's warm start. A
+clean R-hat across
 chains started from one previous fit is a check within that run, not
 across dispersed starts (Vehtari and others, 2021). Experimental:
 needs a build with the \code{experimental} feature.}
 
-\item{init_draw}{The draw of \code{init} the first chain starts from, a
-whole number from 1; \code{NULL}, the default, is the last.}
+\item{init_draw}{The pooled draw of \code{init} the first chain starts
+from, a whole number from 1.}
 
 \item{formula}{A two-sided formula. The left side names the response and
 the right side the covariates, \code{.} for every remaining column.}

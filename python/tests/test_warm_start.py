@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 import pytest
 from thiessen import Model, RequiresFeatureError, ThiessenError, _native
+from thiessen._response import _as_response, _fit
 from thiessen.estimators import AddiVortesClassifier, AddiVortesRegressor
 
 from .conftest import SMALL
@@ -42,6 +43,31 @@ def test_a_warm_start_reproduces_and_differs_from_the_cold_start(gaussian_fixtur
     cold = quiet(model.fit, x, y, random_state=2, n_chains=2)
     np.testing.assert_array_equal(a.predict_draws(x), b.predict_draws(x))
     assert not np.array_equal(a.predict_draws(x), cold.predict_draws(x))
+
+
+@experimental
+def test_each_chain_continues_its_counterpart_by_default(gaussian_fixture):
+    x, y = gaussian_fixture
+    model = Model(**SMALL)
+    previous = quiet(model.fit, x, y, random_state=1, n_chains=2)
+    per_chain = previous.n_draws // 2
+    default = quiet(model.fit, x, y, random_state=2, n_chains=2, init=previous)
+    named = quiet(
+        model.fit, x, y, random_state=2, n_chains=2, init=previous, init_draw=0
+    )
+    config = default._fitted.config
+    continued = _fit(
+        config,
+        np.ascontiguousarray(x),
+        _as_response(y),
+        2,
+        2,
+        1,
+        init=previous._fitted,
+        init_draws=[per_chain - 1, 2 * per_chain - 1],
+    )
+    np.testing.assert_array_equal(default.predict_draws(x), continued.predict_draws(x))
+    assert not np.array_equal(default.predict_draws(x), named.predict_draws(x))
 
 
 @experimental

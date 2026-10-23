@@ -189,15 +189,16 @@ class Model(Params):
         init : FittedModel, optional
             A previous fit of this model to the same data. Each chain then
             starts from one of its kept draws instead of the cold start;
-            only the starting state changes, not the posterior. Chain k
-            (from 0) starts from draw ``init_draw - k``; with fewer draws
-            than chains up to `init_draw`, every chain starts from
-            `init_draw` and the fit warns. This is stochtree's rule.
-            Experimental: needs a core built with the ``experimental``
-            feature.
+            only the starting state changes, not the posterior. Without
+            `init_draw` and with as many chains as `init`, chain k
+            continues from the last draw of chain k of `init`. Otherwise
+            chain k (from 0) starts from pooled draw ``init_draw - k``,
+            `init_draw` defaulting to the last; with fewer draws than
+            chains up to it, every chain starts from it and the fit warns.
+            This is stochtree's rule. Experimental: needs a core built with
+            the ``experimental`` feature.
         init_draw : int, optional
-            The 0-based pooled draw of `init` the first chain starts from;
-            `None` is the last.
+            The 0-based pooled draw of `init` the first chain starts from.
 
         Returns
         -------
@@ -240,7 +241,7 @@ class Model(Params):
         seed = _resolve_seed(random_state)
         chains = _resolve_chains(n_chains)
         threads = _resolve_threads(n_threads)
-        previous, draw = _resolve_init(init, init_draw)
+        previous, draw, draws = _resolve_init(init, init_draw, chains)
         fitted = _fit(
             config,
             design,
@@ -250,6 +251,7 @@ class Model(Params):
             threads,
             init=previous,
             init_draw=draw,
+            init_draws=draws,
         )
         _emit_warnings(fitted, stacklevel=3)
         _warn_convergence(
@@ -259,21 +261,32 @@ class Model(Params):
 
 
 def _resolve_init(
-    init: Any, init_draw: Any
-) -> tuple[_native.Fitted | None, int | None]:
-    """Return the core fit and the 0-based draw a warm start names."""
+    init: Any, init_draw: Any, n_chains: int
+) -> tuple[_native.Fitted | None, int | None, list[int] | None]:
+    """Return the core fit and the 0-based draws a warm start names.
+
+    The third value names each chain's draw: the last of its counterpart
+    in `init`, when `init_draw` is unset and the chain counts agree.
+    """
     if init is None:
         if init_draw is not None:
             raise ValueError("init_draw needs init")
-        return None, None
+        return None, None, None
     if not isinstance(init, FittedModel):
         raise ValueError(f"init must be a FittedModel; got {type(init).__name__}")
     if init_draw is None:
-        return init._fitted, None
+        if init.n_chains == n_chains:
+            per_chain = init.n_draws // n_chains
+            return (
+                init._fitted,
+                None,
+                [(k + 1) * per_chain - 1 for k in range(n_chains)],
+            )
+        return init._fitted, None, None
     draw = int(init_draw)
     if draw != init_draw or draw < 0:
         raise ValueError(f"init_draw must be a non-negative integer; got {init_draw!r}")
-    return init._fitted, draw
+    return init._fitted, draw, None
 
 
 def _emit_warnings(fitted: _native.Fitted, stacklevel: int) -> None:

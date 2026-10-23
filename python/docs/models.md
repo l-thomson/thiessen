@@ -110,14 +110,13 @@ of 400 and a largest R-hat of about 1.014 against 1.01, so it warns. More
 draws per chain, `Model(draws=)`, is the answer; `thinning` is not.
 
 A fit that warned can be continued rather than rerun:
-`model.fit(x, y, init=fitted)` starts each chain from one of `fitted`'s kept
-draws, so the new chains begin where the old ones ended instead of at the cold
+`model.fit(x, y, init=fitted)` with the same number of chains continues each
+chain from the last draw of its counterpart in `fitted` instead of the cold
 start, and only the starting state differs from a cold-started fit. The
 estimators do the same through the scikit-learn convention,
-`AddiVortesRegressor(warm_start=True)`, each repeated `fit` continuing every
-chain from its own last draw. Chains started from one previous fit start close
-together, so a clean R-hat on the continued fit checks that run, not dispersed
-starts (Vehtari and others, 2021). The option is experimental and needs a core
+`AddiVortesRegressor(warm_start=True)`. The continued chains start where the
+warned fit's chains ended, so a clean R-hat on the continued fit checks that
+run, not dispersed starts (Vehtari and others, 2021). The option is experimental and needs a core
 built with the `experimental` feature.
 
 ```python exec="on" source="above" result="text"

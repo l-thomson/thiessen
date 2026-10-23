@@ -91,3 +91,20 @@ test_that("the init arguments are checked", {
     "holds 20 draws"
   )
 })
+
+test_that("each chain continues its counterpart by default", {
+  skip_if_not(core_experimental())
+  data <- small_fixture()
+  previous <- quiet_fit(data$x, data$y, small_control(), seed = 1,
+                        chains = 2)
+  default <- quiet_fit(data$x, data$y, small_control(), seed = 2, chains = 2,
+                       init = previous)
+  last <- quiet_fit(data$x, data$y, small_control(), seed = 2, chains = 2,
+                    init = previous, init_draw = previous$n_draws)
+  first <- quiet_fit(data$x, data$y, small_control(), seed = 2, chains = 2,
+                     init = previous, init_draw = previous$n_draws / 2)
+  draws <- function(fit) predict(fit, data$x, type = "draws")
+  expect_false(identical(draws(default), draws(last)))
+  # Chain 1 of the default starts where `first` does.
+  expect_identical(draws(default)[1:20, ], draws(first)[1:20, ])
+})

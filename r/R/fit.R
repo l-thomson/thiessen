@@ -131,15 +131,18 @@
 #' @param init `NULL`, the default, for the cold start; or a previous
 #'   fit of the same model to the same data, from `thiessen()`. Each chain
 #'   then starts from one of its kept draws instead of the cold start;
-#'   only the starting state changes, not the posterior. Chain k (from 1)
-#'   starts from draw `init_draw - k + 1`; with fewer draws than chains up
-#'   to `init_draw`, every chain starts from `init_draw` and the fit warns.
-#'   This is the rule of stochtree's warm start. A clean R-hat across
+#'   only the starting state changes, not the posterior. Without
+#'   `init_draw` and with as many chains as `init`, chain k continues from
+#'   the last draw of chain k of `init`. Otherwise chain k (from 1) starts
+#'   from pooled draw `init_draw - k + 1`, `init_draw` defaulting to the
+#'   last; with fewer draws than chains up to it, every chain starts from
+#'   it and the fit warns. This is the rule of stochtree's warm start. A
+#'   clean R-hat across
 #'   chains started from one previous fit is a check within that run, not
 #'   across dispersed starts (Vehtari and others, 2021). Experimental:
 #'   needs a build with the `experimental` feature.
-#' @param init_draw The draw of `init` the first chain starts from, a
-#'   whole number from 1; `NULL`, the default, is the last.
+#' @param init_draw The pooled draw of `init` the first chain starts
+#'   from, a whole number from 1.
 #' @param seed The seed of the chain. `NULL`, the default, draws one from
 #'   R's stream, so [set.seed()] governs; a whole number in `[0, 2^53]`
 #'   passes to the core unchanged, so the same value reproduces the same
@@ -285,7 +288,7 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
   chains <- resolve_chains(chains, call = call_env)
   threads <- resolve_threads(threads, call = call_env)
   resolved <- resolve_seed(seed, call = call_env)
-  start <- resolve_init(init, init_draw, call = call_env)
+  start <- resolve_init(init, init_draw, chains, call = call_env)
   # The progressor's life must span the whole fit, so the count never ends
   # it: `auto_finish` would close the handler on the last step, and the
   # frame this progressor belongs to exits when the fit is complete.
@@ -353,7 +356,7 @@ run_schedule <- function(control, design, response, seed, chains, threads,
     new_sampler_handle(config, design, response, seed, chain)
   })
   if (!is.null(start)) {
-    core_samplers_start(samplers, start$state, start$draw, NULL)
+    core_samplers_start(samplers, start$state, start$draw, start$draws)
   }
   completed <- 0L
   while (completed < schedule$burn_in) {

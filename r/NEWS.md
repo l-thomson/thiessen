@@ -1,8 +1,9 @@
 # thiessen 0.0.0.9000
 
 * (experimental) `thiessen(init = , init_draw = )`: each chain starts from
-  a kept draw of a previous fit of the same model to the same data,
-  counting back from `init_draw` (stochtree's rule), and the convergence
+  a kept draw of a previous fit of the same model to the same data, by
+  default the last draw of its counterpart chain, or counting back from
+  `init_draw` (stochtree's rule), and the convergence
   warning of such a fit says the chains did not start apart.
 
 * `thiessen()` fits the Gaussian, binary probit and heteroscedastic models
