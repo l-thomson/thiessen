@@ -383,22 +383,11 @@ pub fn fit_chains_from_fast(
     }
     #[cfg(feature = "experimental")]
     {
-        params.validate()?;
-        let mut slots = (0..n_chains)
-            .map(|k| {
-                let s = crate::Sampler::new(config, x, y, crate::chain_seed(seed, k))?;
-                s.fast_fit_guard()?;
-                Ok((s, None))
-            })
-            .collect::<Result<Vec<(crate::Sampler, Option<Result<FastFit>>)>>>()?;
-        crate::threads::spread(&mut slots, n_threads, |(s, out)| {
-            *out = Some(s.fast_fit(params));
-        });
-        let mut samplers = Vec::with_capacity(n_chains);
-        for (s, out) in slots {
-            out.expect("every chain ran its fit")?;
-            samplers.push(s);
-        }
+        let mut samplers = (0..n_chains)
+            .map(|k| crate::Sampler::new(config, x, y, crate::chain_seed(seed, k)))
+            .collect::<Result<Vec<_>>>()?;
+        let mut chains: Vec<&mut crate::Sampler> = samplers.iter_mut().collect();
+        crate::Sampler::xaddivortes_all(&mut chains, params, n_threads)?;
         run_from_fast(samplers, config, x, y, n_threads)
     }
 }

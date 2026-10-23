@@ -1503,6 +1503,44 @@ impl Sampler {
         }
     }
 
+    /// [`xaddivortes`](Sampler::xaddivortes) on every sampler, spread
+    /// over at most `threads` threads; each fit draws from its own
+    /// chain's generator, so the fits do not depend on `threads`.
+    /// Returns the fits in sampler order.
+    ///
+    /// # Errors
+    ///
+    /// As [`xaddivortes`](Sampler::xaddivortes); every sampler is checked
+    /// before any fit runs, and none changes on error.
+    #[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
+    pub fn xaddivortes_all(
+        samplers: &mut [&mut Sampler],
+        params: &crate::XAddiVortesParams,
+        threads: usize,
+    ) -> Result<Vec<crate::FastFit>> {
+        #[cfg(not(feature = "experimental"))]
+        return Err(Error::RequiresFeature {
+            item: "Sampler::xaddivortes_all".into(),
+            feature: "experimental",
+        });
+        #[cfg(feature = "experimental")]
+        {
+            params.validate()?;
+            for s in samplers.iter() {
+                s.fast_fit_guard()?;
+            }
+            let mut slots: Vec<(&mut Sampler, Option<Result<crate::FastFit>>)> =
+                samplers.iter_mut().map(|s| (&mut **s, None)).collect();
+            crate::threads::spread(&mut slots, threads, |(s, out)| {
+                *out = Some(s.fast_fit(params));
+            });
+            slots
+                .into_iter()
+                .map(|(_, out)| out.expect("every sampler ran its fit"))
+                .collect()
+        }
+    }
+
     /// The settings and the chain position the fast fit supports.
     #[cfg(feature = "experimental")]
     pub(crate) fn fast_fit_guard(&self) -> Result<()> {
