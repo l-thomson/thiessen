@@ -54,6 +54,7 @@ nav:
   - Priors and scaling: priors.md
   - Input data: data.md
   - scikit-learn: sklearn.md
+  - Fast fits and warm starts: fast-fits.md
   - arviz: arviz.md
   - Sampler API: sampler.md
   - Reproducibility: reproducibility.md

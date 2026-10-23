@@ -42,6 +42,13 @@ the core crate version the package builds against, which
 
 ### Added
 
+- (experimental) `XAddiVortesRegressor`, the XAddiVortes fast fit, with its
+  defaults in the signature and `core_defaults()`; `predict_interval` from
+  the fit's sigma, which is also the model's noise draw. `start="fast"` and
+  `fast_settings` on `AddiVortesRegressor` and `Model.fit`, and
+  `Sampler.xaddivortes`, start chains from fast fits. Settings accept NumPy
+  scalars.
+
 - (experimental) `Model.fit(init=, init_draw=)`: each chain starts from a
   kept draw of a previous fit of the same model to the same data, by
   default the last draw of its counterpart chain, or counting back from
