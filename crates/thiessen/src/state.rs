@@ -91,6 +91,20 @@ impl EnsembleState {
         )
     }
 
+    /// This state with the mean tessellations, and sigma^2, replaced.
+    #[cfg(feature = "experimental")]
+    pub(crate) fn with_mean(
+        mut self,
+        tessellations: Vec<Tessellation>,
+        sigma_sq: Option<f64>,
+    ) -> Self {
+        self.tessellations = tessellations;
+        if self.sigma_sq.is_some() {
+            self.sigma_sq = sigma_sq;
+        }
+        self
+    }
+
     /// The mean tessellations.
     pub fn tessellations(&self) -> &[Tessellation] {
         &self.tessellations
