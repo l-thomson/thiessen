@@ -490,7 +490,12 @@ fn core_samplers_start(
     let named: Option<Vec<usize>> = if draws.is_null() {
         None
     } else {
-        Some(Vec::<f64>::try_from(draws)?.into_iter().map(index).collect())
+        Some(
+            Vec::<f64>::try_from(draws)?
+                .into_iter()
+                .map(index)
+                .collect(),
+        )
     };
     let init = match &named {
         Some(draws) => thiessen::Init::Draws {
