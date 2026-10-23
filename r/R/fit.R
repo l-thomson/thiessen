@@ -143,6 +143,15 @@
 #'   needs a build with the `experimental` feature.
 #' @param init_draw The pooled draw of `init` the first chain starts
 #'   from, a whole number from 1.
+#' @param start Where each chain starts: `"cold"`, the sampler's own
+#'   start, or `"fast"`, its own XAddiVortes fit ([xaddivortes()]), after
+#'   which the same burn-in and draws run. Only the starting state differs,
+#'   so the chains target the same posterior either way. `"fast"` needs the
+#'   Gaussian family, cannot be combined with `init`, and needs a build
+#'   with the `experimental` feature.
+#' @param fast The XAddiVortes settings of a fast start, from
+#'   [xaddivortes_params()]; `NULL` takes the defaults. Given with
+#'   `start = "cold"` it is an error.
 #' @param seed The seed of the chain. `NULL`, the default, draws one from
 #'   R's stream, so [set.seed()] governs; a whole number in `[0, 2^53]`
 #'   passes to the core unchanged, so the same value reproduces the same
@@ -200,12 +209,15 @@ thiessen <- function(x, ...) {
 thiessen.default <- function(x, y, control = thiessen_control(), seed = NULL,
                              chains = 4,
                              threads = getOption("mc.cores", 1L),
-                             init = NULL, init_draw = NULL, ...) {
+                             init = NULL, init_draw = NULL,
+                             start = c("cold", "fast"), fast = NULL, ...) {
   rlang::check_dots_empty()
+  start <- rlang::arg_match(start)
   design <- as_design(x)
   response <- as_response(y)
   new_fit(design, response, control, seed, chains, threads,
-          generic_call(match.call()), init = init, init_draw = init_draw)
+          generic_call(match.call()), init = init, init_draw = init_draw,
+          start = start, fast = fast)
 }
 
 #' @rdname thiessen
@@ -213,8 +225,11 @@ thiessen.default <- function(x, y, control = thiessen_control(), seed = NULL,
 thiessen.data.frame <- function(x, y, control = thiessen_control(),
                                 seed = NULL, chains = 4,
                                 threads = getOption("mc.cores", 1L),
-                                init = NULL, init_draw = NULL, ...) {
+                                init = NULL, init_draw = NULL,
+                                start = c("cold", "fast"), fast = NULL,
+                                ...) {
   rlang::check_dots_empty()
+  start <- rlang::arg_match(start)
   molded <- core_call(
     hardhat::mold(~ ., data = x, blueprint = blueprint_for(control))
   )
@@ -225,7 +240,7 @@ thiessen.data.frame <- function(x, y, control = thiessen_control(),
   response <- as_response(y)
   new_fit(design, response, control, seed, chains, threads,
           generic_call(match.call()), blueprint = molded$blueprint,
-          init = init, init_draw = init_draw)
+          init = init, init_draw = init_draw, start = start, fast = fast)
 }
 
 #' @rdname thiessen
@@ -233,8 +248,10 @@ thiessen.data.frame <- function(x, y, control = thiessen_control(),
 thiessen.formula <- function(formula, data, control = thiessen_control(),
                              seed = NULL, chains = 4,
                              threads = getOption("mc.cores", 1L),
-                             init = NULL, init_draw = NULL, ...) {
+                             init = NULL, init_draw = NULL,
+                             start = c("cold", "fast"), fast = NULL, ...) {
   rlang::check_dots_empty()
+  start <- rlang::arg_match(start)
   molded <- core_call(
     hardhat::mold(formula, data, blueprint = blueprint_for(control))
   )
@@ -245,7 +262,7 @@ thiessen.formula <- function(formula, data, control = thiessen_control(),
   response <- encode_response(molded$outcomes)
   new_fit(design, response, control, seed, chains, threads,
           generic_call(match.call()), blueprint = molded$blueprint,
-          init = init, init_draw = init_draw)
+          init = init, init_draw = init_draw, start = start, fast = fast)
 }
 
 #' The method call with the generic's name, so `update()` can re-evaluate it
@@ -273,7 +290,8 @@ generic_call <- function(call) {
 #' @noRd
 new_fit <- function(design, response, control, seed, chains, threads, call,
                     blueprint = NULL, call_env = rlang::caller_env(),
-                    init = NULL, init_draw = NULL) {
+                    init = NULL, init_draw = NULL, start = "cold",
+                    fast = NULL) {
   if (response$n != nrow(design)) {
     thiessen_abort(
       sprintf(
@@ -288,6 +306,21 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
   chains <- resolve_chains(chains, call = call_env)
   threads <- resolve_threads(threads, call = call_env)
   resolved <- resolve_seed(seed, call = call_env)
+  if (start == "cold" && !is.null(fast)) {
+    thiessen_abort(
+      "`fast` sets the fast start; it needs `start = \"fast\"`.",
+      call = call_env
+    )
+  }
+  if (start == "fast" && !is.null(init)) {
+    thiessen_abort(
+      "`start = \"fast\"` and `init` both set the start; give one.",
+      call = call_env
+    )
+  }
+  fast_start <- if (start == "fast") {
+    fast_json(fast, arg = "fast", call = call_env)
+  }
   start <- resolve_init(init, init_draw, chains, call = call_env)
   # The progressor's life must span the whole fit, so the count never ends
   # it: `auto_finish` would close the handler on the last step, and the
@@ -299,12 +332,14 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
   )
   fit <- core_call(
     run_schedule(control, design, response, resolved, chains, threads,
-                 report, phase_steps[["pooling"]], start = start),
+                 report, phase_steps[["pooling"]], start = start,
+                 fast_start = fast_start),
     call = call_env
   )
   assemble_fit(fit, design, response, resolved, call, threads = threads,
                blueprint = blueprint, call_env = call_env, report = report,
-               phase_steps = phase_steps, warm_start = !is.null(start))
+               phase_steps = phase_steps,
+               warm_start = !is.null(start) || !is.null(fast_start))
 }
 
 #' Run the sweep schedule of every chain and pool the draws
@@ -328,10 +363,13 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
 #' @param pooling_steps The steps pooling the chains takes.
 #' @param start `NULL` for the cold start, or the list `resolve_init()`
 #'   returns.
+#' @param fast_start `NULL`, or the XAddiVortes settings as JSON, to
+#'   start every chain from its own fast fit.
 #' @return The list `core_finish()` returns.
 #' @noRd
 run_schedule <- function(control, design, response, seed, chains, threads,
-                         report, pooling_steps = 1L, start = NULL) {
+                         report, pooling_steps = 1L, start = NULL,
+                         fast_start = NULL) {
   schedule <- control$general_params
   config <- config_json(control)
   thinning <- as.integer(schedule$thinning)
@@ -357,6 +395,9 @@ run_schedule <- function(control, design, response, seed, chains, threads,
   })
   if (!is.null(start)) {
     core_samplers_start(samplers, start$state, start$draw, start$draws)
+  }
+  if (!is.null(fast_start)) {
+    core_samplers_xaddivortes(samplers, fast_start, threads)
   }
   completed <- 0L
   while (completed < schedule$burn_in) {

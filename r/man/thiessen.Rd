@@ -18,6 +18,8 @@ thiessen(x, ...)
   threads = getOption("mc.cores", 1L),
   init = NULL,
   init_draw = NULL,
+  start = c("cold", "fast"),
+  fast = NULL,
   ...
 )
 
@@ -30,6 +32,8 @@ thiessen(x, ...)
   threads = getOption("mc.cores", 1L),
   init = NULL,
   init_draw = NULL,
+  start = c("cold", "fast"),
+  fast = NULL,
   ...
 )
 
@@ -42,6 +46,8 @@ thiessen(x, ...)
   threads = getOption("mc.cores", 1L),
   init = NULL,
   init_draw = NULL,
+  start = c("cold", "fast"),
+  fast = NULL,
   ...
 )
 }
@@ -95,6 +101,17 @@ needs a build with the \code{experimental} feature.}
 
 \item{init_draw}{The pooled draw of \code{init} the first chain starts
 from, a whole number from 1.}
+
+\item{start}{Where each chain starts: \code{"cold"}, the sampler's own
+start, or \code{"fast"}, its own XAddiVortes fit (\code{\link[=xaddivortes]{xaddivortes()}}), after
+which the same burn-in and draws run. Only the starting state differs,
+so the chains target the same posterior either way. \code{"fast"} needs the
+Gaussian family, cannot be combined with \code{init}, and needs a build
+with the \code{experimental} feature.}
+
+\item{fast}{The XAddiVortes settings of a fast start, from
+\code{\link[=xaddivortes_params]{xaddivortes_params()}}; \code{NULL} takes the defaults. Given with
+\code{start = "cold"} it is an error.}
 
 \item{formula}{A two-sided formula. The left side names the response and
 the right side the covariates, \code{.} for every remaining column.}
