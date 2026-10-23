@@ -126,7 +126,8 @@ test_that("chains start from their own fast fits", {
   cold <- run("cold", fast = NULL)
   expect_identical(predict(a, f$x), predict(b, f$x))
   expect_false(identical(predict(a, f$x), predict(cold, f$x)))
-  expect_true(a$warm_start)
+  expect_true(a$fast_start)
+  expect_false(a$warm_start)
 })
 
 test_that("the fast start's arguments are checked", {

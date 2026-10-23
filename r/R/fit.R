@@ -338,8 +338,8 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
   )
   assemble_fit(fit, design, response, resolved, call, threads = threads,
                blueprint = blueprint, call_env = call_env, report = report,
-               phase_steps = phase_steps,
-               warm_start = !is.null(start) || !is.null(fast_start))
+               phase_steps = phase_steps, warm_start = !is.null(start),
+               fast_start = !is.null(fast_start))
 }
 
 #' Run the sweep schedule of every chain and pool the draws
@@ -438,6 +438,7 @@ run_schedule <- function(control, design, response, seed, chains, threads,
 #'   read here.
 #' @param warm_start Whether the chains started from draws of a previous
 #'   fit.
+#' @param fast_start Whether each chain started from its own fast fit.
 #' @return An object of class `"thiessen"`.
 #' @noRd
 assemble_fit <- function(fit, design, response, seed, call, threads = 1L,
@@ -446,7 +447,7 @@ assemble_fit <- function(fit, design, response, seed, call, threads = 1L,
                            steps = 2L, enable = FALSE
                          ),
                          phase_steps = c(saving = 1L, summarising = 1L),
-                         warm_start = FALSE) {
+                         warm_start = FALSE, fast_start = FALSE) {
   # The core measures the in-sample fit against the observed values on
   # the model's scale where the working response is replaced by latents;
   # a plain response is kept as given.
@@ -476,6 +477,7 @@ assemble_fit <- function(fit, design, response, seed, call, threads = 1L,
       warnings = fit$warnings,
       seed = seed,
       warm_start = warm_start,
+      fast_start = fast_start,
       n_features = ncol(design),
       blueprint = blueprint,
       response = response,
