@@ -1460,8 +1460,10 @@ impl Sampler {
     /// point fit ([`keep`](Sampler::keep), then [`finish`](Sampler::finish))
     /// or run on from it as a warm start ([`step`](Sampler::step)). The
     /// fit draws one value from the chain's generator to seed its own, so
-    /// the same seed gives the same fit. The noise variance stays the
-    /// chain's unless [`update_sigma`](crate::XAddiVortesParams::update_sigma).
+    /// the same seed gives the same fit. The chain's sigma^2 becomes the
+    /// fit's training residual mean square, so a kept fit's noise draw is
+    /// [`FastFit::sigma`](crate::FastFit::sigma); a chain run on redraws
+    /// sigma^2 from its full conditional at its first sweep.
     /// Experimental (`docs/experimental.md`); `RequiresFeature` in a build
     /// without the feature.
     ///
@@ -1545,8 +1547,8 @@ impl Sampler {
             };
             crate::xaddivortes::fit(&inputs, params, &mut rng)
         };
-        let sigma_sq = if params.update_sigma && out.sigma_sq.is_finite() && out.sigma_sq > 0.0 {
-            out.sigma_sq
+        let sigma_sq = if out.resid_ms.is_finite() && out.resid_ms > 0.0 {
+            out.resid_ms
         } else {
             self.sigma_sq
         };
@@ -1562,15 +1564,6 @@ impl Sampler {
             zeroed: out.zeroed,
             train_score: out.train_rms.iter().map(|v| v * y_range).collect(),
         })
-    }
-
-    /// Set sigma^2 (scaled space) for a chain that draws one, refreshing
-    /// the precisions it weights the mean ensemble with.
-    #[cfg(feature = "experimental")]
-    pub(crate) fn set_sigma_sq(&mut self, sigma_sq: f64) -> Result<()> {
-        let state = self.state();
-        let tessellations = state.tessellations().to_vec();
-        self.restore_state(&state.with_mean(tessellations, Some(sigma_sq)))
     }
 
     /// Record a fit-time warning, once.

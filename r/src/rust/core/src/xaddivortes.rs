@@ -137,8 +137,8 @@ pub struct XAddiVortesParams {
     /// least 1.
     pub refit_passes: usize,
     /// Re-estimate the noise variance used in the shrinkage from the
-    /// residual after every round, and leave the chain at that estimate
-    /// (default true; false keeps the chain's initial estimate throughout).
+    /// residual after every round (default true; false keeps the chain's
+    /// initial estimate throughout the fit).
     pub update_sigma: bool,
     /// How a round ranks the tessellations it may replace (default
     /// [`Worth::Gain`]).
@@ -342,11 +342,6 @@ pub fn fit_xaddivortes(
 ) -> Result<(crate::Fitted, FastFit)> {
     let mut sampler = crate::Sampler::new(config, x, y, crate::chain_seed(seed, 0))?;
     let fast = sampler.xaddivortes(params)?;
-    #[cfg(feature = "experimental")]
-    {
-        let range = sampler.scaler().y_range();
-        sampler.set_sigma_sq((fast.sigma / range) * (fast.sigma / range))?;
-    }
     sampler.keep();
     Ok((sampler.finish()?, fast))
 }
@@ -461,9 +456,6 @@ mod algorithm {
     /// What the fit returns.
     pub(crate) struct Outcome {
         pub tessellations: Vec<Tessellation>,
-        /// The noise variance after the fit (unchanged unless
-        /// `update_sigma`).
-        pub sigma_sq: f64,
         /// Mean square of the final residual, scaled space.
         pub resid_ms: f64,
         pub rounds: usize,
@@ -965,7 +957,6 @@ mod algorithm {
 
         Outcome {
             tessellations: ts,
-            sigma_sq,
             resid_ms: mean_square(&resid),
             rounds,
             planned_sweeps: cost.sweeps_used(),
