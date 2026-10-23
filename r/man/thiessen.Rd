@@ -87,7 +87,7 @@ only the starting state changes, not the posterior. Without
 the last draw of chain k of \code{init}. Otherwise chain k (from 1) starts
 from pooled draw \code{init_draw - k + 1}, \code{init_draw} defaulting to the
 last; with fewer draws than chains up to it, every chain starts from
-it and the fit warns. This is the rule of stochtree's warm start. A
+it and the fit warns. This is the warm-start rule of stochtree. A
 clean R-hat across
 chains started from one previous fit is a check within that run, not
 across dispersed starts (Vehtari and others, 2021). Experimental:
