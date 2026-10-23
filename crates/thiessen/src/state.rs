@@ -68,6 +68,29 @@ impl EnsembleState {
         }
     }
 
+    /// The parts, by value: the mean and variance tessellations, sigma^2,
+    /// the cutpoints, df and the inclusion state.
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        Vec<Tessellation>,
+        Vec<Tessellation>,
+        Option<f64>,
+        Vec<f64>,
+        Option<f64>,
+        Option<(Vec<f64>, f64)>,
+    ) {
+        (
+            self.tessellations,
+            self.variance_tessellations,
+            self.sigma_sq,
+            self.cutpoints,
+            self.df,
+            self.inclusion,
+        )
+    }
+
     /// The mean tessellations.
     pub fn tessellations(&self) -> &[Tessellation] {
         &self.tessellations

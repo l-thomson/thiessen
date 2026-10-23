@@ -75,15 +75,13 @@ impl Posterior {
     }
 
     pub(crate) fn push_state(&mut self, state: crate::state::EnsembleState) {
-        let variance = state.variance_tessellations().to_vec();
-        let cutpoints = state.cutpoints().to_vec();
-        let inclusion = state.inclusion().map(|(s, theta)| (s.to_vec(), theta));
+        let (tessellations, variance, sigma_sq, cutpoints, df, inclusion) = state.into_parts();
         self.push(
-            state.sigma_sq(),
-            state.tessellations().to_vec(),
+            sigma_sq,
+            tessellations,
             (!variance.is_empty()).then_some(variance),
             (!cutpoints.is_empty()).then_some(cutpoints),
-            state.df(),
+            df,
             inclusion,
         );
     }
