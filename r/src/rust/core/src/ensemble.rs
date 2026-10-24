@@ -146,7 +146,7 @@ impl<F: CellFamily> Ensemble<F> {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "experimental"))]
     pub(crate) fn family(&self) -> &F {
         &self.family
     }

@@ -142,6 +142,14 @@ pub enum Warning {
         /// Draws available, counting back from the starting draw.
         draws: usize,
     },
+    /// The fast fit's budget ran out while building, so some
+    /// tessellations were left at zero.
+    FastFitZeroed {
+        /// Tessellations left at zero.
+        zeroed: usize,
+        /// Tessellations in the ensemble.
+        tessellations: usize,
+    },
 }
 
 impl std::fmt::Display for Warning {
@@ -154,6 +162,15 @@ impl std::fmt::Display for Warning {
                 f,
                 "{chains} chains but only {draws} draws to start them from; \
                  every chain starts from the same draw"
+            ),
+            Warning::FastFitZeroed {
+                zeroed,
+                tessellations,
+            } => write!(
+                f,
+                "the fast fit's budget ran out while building: {zeroed} of \
+                 {tessellations} tessellations left at zero; raise the budget or \
+                 lower pair_screen"
             ),
         }
     }

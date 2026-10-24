@@ -236,6 +236,9 @@ pub struct Sampler {
     /// Calibrated scale of the prior sigma^2 ~ nu lambda / chi^2_nu.
     lambda: f64,
     kept: Posterior,
+    /// Whether the chain is still at its cold start: no sweep run and no
+    /// state restored.
+    cold: bool,
     /// The mean function at every training row summed over the kept
     /// draws, from the cached cell assignments at each `keep`; `None` once
     /// a kept draw had a soft tessellation, whose value is not a cell's.
@@ -1002,6 +1005,7 @@ impl Sampler {
             precision,
             lambda,
             kept: Posterior::empty(),
+            cold: true,
             fit_sums: Some(FitSums {
                 scaled: vec![0.0; n],
                 response: vec![0.0; n],
@@ -1018,6 +1022,7 @@ impl Sampler {
     /// tessellation in turn a structural move, accept or reject, and the
     /// cell means | rest.
     pub fn step(&mut self) {
+        self.cold = false;
         self.update_noise(true);
         self.mean.sweep(
             &self.x,
@@ -1470,6 +1475,174 @@ impl Sampler {
         self.kept.n_draws()
     }
 
+    /// XAddiVortes, the fast fit (`xaddivortes.rs`): replace the chain's
+    /// state by the fit under `params`, so the chain can be kept as a
+    /// point fit ([`keep`](Sampler::keep), then [`finish`](Sampler::finish))
+    /// or run on from it as a warm start ([`step`](Sampler::step)). The
+    /// fit draws one value from the chain's generator to seed its own, so
+    /// the same seed gives the same fit. The chain's sigma^2 becomes the
+    /// fit's training residual mean square, so a kept fit's noise draw is
+    /// [`FastFit::sigma`](crate::FastFit::sigma); a chain run on redraws
+    /// sigma^2 from its full conditional at its first sweep.
+    /// Experimental (`docs/experimental.md`); `RequiresFeature` in a build
+    /// without the feature.
+    ///
+    /// ```
+    /// # #[cfg(feature = "experimental")] {
+    /// use thiessen::{Config, Data, Sampler, XAddiVortesParams};
+    /// let rows: Vec<Vec<f64>> = (0..200).map(|i| vec![i as f64 / 200.0, (i % 7) as f64]).collect();
+    /// let y: Vec<f64> = rows.iter().map(|r| (6.0 * r[0]).sin() + 0.1 * r[1]).collect();
+    /// let x = Data::from_rows(&rows).unwrap();
+    /// let mut s = Sampler::new(&Config::default(), &x, &y, 1).unwrap();
+    /// let fit = s.xaddivortes(&XAddiVortesParams::default().with_budget(10.0)).unwrap();
+    /// assert!(fit.sigma > 0.0 && fit.planned_sweeps <= 10.0);
+    /// s.keep();
+    /// let fitted = s.finish().unwrap();
+    /// assert_eq!(fitted.predict(&x).unwrap().len(), 200);
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// `InvalidHyperparameter` (field `xaddivortes`) outside the Gaussian
+    /// outcome with hard membership, constant cells, no variance ensemble
+    /// and the likelihood on; under a zero inclusion weight; or once the
+    /// chain has left its cold start by a sweep, a kept draw or a restore;
+    /// (field `xaddivortes.<name>`) for a setting out of range. A fit that
+    /// leaves tessellations at zero records [`Warning::FastFitZeroed`].
+    #[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
+    pub fn xaddivortes(&mut self, params: &crate::XAddiVortesParams) -> Result<crate::FastFit> {
+        #[cfg(not(feature = "experimental"))]
+        return Err(Error::RequiresFeature {
+            item: "Sampler::xaddivortes".into(),
+            feature: "experimental",
+        });
+        #[cfg(feature = "experimental")]
+        {
+            self.fast_fit_guard()?;
+            params.validate()?;
+            self.fast_fit(params)
+        }
+    }
+
+    /// [`xaddivortes`](Sampler::xaddivortes) on every sampler, spread
+    /// over at most `threads` threads; each fit draws from its own
+    /// chain's generator, so the fits do not depend on `threads`.
+    /// Returns the fits in sampler order.
+    ///
+    /// # Errors
+    ///
+    /// As [`xaddivortes`](Sampler::xaddivortes); the settings and every
+    /// sampler are checked before any fit runs.
+    #[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
+    pub fn xaddivortes_all(
+        samplers: &mut [&mut Sampler],
+        params: &crate::XAddiVortesParams,
+        threads: usize,
+    ) -> Result<Vec<crate::FastFit>> {
+        #[cfg(not(feature = "experimental"))]
+        return Err(Error::RequiresFeature {
+            item: "Sampler::xaddivortes_all".into(),
+            feature: "experimental",
+        });
+        #[cfg(feature = "experimental")]
+        {
+            params.validate()?;
+            for s in samplers.iter() {
+                s.fast_fit_guard()?;
+            }
+            let mut slots: Vec<(&mut Sampler, Option<Result<crate::FastFit>>)> =
+                samplers.iter_mut().map(|s| (&mut **s, None)).collect();
+            crate::threads::spread(&mut slots, threads, |(s, out)| {
+                *out = Some(s.fast_fit(params));
+            });
+            slots
+                .into_iter()
+                .map(|(_, out)| out.expect("every sampler ran its fit"))
+                .collect()
+        }
+    }
+
+    /// The settings and the chain position the fast fit supports.
+    #[cfg(feature = "experimental")]
+    pub(crate) fn fast_fit_guard(&self) -> Result<()> {
+        let unsupported = |why: &str| crate::error::invalid("xaddivortes", why.to_string());
+        if !matches!(self.config.outcome, OutcomeConfig::Gaussian(_)) {
+            return Err(unsupported("needs the gaussian outcome"));
+        }
+        if self.variance.is_some() {
+            return Err(unsupported("does not support a variance ensemble"));
+        }
+        if self.config.general_params.prior_only {
+            return Err(unsupported("does not apply to prior-only sampling"));
+        }
+        if matches!(
+            self.config.mean_params.cell.basis,
+            crate::config::Basis::Linear
+        ) || matches!(
+            self.config.mean_params.geometry.membership,
+            crate::config::Membership::Soft { .. }
+        ) {
+            return Err(unsupported("needs hard membership and constant cells"));
+        }
+        if let crate::config::Inclusion::Weighted { weights } =
+            &self.config.mean_params.structure.inclusion
+        {
+            if weights.contains(&0.0) {
+                return Err(unsupported(
+                    "draws columns by score, so it cannot respect a zero inclusion weight",
+                ));
+            }
+        }
+        if !self.cold || self.n_kept() > 0 {
+            return Err(unsupported("must start from the cold start"));
+        }
+        Ok(())
+    }
+
+    /// The fast fit on a chain [`fast_fit_guard`](Self::fast_fit_guard)
+    /// accepts, under settings that passed `validate`.
+    #[cfg(feature = "experimental")]
+    pub(crate) fn fast_fit(&mut self, params: &crate::XAddiVortesParams) -> Result<crate::FastFit> {
+        let mut rng = rng::chain_rng(rand_core::RngCore::next_u64(&mut self.rng));
+        let out = {
+            let inputs = crate::xaddivortes::Inputs {
+                x: &self.x,
+                y: &self.y,
+                sigma_sq: self.sigma_sq,
+                sigma_mu_sq: self.mean.family().sigma_mu_sq,
+                geometry: self.mean.geometry(),
+                current: self.mean.tessellations(),
+            };
+            crate::xaddivortes::fit(&inputs, params, &mut rng)
+        };
+        let sigma_sq = if out.resid_ms.is_finite() && out.resid_ms > 0.0 {
+            out.resid_ms
+        } else {
+            self.sigma_sq
+        };
+        let state = self
+            .current_state()
+            .with_mean(out.tessellations, Some(sigma_sq));
+        self.restore_state(&state)
+            .map_err(|why| crate::error::invalid("xaddivortes", why.to_string()))?;
+        if out.zeroed > 0 {
+            self.add_warning(Warning::FastFitZeroed {
+                zeroed: out.zeroed,
+                tessellations: self.mean.tessellations().len(),
+            });
+        }
+        let y_range = self.scaler.y_range();
+        Ok(crate::FastFit {
+            sigma: sigma_sq.sqrt() * y_range,
+            rounds: out.rounds,
+            planned_sweeps: out.planned_sweeps,
+            column_scores: out.column_scores,
+            zeroed: out.zeroed,
+            train_score: out.train_rms.iter().map(|v| v * y_range).collect(),
+        })
+    }
+
     /// Record a fit-time warning, once.
     #[cfg(feature = "experimental")]
     pub(crate) fn add_warning(&mut self, warning: Warning) {
@@ -1711,6 +1884,7 @@ impl Sampler {
         self.variance = variance;
         self.outcome = outcome;
         self.dart = dart;
+        self.cold = false;
         if let Some(v) = state.sigma_sq() {
             self.sigma_sq = v;
         }
