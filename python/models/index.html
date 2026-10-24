@@ -925,6 +925,15 @@ than four.</p>
 reaches a smallest effective sample size of about 290 against the threshold
 of 400 and a largest R-hat of about 1.014 against 1.01, so it warns. More
 draws per chain, <code>Model(draws=)</code>, is the answer; <code>thinning</code> is not.</p>
+<p>A fit that warned can be continued rather than rerun:
+<code>model.fit(x, y, init=fitted)</code> with the same number of chains continues each
+chain from the last draw of its counterpart in <code>fitted</code> instead of the cold
+start, and only the starting state differs from a cold-started fit. The
+estimators do the same through the scikit-learn convention,
+<code>AddiVortesRegressor(warm_start=True)</code>. The continued chains start where the
+warned fit's chains ended, so a clean R-hat on the continued fit checks that
+run, not dispersed starts (Vehtari and others, 2021). The option is experimental and needs a core
+built with the <code>experimental</code> feature.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 

@@ -4304,7 +4304,7 @@ omega &lt;= p bound and the length of <code>metric</code>, run at fit.</p>
 
 
 <a href="#thiessen.Model.fit" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_chains</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_chains</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">init_draw</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4421,6 +4421,50 @@ the rows of a prediction over the same number.</p>
                   <code>1</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>init</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="thiessen.FittedModel (thiessen.model.FittedModel)" href="#thiessen.FittedModel">FittedModel</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A previous fit of this model to the same data. Each chain then
+starts from one of its kept draws instead of the cold start;
+only the starting state changes, not the posterior. Without
+<code>init_draw</code> and with as many chains as <code>init</code>, chain k
+continues from the last draw of chain k of <code>init</code>. Otherwise
+chain k (from 0) starts from pooled draw <code>init_draw - k</code>,
+<code>init_draw</code> defaulting to the last; with fewer draws than
+chains up to it, every chain starts from it and the fit warns.
+This is stochtree's rule. Pass a <code>random_state</code> other than
+the one <code>init</code> was fitted with: the same seed replays the
+random numbers of <code>init</code>'s chains, and the fit warns.
+Experimental: needs a core built with the <code>experimental</code>
+feature.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>init_draw</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The 0-based pooled draw of <code>init</code> the first chain starts from.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4500,8 +4544,31 @@ column, fewer than two rows, or a row-count mismatch.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If <code>n_chains</code> or <code>n_threads</code> is not a positive integer, or
-for a response the named family does not take.</p>
+                <p>If <code>n_chains</code> or <code>n_threads</code> is not a positive integer, if
+<code>init</code> is not a <code>FittedModel</code> or <code>init_draw</code> not a
+non-negative integer, or for a response the named family does
+not take.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="thiessen.ThiessenError (thiessen._native.ThiessenError)" href="#thiessen.ThiessenError">ThiessenError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>init</code> is not a fit of this model to this data, or
+<code>init_draw</code> is at or beyond its number of draws.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="thiessen._native.RequiresFeatureError">RequiresFeatureError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>For <code>init</code> in a build without the <code>experimental</code> feature.</p>
               </div>
             </td>
           </tr>
@@ -6650,6 +6717,31 @@ draw alike.</p>
                   <code>None</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>warm_start</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>When True, a repeated <code>fit</code> continues each chain from its last
+kept draw instead of the cold start; only the starting state
+changes, not the posterior. Each continuation draws from a fresh
+stream derived from the seed <code>random_state</code> resolves to, so a
+fixed <code>random_state</code> reproduces the whole sequence of fits. The
+data, the settings and <code>n_chains</code> must be those of the previous
+fit. Iterative fitting is not bit-identical to one longer fit,
+because the generator's state is not carried.
+Experimental: needs a core built with the <code>experimental</code>
+feature.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -6693,7 +6785,7 @@ draw alike.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The resolved seed.</p>
+                <p>The seed of the last fit's chains.</p>
               </div>
             </td>
           </tr>
@@ -7299,6 +7391,31 @@ draw alike.</p>
                   <code>None</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>warm_start</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>When True, a repeated <code>fit</code> continues each chain from its last
+kept draw instead of the cold start; only the starting state
+changes, not the posterior. Each continuation draws from a fresh
+stream derived from the seed <code>random_state</code> resolves to, so a
+fixed <code>random_state</code> reproduces the whole sequence of fits. The
+data, the settings and <code>n_chains</code> must be those of the previous
+fit. Iterative fitting is not bit-identical to one longer fit,
+because the generator's state is not carried.
+Experimental: needs a core built with the <code>experimental</code>
+feature.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -7353,7 +7470,7 @@ draw alike.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The resolved seed.</p>
+                <p>The seed of the last fit's chains.</p>
               </div>
             </td>
           </tr>
