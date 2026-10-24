@@ -25,7 +25,8 @@ says "Sampled values changed" with the reason.
   as a one-draw model whose noise draw is the fit's sigma) and
   `fit_chains_from_fast` (the exact sampler from per-chain fast fits).
   `FastFit` reports sigma, the rounds, the planned sweeps, the column
-  scores and the training-score path.
+  scores and the training-score path; a fit whose budget leaves
+  tessellations at zero returns `Warning::FastFitZeroed`.
 - (experimental) Warm start from a previous fit: a chain starts from a
   kept draw of an earlier fit of the same model to the same data in
   place of the cold start; the transition kernel and the posterior are
