@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import numbers
 from collections.abc import Mapping
 from typing import Any
@@ -59,6 +60,8 @@ def _coerce(name: str, value: Any) -> Any:
     if name in _FLOATS:
         if isinstance(value, (bool, np.bool_)) or not isinstance(value, numbers.Real):
             raise ValueError(f"{name} must be a number; got {value!r}")
+        if not math.isfinite(float(value)):
+            raise ValueError(f"{name} must be finite; got {value!r}")
         return float(value)
     if name in _FLAGS:
         if not isinstance(value, (bool, np.bool_, numbers.Integral)) or value not in (
@@ -68,7 +71,9 @@ def _coerce(name: str, value: Any) -> Any:
             raise ValueError(f"{name} must be a bool; got {value!r}")
         return bool(value)
     if name == "worth":
-        return str(value)
+        if not isinstance(value, str):
+            raise ValueError(f"worth must be a string; got {value!r}")
+        return value
     whole = isinstance(value, numbers.Integral) or (
         isinstance(value, numbers.Real) and float(value).is_integer()
     )

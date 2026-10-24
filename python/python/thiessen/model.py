@@ -238,8 +238,13 @@ class Model(Params):
             `init` is not a `FittedModel` or `init_draw` not a
             non-negative integer, or for a response the named family does
             not take.
+        ValueError
+            For ``start`` other than 'cold' or 'fast', `fast_settings` with
+            ``start='cold'``, ``start='fast'`` with `init` or a response
+            other than numeric, or a fast setting of the wrong type.
         RequiresFeatureError
-            For `init` in a build without the ``experimental`` feature.
+            For `init` or ``start='fast'`` in a build without the
+            ``experimental`` feature.
         """
         design = _as_design(X)
         response = _as_response(y)

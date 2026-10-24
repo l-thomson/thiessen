@@ -9,6 +9,7 @@ import inspect
 import warnings
 from pathlib import Path
 from statistics import NormalDist
+from typing import Any
 
 import numpy as np
 import pytest
@@ -28,6 +29,10 @@ experimental = pytest.mark.skipif(
     not _native.EXPERIMENTAL, reason="built without the feature"
 )
 FIFTEEN = TermParams(tessellations=15)
+#: Settings under which the 15-tessellation fit builds every slot and runs
+#: rounds on the fixture; the default pair screen costs more than a small
+#: budget.
+WORKING: dict[str, Any] = {"budget": 20.0, "pair_screen": 2}
 
 
 def quiet(fit, *args, **kwargs):
@@ -66,6 +71,18 @@ def test_numpy_settings_reach_the_core_as_their_json_types():
         _fast_json({"centres": 1.5})
     with pytest.raises(ValueError, match="unknown"):
         _fast_json({"budjet": 5})
+    with pytest.raises(ValueError, match="finite"):
+        _fast_json({"budget": float("inf")})
+    with pytest.raises(ValueError, match="string"):
+        _fast_json({"worth": 3})
+
+
+@experimental
+def test_a_budget_that_leaves_tessellations_at_zero_warns():
+    x, y = _fixture()
+    with pytest.warns(UserWarning, match="left at zero"):
+        model = XAddiVortesRegressor(budget=0.5, mean_params=FIFTEEN).fit(x, y)
+    assert model.n_zeroed_ == 15
 
 
 @experimental
@@ -82,8 +99,9 @@ def test_the_fast_fit_equals_the_cores_bit_for_bit():
 @experimental
 def test_the_fast_fit_predicts_and_gives_intervals_from_its_sigma():
     x, y = _fixture()
-    model = XAddiVortesRegressor(budget=10, mean_params=FIFTEEN, random_state=3)
+    model = XAddiVortesRegressor(**WORKING, mean_params=FIFTEEN, random_state=3)
     model.fit(x, y)
+    assert model.n_zeroed_ == 0 and model.n_rounds_ > 0
     interval = model.predict_interval(x, level=0.95)
     width = interval[:, 1] - interval[:, 0]
     np.testing.assert_allclose(
@@ -91,30 +109,32 @@ def test_the_fast_fit_predicts_and_gives_intervals_from_its_sigma():
     )
     np.testing.assert_allclose(model._fitted.sigma(), [model.sigma_], rtol=0)
     assert model.train_score_.shape == (model.n_rounds_ + 1,)
-    assert model.budget_used_ <= 10
+    assert model.budget_used_ <= 20
     again = clone(model).fit(x, y)
     np.testing.assert_array_equal(again.predict(x), model.predict(x))
 
 
 @experimental
 def test_a_search_over_numpy_grids_fits():
-    from sklearn.model_selection import GridSearchCV
+    from sklearn.model_selection import GridSearchCV, KFold
 
-    x, y = _fixture()
+    rng = np.random.default_rng(0)
+    x = rng.uniform(size=(200, 3))
+    y = np.sin(6 * x[:, 0]) + x[:, 1] + 0.1 * rng.normal(size=200)
     search = GridSearchCV(
-        XAddiVortesRegressor(budget=5, mean_params=FIFTEEN, random_state=1),
+        XAddiVortesRegressor(**WORKING, mean_params=FIFTEEN, random_state=1),
         {"centres": np.arange(4, 7), "rescore": np.array([False, True])},
-        cv=2,
+        cv=KFold(3, shuffle=True, random_state=0),
     )
     search.fit(x, y)
-    assert np.isfinite(search.best_score_)
+    assert search.best_score_ > 0.5
 
 
 @experimental
 def test_chains_start_from_their_own_fast_fits():
     x, y = _fixture()
     params = {"random_state": 4, "n_chains": 2, **SMALL}
-    fast = {"budget": 5.0}
+    fast = dict(WORKING)
     a = quiet(AddiVortesRegressor(start="fast", fast_settings=fast, **params).fit, x, y)
     b = quiet(
         AddiVortesRegressor(start="fast", fast_settings=fast, n_jobs=2, **params).fit,
@@ -147,7 +167,8 @@ def test_the_fast_start_arguments_are_checked():
 def test_the_sampler_takes_a_fast_fit_before_its_first_sweep():
     x, y = _fixture()
     sampler = Sampler(x, y, mean_params=FIFTEEN, random_state=SEED)
-    summary = sampler.xaddivortes({"budget": 5.0})
+    summary = sampler.xaddivortes(WORKING)
+    assert summary["zeroed"] == 0 and summary["rounds"] > 0
     assert summary["sigma"] > 0 and len(summary["train_score"]) == summary["rounds"] + 1
     stepped = Sampler(x, y, mean_params=FIFTEEN, random_state=SEED)
     stepped.step(1)

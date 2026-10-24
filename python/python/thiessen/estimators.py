@@ -167,7 +167,12 @@ class _BaseAddiVortes(BaseEstimator):
             return np.asarray(checked, dtype=np.float64)
         return self._encode_predict(x)
 
-    def _fit_core(self, x: npt.NDArray[np.float64], y: npt.NDArray[np.float64]) -> None:
+    def _fit_core(
+        self,
+        x: npt.NDArray[np.float64],
+        y: npt.NDArray[np.float64],
+        stacklevel: int = 4,
+    ) -> None:
         seed = _resolve_seed(self.random_state)
         chains = _resolve_chains(self.n_chains)
         threads = _resolve_jobs(self.n_jobs)
@@ -194,9 +199,13 @@ class _BaseAddiVortes(BaseEstimator):
             init_draws=draws,
         )
         self._fit_chains = chains
-        _emit_warnings(self._fitted, stacklevel=4)
+        _emit_warnings(self._fitted, stacklevel=stacklevel)
         _warn_convergence(
-            self._fitted, chains, design, stacklevel=4, warm=previous is not None
+            self._fitted,
+            chains,
+            design,
+            stacklevel=stacklevel,
+            warm=previous is not None,
         )
 
     def _outcome(self) -> Gaussian | Probit:
@@ -284,8 +293,9 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         same burn-in and draws run. Only the starting state differs, so the
         chains target the same posterior. Under `warm_start`, a repeated
         `fit` continues the previous chains instead. 'fast' needs the
-        Gaussian family with a constant spread and a core built with the
-        ``experimental`` feature.
+        Gaussian family with a constant spread, hard membership, constant
+        cells, the likelihood on and no zero inclusion weight, and a core
+        built with the ``experimental`` feature.
     fast_settings : dict, optional
         XAddiVortes settings for ``start='fast'``, by the names of
         `XAddiVortesRegressor`; unset settings take its defaults. Given
@@ -364,14 +374,19 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         self.start = start
         self.fast_settings = fast_settings
 
-    def _fit_core(self, x: npt.NDArray[np.float64], y: npt.NDArray[np.float64]) -> None:
+    def _fit_core(
+        self,
+        x: npt.NDArray[np.float64],
+        y: npt.NDArray[np.float64],
+        stacklevel: int = 4,
+    ) -> None:
         if self.start not in ("cold", "fast"):
             raise ValueError(f"start must be 'cold' or 'fast'; got {self.start!r}")
         if self.start == "cold" and self.fast_settings is not None:
             raise ValueError("fast_settings sets the fast start; it needs start='fast'")
         continuing = self.warm_start and getattr(self, "_fitted", None) is not None
         if self.start == "cold" or continuing:
-            super()._fit_core(x, y)
+            super()._fit_core(x, y, stacklevel=stacklevel + 1)
             return
         seed = _resolve_seed(self.random_state)
         chains = _resolve_chains(self.n_chains)
@@ -388,8 +403,8 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
             _fast_json(self.fast_settings),
         )
         self._fit_chains = chains
-        _emit_warnings(self._fitted, stacklevel=4)
-        _warn_convergence(self._fitted, chains, design, stacklevel=4)
+        _emit_warnings(self._fitted, stacklevel=stacklevel)
+        _warn_convergence(self._fitted, chains, design, stacklevel=stacklevel)
 
     def _outcome(self) -> Gaussian | Probit:
         # The estimator holds no family list of its own: any family object
@@ -775,8 +790,7 @@ class XAddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         The work the fit planned, in approximate sweeps.
     train_score_ : ndarray of shape (n_rounds_ + 1,)
         The residual root mean square after the build and after each round,
-        as ``GradientBoostingRegressor.train_score_`` records the training
-        loss per stage.
+        in the form of ``GradientBoostingRegressor.train_score_``.
     feature_scores_ : ndarray
         Each core column's score, its floored mutual information with the
         response; after categorical encoding, one per encoded column.

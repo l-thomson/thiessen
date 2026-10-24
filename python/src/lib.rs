@@ -497,9 +497,6 @@ impl Sampler {
             .map_err(|e| ThiessenError::new_err(e.to_string()))
     }
 
-    /// The fitted model from the kept draws, pooled as a one-chain fit;
-    /// the in-sample fit is measured against the response the core
-    /// reports.
     /// The XAddiVortes fast fit under the settings `params_json` (the
     /// core's `XAddiVortesParams` as JSON): replaces the chain's state, so
     /// the chain can be kept as a point fit or stepped on as a warm start.
@@ -510,6 +507,9 @@ impl Sampler {
         serde_json::to_string(&fast).map_err(|e| ThiessenError::new_err(e.to_string()))
     }
 
+    /// The fitted model from the kept draws, pooled as a one-chain fit;
+    /// the in-sample fit is measured against the response the core
+    /// reports.
     fn finish(&mut self) -> PyResult<Fitted> {
         let sampler = self
             .inner
