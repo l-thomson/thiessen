@@ -15,9 +15,9 @@
 //!
 //! 1. Column scores, from the response: each column's binned
 //!    mutual information with the response (equal-width column bins over
-//!    the column's training range, rank bins of the response with tied
-//!    values sharing a bin), less its expected value under independence,
-//!    plus a floor; and for every pair among the
+//!    the column's training range, equal-count rank bins of the response),
+//!    less its expected value under independence, plus a floor; and for
+//!    every pair among the
 //!    [`pair_screen`](XAddiVortesParams::pair_screen) best columns its
 //!    interaction information plus a floor. Optionally
 //!    ([`rescore`](XAddiVortesParams::rescore)) they are scored again from
@@ -130,8 +130,10 @@ pub struct XAddiVortesParams {
     /// Equal-width bins of a column, over its training range, for its
     /// score (default 8). From 2 to 255.
     pub column_bins: usize,
-    /// Rank bins of the response for the scores (default 4); tied values
-    /// share a bin. From 2 to 255.
+    /// Equal-count rank bins of the response for the scores (default 4).
+    /// Tied values are ranked in row order, so with a response of few
+    /// distinct values the scores depend on the order of the training
+    /// rows. From 2 to 255.
     pub response_bins: usize,
     /// The floor added to every score, as a share of the mean score
     /// (default 0.02), so that every column and pair can be drawn. At
@@ -318,8 +320,8 @@ pub struct FastFit {
     pub rounds: usize,
     /// The work the fit charged, in sweeps (its count of operations).
     pub planned_sweeps: f64,
-    /// The final score of each column: its mutual information with the
-    /// response (or with the residual under
+    /// The final score of each column: its binned mutual information with
+    /// the response (or with the residual under
     /// [`rescore`](XAddiVortesParams::rescore)) less its expected value
     /// under independence, floored.
     pub column_scores: Vec<f64>,
@@ -560,54 +562,50 @@ mod algorithm {
         out
     }
 
-    /// Rank bins of `r`: rows sorted by value, then `rank * rb / n`, every
-    /// run of tied values taking the bin of its lowest rank, so the bins do
-    /// not depend on the row order.
+    /// Rank bins of `r`: rows sorted by value (ties in row order), then
+    /// `rank * rb / n`.
     fn rank_bins(r: &[f64], rb: usize) -> Vec<u8> {
         let n = r.len();
         let mut order: Vec<usize> = (0..n).collect();
         order.sort_by(|&a, &b| r[a].total_cmp(&r[b]));
         let mut out = vec![0u8; n];
-        let mut bin = 0;
         for (k, &i) in order.iter().enumerate() {
-            if k == 0 || r[i].total_cmp(&r[order[k - 1]]).is_ne() {
-                bin = (k * rb / n).min(rb - 1);
-            }
-            out[i] = bin as u8;
+            out[i] = ((k * rb / n).min(rb - 1)) as u8;
         }
         out
     }
 
     /// The plug-in mutual information of a binning (`nb` bins) with the
-    /// rank bins `rbin` (`rb` bins), less its expected value under
-    /// independence, `(kx - 1)(ky - 1) / 2n` over the `kx` and `ky`
-    /// occupied bins: `2n` times the plug-in estimate is the G statistic,
-    /// asymptotically chi-squared with that many degrees of freedom when
-    /// the binnings are independent.
+    /// rank bins `rbin` (`rb` bins, each taken to hold `n / rb` rows), less
+    /// its expected value under independence, `(kx - 1)(rb - 1) / 2n` over
+    /// the `kx` occupied column bins: `2n` times the plug-in estimate is
+    /// the G statistic, asymptotically chi-squared with that many degrees
+    /// of freedom when the binnings are independent.
     fn mutual_information(bins: impl Fn(usize) -> usize, nb: usize, rbin: &[u8], rb: usize) -> f64 {
         let n = rbin.len();
         let nf = n as f64;
         let mut joint = vec![0.0; nb * rb];
         let mut px = vec![0.0; nb];
-        let mut pr = vec![0.0; rb];
         for (i, &r) in rbin.iter().enumerate() {
             let b = bins(i);
             joint[b * rb + r as usize] += 1.0;
             px[b] += 1.0;
-            pr[r as usize] += 1.0;
         }
+        let pr = nf / rb as f64;
         let mut v = 0.0;
+        let mut kx = 0usize;
         for b in 0..nb {
             for r in 0..rb {
                 let c = joint[b * rb + r];
                 if c > 0.0 {
-                    v += c / nf * (c * nf / (px[b] * pr[r])).ln();
+                    v += c / nf * (c * nf / (px[b] * pr)).ln();
                 }
             }
+            if px[b] > 0.0 {
+                kx += 1;
+            }
         }
-        let occupied = |counts: &[f64]| counts.iter().filter(|&&c| c > 0.0).count();
-        let (kx, ky) = (occupied(&px), occupied(&pr));
-        v - (kx.saturating_sub(1) * ky.saturating_sub(1)) as f64 / (2.0 * nf)
+        v - (kx.saturating_sub(1) * (rb - 1)) as f64 / (2.0 * nf)
     }
 
     fn scores(bins: &[Vec<u8>], r: &[f64], s: &XAddiVortesParams) -> Scores {
@@ -992,32 +990,9 @@ mod algorithm {
         use super::*;
 
         #[test]
-        fn rank_bins_follow_rank_and_tied_values_share_a_bin() {
+        fn rank_bins_follow_rank_with_ties_in_row_order() {
             assert_eq!(rank_bins(&[3.0, 1.0, 2.0, 0.0], 4), vec![3, 1, 2, 0]);
-            assert_eq!(rank_bins(&[1.0, 1.0, 0.0, 2.0], 2), vec![0, 0, 0, 1]);
-            assert_eq!(rank_bins(&[0.0, 1.0, 0.0, 1.0], 4), vec![0, 2, 0, 2]);
-        }
-
-        #[test]
-        fn scores_do_not_depend_on_the_row_order() {
-            let n = 200;
-            let rows: Vec<[f64; 2]> = (0..n)
-                .map(|i| [(i % 17) as f64, ((i * 7919) % 101) as f64])
-                .collect();
-            let y: Vec<f64> = rows.iter().map(|r| f64::from(r[0] > 8.0)).collect();
-            let order: Vec<usize> = (0..n).map(|i| (i * 37) % n).collect();
-            let permuted_rows: Vec<[f64; 2]> = order.iter().map(|&i| rows[i]).collect();
-            let permuted_y: Vec<f64> = order.iter().map(|&i| y[i]).collect();
-            let s = XAddiVortesParams::default();
-            let a = scores(&column_bins(&Data::from_rows(&rows).unwrap(), 8), &y, &s);
-            let b = scores(
-                &column_bins(&Data::from_rows(&permuted_rows).unwrap(), 8),
-                &permuted_y,
-                &s,
-            );
-            for (u, v) in a.single.iter().zip(&b.single) {
-                assert!((u - v).abs() < 1e-12, "{u} vs {v}");
-            }
+            assert_eq!(rank_bins(&[1.0, 1.0, 0.0, 2.0], 2), vec![0, 1, 0, 1]);
         }
 
         #[test]
@@ -1044,16 +1019,6 @@ mod algorithm {
             assert!((mi - want).abs() < 1e-12, "{mi} vs {want}");
             let constant = mutual_information(|_| 0, 4, &rbin, 4);
             assert!(constant.abs() < 1e-12);
-        }
-
-        #[test]
-        fn the_correction_counts_occupied_bins_only() {
-            let n = 400;
-            // A binary response fills 2 of the 4 rank bins.
-            let rbin: Vec<u8> = (0..n).map(|i| if i < n / 2 { 0 } else { 2 }).collect();
-            let mi = mutual_information(|i| usize::from(rbin[i] > 0), 4, &rbin, 4);
-            let want = 2f64.ln() - 1.0 / (2.0 * n as f64);
-            assert!((mi - want).abs() < 1e-12, "{mi} vs {want}");
         }
 
         #[test]
