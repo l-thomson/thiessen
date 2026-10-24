@@ -102,11 +102,15 @@ def _warn_convergence(
     n_chains: int,
     design: npt.NDArray[np.float64],
     stacklevel: int,
+    warm: bool = False,
 ) -> None:
     """Warn where a multi-chain fit has not met the thresholds.
 
     A fit of one chain has no diagnostics to report. Where arviz is not
-    installed the fit says so instead of checking.
+    installed the fit says so instead of checking. Under a warm start the
+    chains began at draws of one previous fit, not at overdispersed
+    points, so the message says the diagnostics are a within-run check
+    (Vehtari and others, 2021).
     """
     if n_chains < 2:
         return
@@ -121,4 +125,9 @@ def _warn_convergence(
         return
     message = _convergence_message(diagnostics)
     if message is not None:
+        if warm:
+            message += (
+                "; the chains were warm-started from draws of a previous fit, "
+                "so these diagnostics compare chains that did not start apart"
+            )
         warnings.warn(message, UserWarning, stacklevel=stacklevel)

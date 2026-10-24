@@ -133,6 +133,15 @@ pub enum Warning {
         /// Number of observations.
         n: usize,
     },
+    /// A warm start asked for more chains than the previous fit holds
+    /// draws up to the starting draw, so every chain starts from that
+    /// draw.
+    WarmStartDrawsReused {
+        /// Number of chains.
+        chains: usize,
+        /// Draws available, counting back from the starting draw.
+        draws: usize,
+    },
 }
 
 impl std::fmt::Display for Warning {
@@ -141,6 +150,11 @@ impl std::fmt::Display for Warning {
             Warning::MoreFeaturesThanObservations { p, n } => {
                 write!(f, "more features ({p}) than observations ({n})")
             }
+            Warning::WarmStartDrawsReused { chains, draws } => write!(
+                f,
+                "{chains} chains but only {draws} draws to start them from; \
+                 every chain starts from the same draw"
+            ),
         }
     }
 }

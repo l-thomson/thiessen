@@ -128,6 +128,23 @@
 #'   interfaces do, so `options(mc.cores = 4)` is the one-line opt-in and
 #'   a session that sets nothing runs on one thread, where a default fit
 #'   is four chains long.
+#' @param init `NULL`, the default, for the cold start; or a previous
+#'   fit of the same model to the same data, from `thiessen()`. Each chain
+#'   then starts from one of its kept draws instead of the cold start;
+#'   only the starting state changes, not the posterior. Without
+#'   `init_draw` and with as many chains as `init`, chain k continues from
+#'   the last draw of chain k of `init`. Otherwise chain k (from 1) starts
+#'   from pooled draw `init_draw - k + 1`, `init_draw` defaulting to the
+#'   last; with fewer draws than chains up to it, every chain starts from
+#'   it and the fit warns. This is the warm-start rule of stochtree. Pass
+#'   a `seed` other than the one `init` was fitted with: the same seed
+#'   replays the random numbers of its chains, and the fit warns. A
+#'   clean R-hat across
+#'   chains started from one previous fit is a check within that run, not
+#'   across dispersed starts (Vehtari and others, 2021). Experimental:
+#'   needs a build with the `experimental` feature.
+#' @param init_draw The pooled draw of `init` the first chain starts
+#'   from, a whole number from 1.
 #' @param seed The seed of the chain. `NULL`, the default, draws one from
 #'   R's stream, so [set.seed()] governs; a whole number in `[0, 2^53]`
 #'   passes to the core unchanged, so the same value reproduces the same
@@ -184,19 +201,21 @@ thiessen <- function(x, ...) {
 #' @export
 thiessen.default <- function(x, y, control = thiessen_control(), seed = NULL,
                              chains = 4,
-                             threads = getOption("mc.cores", 1L), ...) {
+                             threads = getOption("mc.cores", 1L),
+                             init = NULL, init_draw = NULL, ...) {
   rlang::check_dots_empty()
   design <- as_design(x)
   response <- as_response(y)
   new_fit(design, response, control, seed, chains, threads,
-          generic_call(match.call()))
+          generic_call(match.call()), init = init, init_draw = init_draw)
 }
 
 #' @rdname thiessen
 #' @export
 thiessen.data.frame <- function(x, y, control = thiessen_control(),
                                 seed = NULL, chains = 4,
-                                threads = getOption("mc.cores", 1L), ...) {
+                                threads = getOption("mc.cores", 1L),
+                                init = NULL, init_draw = NULL, ...) {
   rlang::check_dots_empty()
   molded <- core_call(
     hardhat::mold(~ ., data = x, blueprint = blueprint_for(control))
@@ -207,14 +226,16 @@ thiessen.data.frame <- function(x, y, control = thiessen_control(),
   )
   response <- as_response(y)
   new_fit(design, response, control, seed, chains, threads,
-          generic_call(match.call()), blueprint = molded$blueprint)
+          generic_call(match.call()), blueprint = molded$blueprint,
+          init = init, init_draw = init_draw)
 }
 
 #' @rdname thiessen
 #' @export
 thiessen.formula <- function(formula, data, control = thiessen_control(),
                              seed = NULL, chains = 4,
-                             threads = getOption("mc.cores", 1L), ...) {
+                             threads = getOption("mc.cores", 1L),
+                             init = NULL, init_draw = NULL, ...) {
   rlang::check_dots_empty()
   molded <- core_call(
     hardhat::mold(formula, data, blueprint = blueprint_for(control))
@@ -225,7 +246,8 @@ thiessen.formula <- function(formula, data, control = thiessen_control(),
   )
   response <- encode_response(molded$outcomes)
   new_fit(design, response, control, seed, chains, threads,
-          generic_call(match.call()), blueprint = molded$blueprint)
+          generic_call(match.call()), blueprint = molded$blueprint,
+          init = init, init_draw = init_draw)
 }
 
 #' The method call with the generic's name, so `update()` can re-evaluate it
@@ -252,7 +274,8 @@ generic_call <- function(call) {
 #' @return An object of class `"thiessen"`.
 #' @noRd
 new_fit <- function(design, response, control, seed, chains, threads, call,
-                    blueprint = NULL, call_env = rlang::caller_env()) {
+                    blueprint = NULL, call_env = rlang::caller_env(),
+                    init = NULL, init_draw = NULL) {
   if (response$n != nrow(design)) {
     thiessen_abort(
       sprintf(
@@ -267,6 +290,7 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
   chains <- resolve_chains(chains, call = call_env)
   threads <- resolve_threads(threads, call = call_env)
   resolved <- resolve_seed(seed, call = call_env)
+  start <- resolve_init(init, init_draw, resolved, call = call_env)
   # The progressor's life must span the whole fit, so the count never ends
   # it: `auto_finish` would close the handler on the last step, and the
   # frame this progressor belongs to exits when the fit is complete.
@@ -277,12 +301,12 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
   )
   fit <- core_call(
     run_schedule(control, design, response, resolved, chains, threads,
-                 report, phase_steps[["pooling"]]),
+                 report, phase_steps[["pooling"]], start = start),
     call = call_env
   )
   assemble_fit(fit, design, response, resolved, call, threads = threads,
                blueprint = blueprint, call_env = call_env, report = report,
-               phase_steps = phase_steps)
+               phase_steps = phase_steps, warm_start = !is.null(start))
 }
 
 #' Run the sweep schedule of every chain and pool the draws
@@ -304,10 +328,12 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
 #' @param threads The number of threads the chains run on.
 #' @param report A progressr progressor.
 #' @param pooling_steps The steps pooling the chains takes.
+#' @param start `NULL` for the cold start, or the list `resolve_init()`
+#'   returns.
 #' @return The list `core_finish()` returns.
 #' @noRd
 run_schedule <- function(control, design, response, seed, chains, threads,
-                         report, pooling_steps = 1L) {
+                         report, pooling_steps = 1L, start = NULL) {
   schedule <- control$general_params
   config <- config_json(control)
   thinning <- as.integer(schedule$thinning)
@@ -331,6 +357,9 @@ run_schedule <- function(control, design, response, seed, chains, threads,
   samplers <- lapply(seq_len(chains) - 1L, function(chain) {
     new_sampler_handle(config, design, response, seed, chain)
   })
+  if (!is.null(start)) {
+    core_samplers_start(samplers, start$state, start$draw)
+  }
   completed <- 0L
   while (completed < schedule$burn_in) {
     run <- max(1L, min(schedule$burn_in - completed, gap(completed)))
@@ -368,6 +397,8 @@ run_schedule <- function(control, design, response, seed, chains, threads,
 #' @param phase_steps The steps each phase takes, named as
 #'   `progress_phase_steps()` names them; `saving` and `summarising` are
 #'   read here.
+#' @param warm_start Whether the chains started from draws of a previous
+#'   fit.
 #' @return An object of class `"thiessen"`.
 #' @noRd
 assemble_fit <- function(fit, design, response, seed, call, threads = 1L,
@@ -375,7 +406,8 @@ assemble_fit <- function(fit, design, response, seed, call, threads = 1L,
                          report = progressr::progressor(
                            steps = 2L, enable = FALSE
                          ),
-                         phase_steps = c(saving = 1L, summarising = 1L)) {
+                         phase_steps = c(saving = 1L, summarising = 1L),
+                         warm_start = FALSE) {
   # The core measures the in-sample fit against the observed values on
   # the model's scale where the working response is replaced by latents;
   # a plain response is kept as given.
@@ -404,6 +436,7 @@ assemble_fit <- function(fit, design, response, seed, call, threads = 1L,
       in_sample_rmse = fit$in_sample_rmse,
       warnings = fit$warnings,
       seed = seed,
+      warm_start = warm_start,
       n_features = ncol(design),
       blueprint = blueprint,
       response = response,

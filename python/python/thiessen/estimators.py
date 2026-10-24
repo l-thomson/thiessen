@@ -28,7 +28,7 @@ from ._arrays import _as_numeric
 from ._config import _config_json
 from ._convergence import _warn_convergence
 from ._encoding import Encoding, columns_of, resolve_mask
-from ._seed import SeedLike, _resolve_seed
+from ._seed import SeedLike, _resolve_seed, _spawn_seed
 from .families import Gaussian, Probit
 from .model import _emit_warnings, _resolve_chains
 from .params import MetricEntry, TermParams
@@ -68,6 +68,9 @@ __all__ = ["AddiVortesClassifier", "AddiVortesRegressor"]
 class _BaseAddiVortes(BaseEstimator):
     """Shared configuration, fitting and prediction."""
 
+    _fit_chains: int
+    _fit_segments: int
+
     def __init__(
         self,
         *,
@@ -81,6 +84,7 @@ class _BaseAddiVortes(BaseEstimator):
         n_chains: int = 4,
         n_jobs: int | None = None,
         random_state: SeedLike = None,
+        warm_start: bool = False,
     ) -> None:
         self.mean_params = mean_params
         self.variance_params = variance_params
@@ -92,6 +96,7 @@ class _BaseAddiVortes(BaseEstimator):
         self.n_chains = n_chains
         self.n_jobs = n_jobs
         self.random_state = random_state
+        self.warm_start = warm_start
 
     def __sklearn_tags__(self) -> Any:
         tags = super().__sklearn_tags__()
@@ -165,6 +170,19 @@ class _BaseAddiVortes(BaseEstimator):
         seed = _resolve_seed(self.random_state)
         chains = _resolve_chains(self.n_chains)
         threads = _resolve_jobs(self.n_jobs)
+        previous = getattr(self, "_fitted", None) if self.warm_start else None
+        segment = 0
+        if previous is not None:
+            if getattr(self, "_fit_chains", chains) != chains:
+                raise ValueError(
+                    "warm_start continues each chain of the previous fit; "
+                    f"n_chains changed from {self._fit_chains} to {chains}"
+                )
+            # Each continuation draws from a fresh stream, as scikit-learn's
+            # forests advance their seeds under warm_start: reusing a chain's
+            # stream would replay the random numbers of its earlier segment.
+            segment = self._fit_segments
+            seed = _spawn_seed(seed, segment)
         self.random_state_ = seed
         design = np.ascontiguousarray(x, dtype=np.float64)
         self._fitted: _native.Fitted = _native.fit(
@@ -174,9 +192,14 @@ class _BaseAddiVortes(BaseEstimator):
             seed,
             chains,
             threads,
+            init=previous,
         )
+        self._fit_chains = chains
+        self._fit_segments = segment + 1
         _emit_warnings(self._fitted, stacklevel=4)
-        _warn_convergence(self._fitted, chains, design, stacklevel=4)
+        _warn_convergence(
+            self._fitted, chains, design, stacklevel=4, warm=previous is not None
+        )
 
     def _outcome(self) -> Gaussian | Probit:
         raise NotImplementedError
@@ -248,6 +271,17 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         The seed. An integer passes through to the core unchanged, so
         `AddiVortesRegressor(random_state=1)` and `Model(random_state=1)`
         draw alike.
+    warm_start : bool, default=False
+        When True, a repeated `fit` continues each chain from its last
+        kept draw instead of the cold start; only the starting state
+        changes, not the posterior. Each continuation draws from a fresh
+        stream derived from the seed `random_state` resolves to, so a
+        fixed `random_state` reproduces the whole sequence of fits. The
+        data, the settings and `n_chains` must be those of the previous
+        fit. Iterative fitting is not bit-identical to one longer fit,
+        because the generator's state is not carried.
+        Experimental: needs a core built with the ``experimental``
+        feature.
 
     Attributes
     ----------
@@ -256,7 +290,7 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
     feature_names_in_ : ndarray of shape (n_features_in_,)
         Feature names seen at fit, when the input carried them.
     random_state_ : int
-        The resolved seed.
+        The seed of the last fit's chains.
 
     See Also
     --------
@@ -300,6 +334,7 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         n_chains: int = 4,
         n_jobs: int | None = None,
         random_state: SeedLike = None,
+        warm_start: bool = False,
     ) -> None:
         super().__init__(
             mean_params=mean_params,
@@ -312,6 +347,7 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
             n_chains=n_chains,
             n_jobs=n_jobs,
             random_state=random_state,
+            warm_start=warm_start,
         )
         self.outcome = outcome
 
@@ -460,6 +496,17 @@ class AddiVortesClassifier(ClassifierMixin, _BaseAddiVortes):
         The seed. An integer passes through to the core unchanged, so
         `AddiVortesRegressor(random_state=1)` and `Model(random_state=1)`
         draw alike.
+    warm_start : bool, default=False
+        When True, a repeated `fit` continues each chain from its last
+        kept draw instead of the cold start; only the starting state
+        changes, not the posterior. Each continuation draws from a fresh
+        stream derived from the seed `random_state` resolves to, so a
+        fixed `random_state` reproduces the whole sequence of fits. The
+        data, the settings and `n_chains` must be those of the previous
+        fit. Iterative fitting is not bit-identical to one longer fit,
+        because the generator's state is not carried.
+        Experimental: needs a core built with the ``experimental``
+        feature.
 
     Attributes
     ----------
@@ -470,7 +517,7 @@ class AddiVortesClassifier(ClassifierMixin, _BaseAddiVortes):
     feature_names_in_ : ndarray of shape (n_features_in_,)
         Feature names seen at fit, when the input carried them.
     random_state_ : int
-        The resolved seed.
+        The seed of the last fit's chains.
 
     See Also
     --------
@@ -505,6 +552,7 @@ class AddiVortesClassifier(ClassifierMixin, _BaseAddiVortes):
         n_chains: int = 4,
         n_jobs: int | None = None,
         random_state: SeedLike = None,
+        warm_start: bool = False,
     ) -> None:
         super().__init__(
             mean_params=mean_params,
@@ -517,6 +565,7 @@ class AddiVortesClassifier(ClassifierMixin, _BaseAddiVortes):
             n_chains=n_chains,
             n_jobs=n_jobs,
             random_state=random_state,
+            warm_start=warm_start,
         )
         self.outcome = outcome
 

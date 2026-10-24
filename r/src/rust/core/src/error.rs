@@ -168,6 +168,14 @@ pub enum Error {
         /// The invariant that failed.
         reason: String,
     },
+    /// A chain state given to [`Sampler::restore`](crate::Sampler::restore)
+    /// or [`Sampler::start_from`](crate::Sampler::start_from) does not
+    /// belong to the sampler's model and training data.
+    #[error("the state does not fit this sampler: {reason}")]
+    IncompatibleState {
+        /// The mismatch.
+        reason: String,
+    },
 }
 
 /// `Result<T, Error>`.

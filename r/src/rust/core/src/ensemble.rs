@@ -176,6 +176,46 @@ impl<F: CellFamily> Ensemble<F> {
         &self.assignments
     }
 
+    /// Replace every tessellation by `tessellations`, of the same count,
+    /// rebuilding the assignment caches and the total. `identity` is the
+    /// family's neutral value, 0 for an additive ensemble and 1 for a
+    /// multiplicative one: each row's total folds the tessellations'
+    /// values into it through the family's own update. Returns the index
+    /// of the first tessellation with a cell no training row falls in.
+    #[cfg(feature = "experimental")]
+    pub(crate) fn restore(
+        &mut self,
+        x: &Data,
+        tessellations: Vec<Tessellation>,
+        identity: f64,
+    ) -> std::result::Result<(), usize> {
+        debug_assert_eq!(tessellations.len(), self.tessellations.len());
+        let geometry = &self.prior.geometry;
+        let assignments: Vec<Assignment> = tessellations
+            .iter()
+            .map(|t| Assignment::full(x, t, geometry))
+            .collect();
+        for (j, (t, a)) in tessellations.iter().zip(&assignments).enumerate() {
+            let mut occupied = vec![false; t.n_cells()];
+            a.cells.iter().for_each(|&k| occupied[k] = true);
+            if occupied.iter().any(|&o| !o) {
+                return Err(j);
+            }
+        }
+        for (i, slot) in self.total.iter_mut().enumerate() {
+            let row = x.row(i);
+            let mut total = identity;
+            for t in &tessellations {
+                let partial = self.family.partial(0.0, total, identity);
+                total = self.family.total(0.0, partial, t.value_at(row, geometry));
+            }
+            *slot = total;
+        }
+        self.tessellations = tessellations;
+        self.assignments = assignments;
+        Ok(())
+    }
+
     pub(crate) fn sweep(
         &mut self,
         x: &Data,

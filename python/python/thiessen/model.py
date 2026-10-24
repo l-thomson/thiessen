@@ -151,6 +151,8 @@ class Model(Params):
         random_state: SeedLike = None,
         n_chains: int = 4,
         n_threads: int = 1,
+        init: FittedModel | None = None,
+        init_draw: int | None = None,
     ) -> FittedModel:
         """Fit the model to `X` and `y`.
 
@@ -184,6 +186,22 @@ class Model(Params):
             many threads, each chain on one thread with its own generator,
             so the draws do not depend on it; the returned model splits
             the rows of a prediction over the same number.
+        init : FittedModel, optional
+            A previous fit of this model to the same data. Each chain then
+            starts from one of its kept draws instead of the cold start;
+            only the starting state changes, not the posterior. Without
+            `init_draw` and with as many chains as `init`, chain k
+            continues from the last draw of chain k of `init`. Otherwise
+            chain k (from 0) starts from pooled draw ``init_draw - k``,
+            `init_draw` defaulting to the last; with fewer draws than
+            chains up to it, every chain starts from it and the fit warns.
+            This is stochtree's rule. Pass a `random_state` other than
+            the one `init` was fitted with: the same seed replays the
+            random numbers of `init`'s chains, and the fit warns.
+            Experimental: needs a core built with the ``experimental``
+            feature.
+        init_draw : int, optional
+            The 0-based pooled draw of `init` the first chain starts from.
 
         Returns
         -------
@@ -204,8 +222,15 @@ class Model(Params):
             missing or non-finite values, a constant response, a constant
             column, fewer than two rows, or a row-count mismatch.
         ValueError
-            If `n_chains` or `n_threads` is not a positive integer, or
-            for a response the named family does not take.
+            If `n_chains` or `n_threads` is not a positive integer, if
+            `init` is not a `FittedModel` or `init_draw` not a
+            non-negative integer, or for a response the named family does
+            not take.
+        ThiessenError
+            If `init` is not a fit of this model to this data, or
+            `init_draw` is at or beyond its number of draws.
+        RequiresFeatureError
+            For `init` in a build without the ``experimental`` feature.
         """
         design = _as_design(X)
         response = _as_response(y)
@@ -222,10 +247,51 @@ class Model(Params):
         seed = _resolve_seed(random_state)
         chains = _resolve_chains(n_chains)
         threads = _resolve_threads(n_threads)
-        fitted = _fit(config, design, response, seed, chains, threads)
+        previous, draw = _resolve_init(init, init_draw, seed)
+        fitted = _fit(
+            config,
+            design,
+            response,
+            seed,
+            chains,
+            threads,
+            init=previous,
+            init_draw=draw,
+        )
         _emit_warnings(fitted, stacklevel=3)
-        _warn_convergence(fitted, chains, design, stacklevel=3)
+        _warn_convergence(
+            fitted, chains, design, stacklevel=3, warm=previous is not None
+        )
         return FittedModel(fitted, seed, chains, threads)
+
+
+def _resolve_init(
+    init: Any, init_draw: Any, seed: int
+) -> tuple[_native.Fitted | None, int | None]:
+    """Return the core fit and the 0-based draw a warm start names.
+
+    Warns when `seed` is the seed `init` was fitted with, which replays
+    its chains' random numbers.
+    """
+    if init is None:
+        if init_draw is not None:
+            raise ValueError("init_draw needs init")
+        return None, None
+    if not isinstance(init, FittedModel):
+        raise ValueError(f"init must be a FittedModel; got {type(init).__name__}")
+    if init.random_state == seed:
+        warnings.warn(
+            "random_state is the seed init was fitted with, so the chains "
+            "replay its random numbers; pass another random_state",
+            UserWarning,
+            stacklevel=3,
+        )
+    if init_draw is None:
+        return init._fitted, None
+    draw = int(init_draw)
+    if draw != init_draw or draw < 0:
+        raise ValueError(f"init_draw must be a non-negative integer; got {init_draw!r}")
+    return init._fitted, draw
 
 
 def _emit_warnings(fitted: _native.Fitted, stacklevel: int) -> None:

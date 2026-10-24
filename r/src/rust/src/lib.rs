@@ -463,6 +463,39 @@ fn core_samplers_advance(
     Ok(())
 }
 
+/// Start every sampler of a fit from draws of `previous` by the core's
+/// rule ([`thiessen::Init::From`]), counting back from the 0-based
+/// `draw` when it is not `NULL`.
+#[extendr]
+fn core_samplers_start(
+    samplers: List,
+    previous: ExternalPtr<FittedHandle>,
+    draw: Robj,
+) -> Result<()> {
+    let handles = samplers
+        .values()
+        .map(ExternalPtr::<SamplerHandle>::try_from)
+        .collect::<Result<Vec<_>>>()?;
+    let mut guards: Vec<_> = handles
+        .iter()
+        .map(|handle| handle.inner.borrow_mut())
+        .collect();
+    let mut live = guards
+        .iter_mut()
+        .map(|guard| guard.as_mut().ok_or_else(finished))
+        .collect::<Result<Vec<_>>>()?;
+    let draw = if draw.is_null() {
+        None
+    } else {
+        Some(f64::try_from(draw)?.max(0.0) as usize)
+    };
+    let init = thiessen::Init::From {
+        fitted: &previous.inner,
+        draw,
+    };
+    thiessen::Sampler::start_all(&mut live, init).map_err(core_error)
+}
+
 /// Record the current state as a posterior draw.
 #[extendr]
 fn core_sampler_keep(sampler: ExternalPtr<SamplerHandle>) -> Result<()> {
@@ -587,6 +620,7 @@ extendr_module! {
     fn core_sampler_new_interval_censored;
     fn core_sampler_step;
     fn core_samplers_advance;
+    fn core_samplers_start;
     fn core_sampler_keep;
     fn core_sampler_n_kept;
     fn core_sampler_set_response;

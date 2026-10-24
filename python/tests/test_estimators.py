@@ -31,6 +31,7 @@ PARAMETERS = {
     "n_chains",
     "n_jobs",
     "random_state",
+    "warm_start",
 }
 
 
