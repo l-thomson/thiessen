@@ -122,7 +122,8 @@ pub fn fit_chains_with_threads(
 /// says: the cold start, or a kept draw of a previous fit of the same
 /// model to the same data ([`Init::From`], [`Sampler::start_from`]).
 /// Under the cold start the draws are those of
-/// [`fit_chains_with_threads`] bit for bit.
+/// [`fit_chains_with_threads`] bit for bit. A warm start is experimental
+/// (`docs/experimental.md`).
 ///
 /// # Errors
 ///

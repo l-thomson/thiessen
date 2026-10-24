@@ -195,8 +195,11 @@ class Model(Params):
             chain k (from 0) starts from pooled draw ``init_draw - k``,
             `init_draw` defaulting to the last; with fewer draws than
             chains up to it, every chain starts from it and the fit warns.
-            This is stochtree's rule. Experimental: needs a core built with
-            the ``experimental`` feature.
+            This is stochtree's rule. Pass a `random_state` other than
+            the one `init` was fitted with: the same seed replays the
+            random numbers of `init`'s chains, and the fit warns.
+            Experimental: needs a core built with the ``experimental``
+            feature.
         init_draw : int, optional
             The 0-based pooled draw of `init` the first chain starts from.
 
@@ -223,6 +226,9 @@ class Model(Params):
             `init` is not a `FittedModel` or `init_draw` not a
             non-negative integer, or for a response the named family does
             not take.
+        ThiessenError
+            If `init` is not a fit of this model to this data, or
+            `init_draw` is at or beyond its number of draws.
         RequiresFeatureError
             For `init` in a build without the ``experimental`` feature.
         """
@@ -241,7 +247,7 @@ class Model(Params):
         seed = _resolve_seed(random_state)
         chains = _resolve_chains(n_chains)
         threads = _resolve_threads(n_threads)
-        previous, draw, draws = _resolve_init(init, init_draw, chains)
+        previous, draw = _resolve_init(init, init_draw, seed)
         fitted = _fit(
             config,
             design,
@@ -251,7 +257,6 @@ class Model(Params):
             threads,
             init=previous,
             init_draw=draw,
-            init_draws=draws,
         )
         _emit_warnings(fitted, stacklevel=3)
         _warn_convergence(
@@ -261,32 +266,32 @@ class Model(Params):
 
 
 def _resolve_init(
-    init: Any, init_draw: Any, n_chains: int
-) -> tuple[_native.Fitted | None, int | None, list[int] | None]:
-    """Return the core fit and the 0-based draws a warm start names.
+    init: Any, init_draw: Any, seed: int
+) -> tuple[_native.Fitted | None, int | None]:
+    """Return the core fit and the 0-based draw a warm start names.
 
-    The third value names each chain's draw: the last of its counterpart
-    in `init`, when `init_draw` is unset and the chain counts agree.
+    Warns when `seed` is the seed `init` was fitted with, which replays
+    its chains' random numbers.
     """
     if init is None:
         if init_draw is not None:
             raise ValueError("init_draw needs init")
-        return None, None, None
+        return None, None
     if not isinstance(init, FittedModel):
         raise ValueError(f"init must be a FittedModel; got {type(init).__name__}")
+    if init.random_state == seed:
+        warnings.warn(
+            "random_state is the seed init was fitted with, so the chains "
+            "replay its random numbers; pass another random_state",
+            UserWarning,
+            stacklevel=3,
+        )
     if init_draw is None:
-        if init.n_chains == n_chains:
-            per_chain = init.n_draws // n_chains
-            return (
-                init._fitted,
-                None,
-                [(k + 1) * per_chain - 1 for k in range(n_chains)],
-            )
-        return init._fitted, None, None
+        return init._fitted, None
     draw = int(init_draw)
     if draw != init_draw or draw < 0:
         raise ValueError(f"init_draw must be a non-negative integer; got {init_draw!r}")
-    return init._fitted, draw, None
+    return init._fitted, draw
 
 
 def _emit_warnings(fitted: _native.Fitted, stacklevel: int) -> None:

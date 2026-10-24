@@ -46,8 +46,10 @@ the core crate version the package builds against, which
   kept draw of a previous fit of the same model to the same data, by
   default the last draw of its counterpart chain, or counting back from
   `init_draw` (stochtree's rule); and `warm_start=True` on the estimators,
-  a repeated `fit` continuing every chain. The convergence warning of a warm-started fit says the chains did
-  not start apart.
+  a repeated `fit` continuing every chain on a fresh random stream. A
+  `random_state` equal to that of `init` warns that the chains replay
+  its random numbers. The convergence warning of a warm-started fit says
+  the chains did not start apart.
 
 - The response selects the outcome family where `Model` and `Sampler`
   name none: a numeric array the Gaussian family, a boolean array or a

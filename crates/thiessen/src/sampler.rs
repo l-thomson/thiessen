@@ -1257,18 +1257,21 @@ impl Sampler {
 
     /// Start the chains of one fit where `init` says, chain k being
     /// `samplers[k]`: nothing under [`Init::Cold`](crate::Init::Cold);
-    /// under [`Init::From`](crate::Init::From) the draw stochtree's rule
-    /// gives it, recording
-    /// [`Warning::WarmStartDrawsReused`] when every chain shares one;
-    /// under [`Init::Draws`](crate::Init::Draws) the draw named for it.
-    /// Each start is [`start_from`](Sampler::start_from).
+    /// under [`Init::From`](crate::Init::From) the last draw of chain k
+    /// of the previous fit, or the draw stochtree's rule gives it,
+    /// recording [`Warning::WarmStartDrawsReused`] when every chain
+    /// shares one; under [`Init::Draws`](crate::Init::Draws) the draw
+    /// named for it. Each start is [`start_from`](Sampler::start_from).
+    /// Experimental (`docs/experimental.md`).
     ///
     /// # Errors
     ///
     /// `RequiresFeature` for a warm start in a build without the feature;
     /// `InvalidHyperparameter` for `init` (a fit with no draws) or
     /// `init_draw` (out of range, or a count of draws other than the
-    /// chains'); then [`start_from`](Sampler::start_from).
+    /// chains'); then [`start_from`](Sampler::start_from). The chains
+    /// before the one that failed have been started, so the samplers are
+    /// discarded on error.
     pub fn start_all(samplers: &mut [&mut Sampler], init: crate::Init<'_>) -> Result<()> {
         if matches!(init, crate::Init::Cold) {
             return Ok(());
@@ -1287,7 +1290,7 @@ impl Sampler {
                 crate::Init::Cold => unreachable!("returned above"),
                 crate::Init::From { fitted, draw } => {
                     let (draws, shared) =
-                        crate::state::starting_draws(fitted.n_draws(), samplers.len(), draw)?;
+                        crate::state::starting_draws(fitted.chain_draws(), samplers.len(), draw)?;
                     (fitted, draws, shared)
                 }
                 crate::Init::Draws { fitted, draws } => {
@@ -1317,13 +1320,29 @@ impl Sampler {
 
     /// Record the current state as a posterior draw.
     pub fn keep(&mut self) {
-        let state = self.state();
+        let state = self.current_state();
         self.kept.push_state(state);
         self.accumulate_fit();
     }
 
-    /// The chain's current state, as [`keep`](Sampler::keep) records it.
-    pub fn state(&self) -> EnsembleState {
+    /// The chain's current state, as [`keep`](Sampler::keep) records it,
+    /// for [`restore`](Sampler::restore). Experimental
+    /// (`docs/experimental.md`).
+    ///
+    /// # Errors
+    ///
+    /// `RequiresFeature` in a build without the feature.
+    pub fn state(&self) -> Result<EnsembleState> {
+        #[cfg(not(feature = "experimental"))]
+        return Err(Error::RequiresFeature {
+            item: "Sampler::state".into(),
+            feature: "experimental",
+        });
+        #[cfg(feature = "experimental")]
+        Ok(self.current_state())
+    }
+
+    fn current_state(&self) -> EnsembleState {
         let sigma_sq = (self.outcome.sigma2_mode().samples_global_sigma_sq()
             && self.variance.is_none())
         .then_some(self.sigma_sq);
@@ -1492,11 +1511,12 @@ impl Sampler {
 
     /// [`restore`](Sampler::restore) from kept draw `draw` (0-based, in
     /// pooled order) of `previous`, after checking that `previous` is a
-    /// fit of this sampler's model to its training data: the same
-    /// outcome, mean and variance settings, the same scaler (and so the
-    /// same design shape and ranges) and the same categorical levels. The
-    /// sweep schedule may differ. Experimental; `RequiresFeature` without
-    /// the feature.
+    /// fit of this sampler's model: the same outcome, mean and variance
+    /// settings, the same scaler (and so the same design shape and
+    /// ranges) and the same categorical levels. These checks cannot tell
+    /// the training data apart from other data with the same ranges and
+    /// levels, which the caller must rule out. The sweep schedule may
+    /// differ. Experimental; `RequiresFeature` without the feature.
     ///
     /// # Errors
     ///
@@ -1537,7 +1557,9 @@ impl Sampler {
             if previous.scaler() != &self.scaler
                 || previous.categories() != self.mean.geometry().categories()
             {
-                return Err(bad("the previous fit was fitted to different data"));
+                return Err(bad(
+                    "the previous fit's scaling or categorical levels differ from this data's",
+                ));
             }
             let state = previous.state(draw)?;
             self.restore_state(&state)

@@ -28,9 +28,11 @@ says "Sampled values changed" with the reason.
   `Sampler::start_from`. `Init` chooses the start of every chain of a
   fit, through `Sampler::start_all`, `fit_chains_with_init`,
   `fit_aft_chains_with_init` and `fit_interval_censored_chains_with_init`:
-  chain k from draw `draw - k` (stochtree's rule, with
-  `Warning::WarmStartDrawsReused` when every chain shares one draw), or
-  the draw `Init::Draws` names for it. A mismatched state is
+  with as many chains as the previous fit, each continues from the last
+  draw of its counterpart; otherwise chain k from draw `draw - k`
+  (stochtree's rule, with `Warning::WarmStartDrawsReused` when every
+  chain shares one draw); or the draw `Init::Draws` names for it. A
+  fitted model records how many draws each chain kept. A mismatched state is
   `Error::IncompatibleState`. Sampled values are unchanged under the cold
   start.
 - `Fitted::load`: a saved model read through any serde deserialiser with
