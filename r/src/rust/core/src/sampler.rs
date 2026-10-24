@@ -236,8 +236,9 @@ pub struct Sampler {
     /// Calibrated scale of the prior sigma^2 ~ nu lambda / chi^2_nu.
     lambda: f64,
     kept: Posterior,
-    /// Sweeps run so far.
-    sweeps: usize,
+    /// Whether the chain is still at its cold start: no sweep run and no
+    /// state restored.
+    cold: bool,
     /// The mean function at every training row summed over the kept
     /// draws, from the cached cell assignments at each `keep`; `None` once
     /// a kept draw had a soft tessellation, whose value is not a cell's.
@@ -1004,7 +1005,7 @@ impl Sampler {
             precision,
             lambda,
             kept: Posterior::empty(),
-            sweeps: 0,
+            cold: true,
             fit_sums: Some(FitSums {
                 scaled: vec![0.0; n],
                 response: vec![0.0; n],
@@ -1021,7 +1022,7 @@ impl Sampler {
     /// tessellation in turn a structural move, accept or reject, and the
     /// cell means | rest.
     pub fn step(&mut self) {
-        self.sweeps += 1;
+        self.cold = false;
         self.update_noise(true);
         self.mean.sweep(
             &self.x,
@@ -1486,8 +1487,10 @@ impl Sampler {
     ///
     /// `InvalidHyperparameter` (field `xaddivortes`) outside the Gaussian
     /// outcome with hard membership, constant cells, no variance ensemble
-    /// and the likelihood on, or once the chain has swept or kept a draw;
-    /// (field `xaddivortes.<name>`) for a setting out of range.
+    /// and the likelihood on; under a zero inclusion weight; or once the
+    /// chain has left its cold start by a sweep, a kept draw or a restore;
+    /// (field `xaddivortes.<name>`) for a setting out of range. A fit that
+    /// leaves tessellations at zero records [`Warning::FastFitZeroed`].
     #[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
     pub fn xaddivortes(&mut self, params: &crate::XAddiVortesParams) -> Result<crate::FastFit> {
         #[cfg(not(feature = "experimental"))]
@@ -1510,8 +1513,8 @@ impl Sampler {
     ///
     /// # Errors
     ///
-    /// As [`xaddivortes`](Sampler::xaddivortes); every sampler is checked
-    /// before any fit runs, and none changes on error.
+    /// As [`xaddivortes`](Sampler::xaddivortes); the settings and every
+    /// sampler are checked before any fit runs.
     #[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
     pub fn xaddivortes_all(
         samplers: &mut [&mut Sampler],
@@ -1563,8 +1566,17 @@ impl Sampler {
         ) {
             return Err(unsupported("needs hard membership and constant cells"));
         }
-        if self.sweeps > 0 || self.n_kept() > 0 {
-            return Err(unsupported("must come before the chain's first sweep"));
+        if let crate::config::Inclusion::Weighted { weights } =
+            &self.config.mean_params.structure.inclusion
+        {
+            if weights.contains(&0.0) {
+                return Err(unsupported(
+                    "draws columns by score, so it cannot respect a zero inclusion weight",
+                ));
+            }
+        }
+        if !self.cold || self.n_kept() > 0 {
+            return Err(unsupported("must start from the cold start"));
         }
         Ok(())
     }
@@ -1593,6 +1605,12 @@ impl Sampler {
         let state = self.state().with_mean(out.tessellations, Some(sigma_sq));
         self.restore_state(&state)
             .map_err(|why| crate::error::invalid("xaddivortes", why.to_string()))?;
+        if out.zeroed > 0 {
+            self.add_warning(Warning::FastFitZeroed {
+                zeroed: out.zeroed,
+                tessellations: self.mean.tessellations().len(),
+            });
+        }
         let y_range = self.scaler.y_range();
         Ok(crate::FastFit {
             sigma: out.resid_ms.sqrt() * y_range,
@@ -1842,6 +1860,7 @@ impl Sampler {
         self.variance = variance;
         self.outcome = outcome;
         self.dart = dart;
+        self.cold = false;
         if let Some(v) = state.sigma_sq() {
             self.sigma_sq = v;
         }

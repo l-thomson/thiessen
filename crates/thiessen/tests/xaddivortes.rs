@@ -144,13 +144,9 @@ mod fit {
     fn warm_start_runs_on() {
         let (config, x, y) = fixture();
         let run = || {
-            let (mut s, _) = fit(
-                &config,
-                &x,
-                &y,
-                SEED,
-                &XAddiVortesParams::default().budget(5.0),
-            );
+            let params = XAddiVortesParams::default().budget(20.0).pair_screen(2);
+            let (mut s, f) = fit(&config, &x, &y, SEED, &params);
+            assert!(f.zeroed == 0 && f.rounds > 0, "{f:?}");
             for _ in 0..10 {
                 s.step();
                 s.keep();
@@ -207,8 +203,9 @@ mod fit {
     #[test]
     fn chains_from_fast_starts() {
         let (config, x, y) = fixture();
-        let params = XAddiVortesParams::default().budget(5.0);
+        let params = XAddiVortesParams::default().budget(20.0).pair_screen(2);
         let (a, ma) = thiessen::fit_chains_from_fast(&config, &x, &y, SEED, 2, 1, &params).unwrap();
+        assert!(a.warnings().is_empty(), "{:?}", a.warnings());
         let (b, mb) = thiessen::fit_chains_from_fast(&config, &x, &y, SEED, 2, 2, &params).unwrap();
         assert_eq!(ma, mb);
         assert_eq!(a.predict(&x).unwrap(), b.predict(&x).unwrap());
@@ -304,15 +301,27 @@ mod fit {
         }
     }
 
-    /// Fewer than four tessellations work (the locked search code indexed
-    /// past the ensemble there).
+    /// Fewer than four tessellations build and refit, with every slot
+    /// built once the pair screen leaves budget for it; at the default
+    /// pair screen the scoring cost zeroes them and the fit warns.
     #[test]
     fn small_ensembles_work() {
         let (_, x, y) = fixture();
         for m in 1..4 {
             let config = Config::new().with_m(m);
-            let (s, _) = fit(&config, &x, &y, SEED, &XAddiVortesParams::default());
+            let params = XAddiVortesParams::default().pair_screen(2);
+            let (s, f) = fit(&config, &x, &y, SEED, &params);
             assert_eq!(s.tessellations().len(), m);
+            assert_eq!(f.zeroed, 0, "m = {m}");
+            assert!(f.rounds > 0, "m = {m}");
+            let (fitted, zeroed) =
+                thiessen::fit_xaddivortes(&config, &x, &y, SEED, &XAddiVortesParams::default())
+                    .unwrap();
+            assert_eq!(zeroed.zeroed, m);
+            assert!(fitted
+                .warnings()
+                .iter()
+                .any(|w| matches!(w, thiessen::Warning::FastFitZeroed { .. })));
         }
     }
 
@@ -337,13 +346,12 @@ mod fit {
         assert_eq!(got, want);
     }
 
-    /// Friedman 1 at n = 2,000, p = 10, noise 1, B = 20: with the locked
-    /// search method's settings (the stage-one defaults), the fast fit's
+    /// Friedman 1 at n = 2,000, p = 10, noise 1, B = 20, every setting
+    /// pinned to those of the reference implementation: the fast fit's
     /// relative RMSE against the noiseless truth on 1,000 test rows stays
-    /// within 10% of the locked method's on the same data and seed
-    /// (`experiments/stage1/friedman_locked.txt`). Every setting is pinned,
-    /// because the package defaults differ and are covered by the
-    /// regression fixture instead.
+    /// within 10% of the reference's on the same data and seed
+    /// (`fixtures/xaddivortes/friedman_reference.txt`). The package
+    /// defaults differ and are covered by the regression fixture.
     #[test]
     fn friedman1_accuracy() {
         let (x, _, y) = friedman1(2000, 10, 1.0, 101);
@@ -380,44 +388,14 @@ mod fit {
             / truth.len() as f64)
             .sqrt();
         let rel = rmse / sd;
-        let locked: f64 = include_str!("fixtures/xaddivortes/friedman_locked.txt")
+        let reference: f64 = include_str!("fixtures/xaddivortes/friedman_reference.txt")
             .trim()
             .parse()
             .unwrap();
         assert!(
-            rel <= 1.1 * locked,
-            "relative RMSE {rel} against the locked method's {locked}"
+            rel <= 1.1 * reference,
+            "relative RMSE {rel} against the reference's {reference}"
         );
-    }
-
-    /// Writes the Friedman data above as TSV (header, response last) for
-    /// the locked driver: `XADDI_EXPORT=<dir> cargo test ... -- --ignored export`.
-    #[test]
-    #[ignore = "writes files; run by hand"]
-    fn export_friedman_for_the_locked_driver() {
-        use std::io::Write;
-        let dir = std::env::var("XADDI_EXPORT").expect("XADDI_EXPORT");
-        for (name, n, seed) in [("train", 2000, 101), ("test", 1000, 202)] {
-            let (x, truth, y) = friedman1(n, 10, 1.0, seed);
-            let mut f = std::fs::File::create(format!("{dir}/friedman_{name}.tsv")).unwrap();
-            writeln!(
-                f,
-                "{}\ty",
-                (0..10)
-                    .map(|q| format!("x{q}"))
-                    .collect::<Vec<_>>()
-                    .join("\t")
-            )
-            .unwrap();
-            for (i, yi) in y.iter().enumerate() {
-                let row: Vec<String> = x.row(i).iter().map(|v| format!("{v:?}")).collect();
-                writeln!(f, "{}\t{yi:?}", row.join("\t")).unwrap();
-            }
-            let mut t = std::fs::File::create(format!("{dir}/friedman_{name}_truth.txt")).unwrap();
-            for v in truth {
-                writeln!(t, "{v:?}").unwrap();
-            }
-        }
     }
 
     /// The guard's checks are planned for: a guarded fit stays within
@@ -451,6 +429,21 @@ mod fit {
         s.step();
         let err = s.xaddivortes(&XAddiVortesParams::default()).unwrap_err();
         assert!(matches!(err, thiessen::Error::InvalidHyperparameter { .. }));
+    }
+
+    /// A restored chain, and a prior that excludes a column, are refused.
+    #[test]
+    fn a_restored_chain_or_a_zero_inclusion_weight_is_refused() {
+        let (config, x, y) = fixture();
+        let previous = thiessen::fit(&config, &x, &y, SEED).unwrap();
+        let mut s = Sampler::new(&config, &x, &y, SEED).unwrap();
+        s.start_from(&previous, 0).unwrap();
+        assert!(s.xaddivortes(&XAddiVortesParams::default()).is_err());
+        let excluding = config.with_inclusion(thiessen::Inclusion::Weighted {
+            weights: vec![1.0, 0.0],
+        });
+        let mut s = Sampler::new(&excluding, &x, &y, SEED).unwrap();
+        assert!(s.xaddivortes(&XAddiVortesParams::default()).is_err());
     }
 
     /// The fitted model's noise draw is the fit's sigma, with or without

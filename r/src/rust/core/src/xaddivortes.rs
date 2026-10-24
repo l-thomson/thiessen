@@ -84,12 +84,15 @@ pub enum Worth {
 #[serde(default, deny_unknown_fields)]
 pub struct XAddiVortesParams {
     /// The compute budget B, in approximate sweeps of the exact sampler on
-    /// the same data (default 50). More budget means more replacement rounds; the
-    /// fit plans against [`PLANNING_MARGIN`] times B. Scoring the columns
-    /// is always done, and its cost, about
+    /// the same data (default 50). More budget means more replacement
+    /// rounds; the fit plans against [`PLANNING_MARGIN`] times B. Scoring
+    /// the columns is always done and costs about
     /// `(ln n + 2p + 3 S (S - 1) / 2) * 0.15 / m` sweeps for a pair screen
-    /// of S, is spent even when it exceeds a very small budget; the
-    /// tessellations are then left at zero. Positive and finite.
+    /// of S, roughly 115 / m sweeps at the default S = 23. A budget that this
+    /// cost and the build exhaust leaves tessellations at zero, which
+    /// [`FastFit::zeroed`] reports and the fit records as a warning: at the
+    /// default budget, every tessellation is zeroed for m of 3 or fewer.
+    /// Positive and finite.
     pub budget: f64,
     /// The number of columns of the tessellations that are not main
     /// effects (default 2). 1 makes every tessellation a main effect. At
@@ -143,10 +146,10 @@ pub struct XAddiVortesParams {
     /// How a round ranks the tessellations it may replace (default
     /// [`Worth::Gain`]).
     pub worth: Worth,
-    /// Keep a replacement, or a refit, only when it does not raise the
-    /// training residual sum of squares (default false). With it, the
-    /// training error never rises from round to round; each check is
-    /// charged to the budget and planned for.
+    /// Keep a replacement only when it lowers the training residual sum of
+    /// squares, and a refit only when it does not raise it (default false).
+    /// With it, the training error never rises from round to round; each
+    /// check is charged to the budget and planned for.
     pub accept_if_better: bool,
 }
 
@@ -315,9 +318,9 @@ pub struct FastFit {
     /// building.
     pub zeroed: usize,
     /// The root mean square of the training residual after the build and
-    /// after each round, on the response's own scale (as
-    /// `GradientBoostingRegressor.train_score_` in scikit-learn records the
-    /// training loss per stage). Not charged to the budget.
+    /// after each round, on the response's own scale, in the form of
+    /// scikit-learn's `GradientBoostingRegressor.train_score_`. Not charged
+    /// to the budget.
     #[serde(default)]
     pub train_score: Vec<f64>,
 }
@@ -920,13 +923,14 @@ mod algorithm {
                 for j in 0..m {
                     add(&mut resid, &ts[j], cells.get(j));
                     cost.charge_pass(ts[j].mus.len(), 0);
-                    let old = s.accept_if_better.then(|| ts[j].mus.clone());
+                    let old = s.accept_if_better.then(|| (ts[j].mus.clone(), gains[j]));
                     let before = old.as_ref().map(|_| rss_drop(&resid, &ts[j], cells.get(j)));
                     gains[j] = refit(&resid, &mut ts[j], cells.get(j), s.value_scale, shrink);
-                    if let (Some(old), Some(before)) = (old, before) {
+                    if let (Some((mus, gain)), Some(before)) = (old, before) {
                         cost.charge_plain(2.0);
                         if before > rss_drop(&resid, &ts[j], cells.get(j)) {
-                            ts[j].mus = old;
+                            ts[j].mus = mus;
+                            gains[j] = gain;
                         }
                     }
                     subtract(&mut resid, &ts[j], cells.get(j));
