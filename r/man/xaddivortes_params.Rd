@@ -28,7 +28,10 @@ xaddivortes_params(
 \item{budget}{The compute budget, in approximate sweeps of the exact
 sampler on the same data; positive and finite. More budget runs more
 replacement rounds. Measured fit times are typically below the time
-of that many exact sweeps.}
+of that many exact sweeps. Scoring the columns costs roughly
+\code{115 / m} sweeps at the default \code{pair_screen}, for m tessellations, so
+a small budget or ensemble leaves tessellations at zero; the fit then
+warns.}
 
 \item{max_columns}{Columns per tessellation for the tessellations that
 are not main effects; at least 1.}
@@ -75,9 +78,9 @@ after every round.}
 \item{worth}{How a round ranks the tessellations it may replace:
 \code{"gain"} or \code{"squared_values"}.}
 
-\item{accept_if_better}{Keep a replacement or a refit only when it does
-not raise the training error, so the training error never rises from
-round to round.}
+\item{accept_if_better}{Keep a replacement only when it lowers the
+training error and a refit only when it does not raise it, so the
+training error never rises from round to round.}
 }
 \value{
 An object of class \code{"xaddivortes_params"}.

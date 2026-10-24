@@ -66,7 +66,7 @@ An object of class \code{c("xaddivortes", "thiessen")}: a
 \code{\link[=thiessen]{thiessen()}} fit with one draw, the fast fit, whose noise draw is the
 fit's sigma, so every method of the fit uses that value. Its \code{fast}
 element is a list of \code{sigma}, the in-sample residual root mean square
-on the response's scale; \code{rounds}; \code{planned_sweeps}, the budget used;
+on the response's scale; \code{rounds}; \code{planned_sweeps}, the budget spent;
 \code{column_scores}, named by column; \code{zeroed}, the tessellations left at
 zero when the budget ran out while building; \code{train_score}, the
 residual root mean square after the build and after each round; and
@@ -80,13 +80,15 @@ information with the response, the tessellations are built with cell
 values fitted to the running residual, and rounds replace the least
 useful share and refit the rest while the budget lasts. The result is a
 single point estimate, not a posterior sample. Starting the sampler
-from the fit, \code{thiessen(start = "fast")}, gives the posterior.
+from the fit, \code{thiessen(start = "fast")}, gives posterior draws after
+the burn-in.
 }
 \details{
 The noise estimate \code{sigma(fit)} is the in-sample residual root mean
 square. It understates the noise when the fit overfits, most on small
-data, so the intervals of \code{predict(fit, interval = "prediction")} are a
-rough guide. Split-conformal intervals around the fit (Lei and others,
+data, so the intervals of \code{predict(fit, interval = "prediction")} can
+cover far less than their level: on the 300-row example of the vignette
+they cover 0.28 at a nominal 0.95. Split-conformal intervals around the fit (Lei and others,
 2018) are calibrated without that assumption: fit on one part of the
 data and widen the prediction by the \code{level} quantile of the absolute
 residuals on the other part.

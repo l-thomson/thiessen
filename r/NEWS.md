@@ -4,7 +4,9 @@
   `xaddivortes_params()` and `xaddivortes_defaults()`, `predict()` with
   prediction intervals from the fit's sigma, and `thiessen(start = "fast")`
   starting each chain from its own fast fit. The fit's sigma is its noise
-  draw, so every method of the fit uses one value.
+  draw, so every method of the fit uses one value. It is an in-sample
+  estimate, so the intervals can undercover; the vignette shows a
+  split-conformal alternative.
 
 * (experimental) `thiessen(init = , init_draw = )`: each chain starts from
   a kept draw of a previous fit of the same model to the same data, by

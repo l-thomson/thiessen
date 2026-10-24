@@ -5,6 +5,16 @@
 
 fast_control <- function() thiessen_control(tessellations = 15)
 
+# Settings under which the 15-tessellation fit builds every slot and runs
+# rounds on the fixture; the default pair screen costs more than a small
+# budget.
+working <- function(...) xaddivortes_params(budget = 20, pair_screen = 2, ...)
+
+expect_working_fit <- function(fit) {
+  expect_identical(fit$fast$zeroed, 0L)
+  expect_gt(fit$fast$rounds, 0)
+}
+
 test_that("the fast fit needs the experimental feature", {
   skip_if(core_experimental())
   f <- core_fixture()
@@ -68,8 +78,9 @@ test_that("the fast fit equals the core's bit for bit", {
 test_that("the fast fit predicts, gives intervals from its sigma and prints", {
   skip_if_not(core_experimental())
   f <- core_fixture()
-  fit <- xaddivortes(f$x, f$y, params = xaddivortes_params(budget = 10),
-                     control = fast_control(), seed = 3)
+  fit <- xaddivortes(f$x, f$y, params = working(), control = fast_control(),
+                     seed = 3)
+  expect_working_fit(fit)
   expect_s3_class(fit, c("xaddivortes", "thiessen"))
   p <- predict(fit, f$x)
   expect_length(p, nrow(f$x))
@@ -81,24 +92,34 @@ test_that("the fast fit predicts, gives intervals from its sigma and prints", {
                tolerance = 1e-10)
   expect_error(predict(fit, f$x, interval = "credible"))
   expect_error(predict(fit, f$x, type = "draws"))
-  expect_true(fit$fast$planned_sweeps <= 10)
+  expect_true(fit$fast$planned_sweeps <= 20)
   expect_named(fit$fast$column_scores)
   expect_length(fit$fast$train_score, fit$fast$rounds + 1)
   expect_output(print(fit), "XAddiVortes fast fit")
   expect_output(print(summary(fit)), "column scores")
-  again <- xaddivortes(f$x, f$y, params = xaddivortes_params(budget = 10),
-                       control = fast_control(), seed = 3)
+  again <- xaddivortes(f$x, f$y, params = working(), control = fast_control(),
+                       seed = 3)
   expect_identical(predict(again, f$x), p)
 })
 
 test_that("the noise draw is the fit's sigma without the noise update", {
   skip_if_not(core_experimental())
   f <- core_fixture()
-  fit <- xaddivortes(
-    f$x, f$y, params = xaddivortes_params(budget = 0.5, update_sigma = FALSE),
-    control = fast_control(), seed = 3
-  )
+  fit <- xaddivortes(f$x, f$y, params = working(update_sigma = FALSE),
+                     control = fast_control(), seed = 3)
+  expect_working_fit(fit)
   expect_identical(sigma(fit), fit$fast$sigma)
+})
+
+test_that("a budget that leaves tessellations at zero warns", {
+  skip_if_not(core_experimental())
+  f <- core_fixture()
+  expect_warning(
+    fit <- xaddivortes(f$x, f$y, params = xaddivortes_params(budget = 0.5),
+                       control = fast_control(), seed = 3),
+    "left at zero"
+  )
+  expect_identical(fit$fast$zeroed, 15L)
 })
 
 test_that("a data frame and a formula reach the same fit as a matrix", {
@@ -116,7 +137,7 @@ test_that("a data frame and a formula reach the same fit as a matrix", {
 test_that("chains start from their own fast fits", {
   skip_if_not(core_experimental())
   f <- core_fixture()
-  run <- function(start, threads = 1, fast = xaddivortes_params(budget = 5)) {
+  run <- function(start, threads = 1, fast = working()) {
     suppressWarnings(thiessen(f$x, f$y, control = small_control(), seed = 4,
                               chains = 2, threads = threads, start = start,
                               fast = fast))
@@ -150,10 +171,9 @@ test_that("the fast start's arguments are checked", {
 test_that("guarded rounds never raise the training score", {
   skip_if_not(core_experimental())
   f <- core_fixture()
-  guarded <- xaddivortes(
-    f$x, f$y, params = xaddivortes_params(budget = 10, accept_if_better = TRUE),
-    control = fast_control(), seed = 3
-  )
+  guarded <- xaddivortes(f$x, f$y, params = working(accept_if_better = TRUE),
+                         control = fast_control(), seed = 3)
+  expect_working_fit(guarded)
   steps <- diff(guarded$fast$train_score)
   expect_true(all(steps <= 1e-12 * head(guarded$fast$train_score, -1)))
 })

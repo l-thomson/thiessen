@@ -53,7 +53,15 @@ round(sort(fit$fast$column_scores, decreasing = TRUE), 3)
 
 `sigma(fit)` is the in-sample residual root mean square. It understates the
 noise when the fit overfits, most on small data, so the intervals of
-`predict(fit, interval = "prediction")` are a rough guide. A split-conformal
+`predict(fit, interval = "prediction")` can cover far less than their level:
+
+```{r}
+y_test <- test$f + rnorm(nrow(test$x))
+naive <- predict(fit, test$x, interval = "prediction")
+mean(y_test >= naive[, "lower"] & y_test <= naive[, "upper"])
+```
+
+A split-conformal
 interval (Lei and others, 2018) is calibrated without that assumption: fit
 on one part of the data and widen the prediction by a quantile of the
 absolute residuals on the other.
@@ -64,7 +72,6 @@ proper <- xaddivortes(train$x[half, ], train$y[half], seed = 1)
 residuals <- abs(train$y[-half] - predict(proper, train$x[-half, ]))
 k <- ceiling(0.95 * (length(residuals) + 1))
 width <- sort(residuals)[k]
-y_test <- test$f + rnorm(nrow(test$x))
 mean(abs(y_test - predict(proper, test$x)) <= width)
 ```
 

@@ -8,7 +8,10 @@
 #' @param budget The compute budget, in approximate sweeps of the exact
 #'   sampler on the same data; positive and finite. More budget runs more
 #'   replacement rounds. Measured fit times are typically below the time
-#'   of that many exact sweeps.
+#'   of that many exact sweeps. Scoring the columns costs roughly
+#'   `115 / m` sweeps at the default `pair_screen`, for m tessellations, so
+#'   a small budget or ensemble leaves tessellations at zero; the fit then
+#'   warns.
 #' @param max_columns Columns per tessellation for the tessellations that
 #'   are not main effects; at least 1.
 #' @param centres Centres drawn per tessellation at random training rows,
@@ -39,9 +42,9 @@
 #'   after every round.
 #' @param worth How a round ranks the tessellations it may replace:
 #'   `"gain"` or `"squared_values"`.
-#' @param accept_if_better Keep a replacement or a refit only when it does
-#'   not raise the training error, so the training error never rises from
-#'   round to round.
+#' @param accept_if_better Keep a replacement only when it lowers the
+#'   training error and a refit only when it does not raise it, so the
+#'   training error never rises from round to round.
 #'
 #' @return An object of class `"xaddivortes_params"`.
 #' @seealso [xaddivortes()], [xaddivortes_defaults()]
@@ -125,12 +128,14 @@ fast_json <- function(params, arg = "params", call = rlang::caller_env()) {
 #' values fitted to the running residual, and rounds replace the least
 #' useful share and refit the rest while the budget lasts. The result is a
 #' single point estimate, not a posterior sample. Starting the sampler
-#' from the fit, `thiessen(start = "fast")`, gives the posterior.
+#' from the fit, `thiessen(start = "fast")`, gives posterior draws after
+#' the burn-in.
 #'
 #' The noise estimate `sigma(fit)` is the in-sample residual root mean
 #' square. It understates the noise when the fit overfits, most on small
-#' data, so the intervals of `predict(fit, interval = "prediction")` are a
-#' rough guide. Split-conformal intervals around the fit (Lei and others,
+#' data, so the intervals of `predict(fit, interval = "prediction")` can
+#' cover far less than their level: on the 300-row example of the vignette
+#' they cover 0.28 at a nominal 0.95. Split-conformal intervals around the fit (Lei and others,
 #' 2018) are calibrated without that assumption: fit on one part of the
 #' data and widen the prediction by the `level` quantile of the absolute
 #' residuals on the other part.
@@ -160,7 +165,7 @@ fast_json <- function(params, arg = "params", call = rlang::caller_env()) {
 #'   [thiessen()] fit with one draw, the fast fit, whose noise draw is the
 #'   fit's sigma, so every method of the fit uses that value. Its `fast`
 #'   element is a list of `sigma`, the in-sample residual root mean square
-#'   on the response's scale; `rounds`; `planned_sweeps`, the budget used;
+#'   on the response's scale; `rounds`; `planned_sweeps`, the budget spent;
 #'   `column_scores`, named by column; `zeroed`, the tessellations left at
 #'   zero when the budget ran out while building; `train_score`, the
 #'   residual root mean square after the build and after each round; and
