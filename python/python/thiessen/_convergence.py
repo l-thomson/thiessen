@@ -10,7 +10,7 @@ the `arviz` extra.
 from __future__ import annotations
 
 import warnings
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -27,6 +27,24 @@ ESS_THRESHOLD = 400
 
 #: Training rows the mean function is monitored at.
 POINTS = 20
+
+#: Where the chains of a fit started: the cold start, draws of a previous
+#: fit, or their own fast fits.
+Start = Literal["cold", "warm", "fast"]
+
+#: What the message adds for chains that did not start at overdispersed
+#: points.
+_CAVEATS: dict[str, str] = {
+    "warm": (
+        "the chains were warm-started from draws of a previous fit, so "
+        "these diagnostics compare chains that did not start apart"
+    ),
+    "fast": (
+        "the chains started from their own fast fits, not from "
+        "overdispersed points, so their agreement is weaker evidence of "
+        "convergence"
+    ),
+}
 
 
 def _monitored_rows(n: int, points: int = POINTS) -> npt.NDArray[np.intp]:
@@ -102,15 +120,15 @@ def _warn_convergence(
     n_chains: int,
     design: npt.NDArray[np.float64],
     stacklevel: int,
-    warm: bool = False,
+    start: Start = "cold",
 ) -> None:
     """Warn where a multi-chain fit has not met the thresholds.
 
     A fit of one chain has no diagnostics to report. Where arviz is not
-    installed the fit says so instead of checking. Under a warm start the
-    chains began at draws of one previous fit, not at overdispersed
-    points, so the message says the diagnostics are a within-run check
-    (Vehtari and others, 2021).
+    installed the fit says so instead of checking. R-hat assumes chains
+    started at overdispersed points (Vehtari and others, 2021); chains
+    warm-started from draws of a previous fit, ``start='warm'``, or from
+    their own fast fits, ``start='fast'``, did not, so the message says so.
     """
     if n_chains < 2:
         return
@@ -125,9 +143,6 @@ def _warn_convergence(
         return
     message = _convergence_message(diagnostics)
     if message is not None:
-        if warm:
-            message += (
-                "; the chains were warm-started from draws of a previous fit, "
-                "so these diagnostics compare chains that did not start apart"
-            )
+        if start in _CAVEATS:
+            message += "; " + _CAVEATS[start]
         warnings.warn(message, UserWarning, stacklevel=stacklevel)
