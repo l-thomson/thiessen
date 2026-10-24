@@ -30,6 +30,10 @@ cd "$rust"
 if [ -f Cargo.lock ]; then locked="--locked"; else locked=""; fi
 cargo vendor $locked --quiet vendor >/dev/null
 
+# The XAddiVortes cross-binding fixture: the R fit must equal the core's.
+cp "$root/crates/thiessen/tests/fixtures/xaddivortes/cross_binding.txt" \
+  "$root/r/tests/testthat/core-xaddivortes-fixture.txt"
+
 cargo metadata --format-version 1 --locked | jq -r '
   "Third-party Rust crates vendored under src/rust/vendor, with the",
   "authors and licences their manifests declare.",

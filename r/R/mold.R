@@ -24,6 +24,29 @@ blueprint_for <- function(control) {
   )
 }
 
+#' Mold a data frame or a formula into the core's design
+#'
+#' @param formula The formula to mold by: the caller's, or `~ .` for a
+#'   data frame of covariates.
+#' @param data A data frame.
+#' @param control An object of class `"thiessen_control"`.
+#' @param call The calling environment to report.
+#' @return A list of the double matrix `design`, the hardhat `blueprint`
+#'   and the molded `outcomes`.
+#' @noRd
+mold_design <- function(formula, data, control, call = rlang::caller_env()) {
+  molded <- core_call(
+    hardhat::mold(formula, data, blueprint = blueprint_for(control)),
+    call = call
+  )
+  design <- encode_predictors(
+    molded$predictors, molded$blueprint$indicators,
+    control$mean_params$geometry$metric, call = call
+  )
+  list(design = design, blueprint = molded$blueprint,
+       outcomes = molded$outcomes)
+}
+
 #' Encode molded predictors as the core's design
 #'
 #' @param predictors The `predictors` element of a mold or a forge.

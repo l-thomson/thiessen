@@ -22,6 +22,7 @@ Dorie
 ECDF
 Econometrica
 Eskin
+G'Sell
 Gabry
 Gelman
 Geweke
@@ -39,6 +40,7 @@ Linero
 ln
 modeling
 nonlinear
+overfits
 pkgdown
 Poisson
 Polya
@@ -69,6 +71,7 @@ srr
 stochtree
 Stolfo
 th
+Tibshirani
 tidybayes
 tobit
 Vehtari
@@ -76,4 +79,5 @@ vendored
 Voronoi
 WAIC
 Wei
+XAddiVortes
 ybar

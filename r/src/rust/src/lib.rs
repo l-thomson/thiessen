@@ -592,6 +592,53 @@ fn core_finish(samplers: List, threads: i32) -> Result<List> {
     ))
 }
 
+/// The XAddiVortes fast fit on a live sampler under the settings
+/// `params_json` (the core's `XAddiVortesParams` as JSON): replaces the
+/// chain's state, so it can be kept as a point fit or advanced as a warm
+/// start. Returns the core's `FastFit` as JSON.
+#[extendr]
+fn core_sampler_xaddivortes(
+    sampler: ExternalPtr<SamplerHandle>,
+    params_json: &str,
+) -> Result<String> {
+    let params: thiessen::XAddiVortesParams =
+        serde_json::from_str(params_json).map_err(json_error)?;
+    let fast = sampler
+        .live_mut()?
+        .xaddivortes(&params)
+        .map_err(core_error)?;
+    serde_json::to_string(&fast).map_err(json_error)
+}
+
+/// The XAddiVortes fast fit on every sampler, over at most `threads`
+/// threads ([`thiessen::Sampler::xaddivortes_all`]).
+#[extendr]
+fn core_samplers_xaddivortes(samplers: List, params_json: &str, threads: i32) -> Result<()> {
+    let params: thiessen::XAddiVortesParams =
+        serde_json::from_str(params_json).map_err(json_error)?;
+    let handles = samplers
+        .values()
+        .map(ExternalPtr::<SamplerHandle>::try_from)
+        .collect::<Result<Vec<_>>>()?;
+    let mut guards: Vec<_> = handles
+        .iter()
+        .map(|handle| handle.inner.borrow_mut())
+        .collect();
+    let mut live = guards
+        .iter_mut()
+        .map(|guard| guard.as_mut().ok_or_else(finished))
+        .collect::<Result<Vec<_>>>()?;
+    thiessen::Sampler::xaddivortes_all(&mut live, &params, threads.max(1) as usize)
+        .map_err(core_error)?;
+    Ok(())
+}
+
+/// The default XAddiVortes settings as JSON.
+#[extendr]
+fn core_xaddivortes_defaults() -> Result<String> {
+    serde_json::to_string(&thiessen::XAddiVortesParams::default()).map_err(json_error)
+}
+
 extendr_module! {
     mod thiessen;
     fn core_version;
@@ -621,6 +668,9 @@ extendr_module! {
     fn core_sampler_step;
     fn core_samplers_advance;
     fn core_samplers_start;
+    fn core_sampler_xaddivortes;
+    fn core_samplers_xaddivortes;
+    fn core_xaddivortes_defaults;
     fn core_sampler_keep;
     fn core_sampler_n_kept;
     fn core_sampler_set_response;
