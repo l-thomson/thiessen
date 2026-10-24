@@ -30,7 +30,7 @@ from ._config import _config_json
 from ._convergence import _warn_convergence
 from ._encoding import Encoding, columns_of, resolve_mask
 from ._fast import FAST_SETTINGS, _fast_json, fast_defaults
-from ._seed import SeedLike, _resolve_seed
+from ._seed import SeedLike, _resolve_seed, _spawn_seed
 from .families import Gaussian, Probit
 from .model import _emit_warnings, _resolve_chains
 from .params import MetricEntry, TermParams
@@ -71,6 +71,7 @@ class _BaseAddiVortes(BaseEstimator):
     """Shared configuration, fitting and prediction."""
 
     _fit_chains: int
+    _fit_segments: int
 
     def __init__(
         self,
@@ -177,15 +178,18 @@ class _BaseAddiVortes(BaseEstimator):
         chains = _resolve_chains(self.n_chains)
         threads = _resolve_jobs(self.n_jobs)
         previous = getattr(self, "_fitted", None) if self.warm_start else None
-        draws = None
+        segment = 0
         if previous is not None:
             if getattr(self, "_fit_chains", chains) != chains:
                 raise ValueError(
                     "warm_start continues each chain of the previous fit; "
                     f"n_chains changed from {self._fit_chains} to {chains}"
                 )
-            per_chain = previous.n_draws // chains
-            draws = [(k + 1) * per_chain - 1 for k in range(chains)]
+            # Each continuation draws from a fresh stream, as scikit-learn's
+            # forests advance their seeds under warm_start: reusing a chain's
+            # stream would replay the random numbers of its earlier segment.
+            segment = self._fit_segments
+            seed = _spawn_seed(seed, segment)
         self.random_state_ = seed
         design = np.ascontiguousarray(x, dtype=np.float64)
         self._fitted: _native.Fitted = _native.fit(
@@ -196,9 +200,9 @@ class _BaseAddiVortes(BaseEstimator):
             chains,
             threads,
             init=previous,
-            init_draws=draws,
         )
         self._fit_chains = chains
+        self._fit_segments = segment + 1
         _emit_warnings(self._fitted, stacklevel=stacklevel)
         _warn_convergence(
             self._fitted,
@@ -280,11 +284,13 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         draw alike.
     warm_start : bool, default=False
         When True, a repeated `fit` continues each chain from its last
-        kept draw instead of the cold start, under a seed resolved from
-        `random_state` as usual; only the starting state changes, not the
-        posterior. The data, the settings and `n_chains` must be those of
-        the previous fit. Iterative fitting is not bit-identical to one
-        longer fit, because the generator's state is not carried.
+        kept draw instead of the cold start; only the starting state
+        changes, not the posterior. Each continuation draws from a fresh
+        stream derived from the seed `random_state` resolves to, so a
+        fixed `random_state` reproduces the whole sequence of fits. The
+        data, the settings and `n_chains` must be those of the previous
+        fit. Iterative fitting is not bit-identical to one longer fit,
+        because the generator's state is not carried.
         Experimental: needs a core built with the ``experimental``
         feature.
     start : {'cold', 'fast'}, default='cold'
@@ -308,7 +314,7 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
     feature_names_in_ : ndarray of shape (n_features_in_,)
         Feature names seen at fit, when the input carried them.
     random_state_ : int
-        The resolved seed.
+        The seed of the last fit's chains.
 
     See Also
     --------
@@ -403,6 +409,7 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
             _fast_json(self.fast_settings),
         )
         self._fit_chains = chains
+        self._fit_segments = 1
         _emit_warnings(self._fitted, stacklevel=stacklevel)
         _warn_convergence(self._fitted, chains, design, stacklevel=stacklevel)
 
@@ -553,11 +560,13 @@ class AddiVortesClassifier(ClassifierMixin, _BaseAddiVortes):
         draw alike.
     warm_start : bool, default=False
         When True, a repeated `fit` continues each chain from its last
-        kept draw instead of the cold start, under a seed resolved from
-        `random_state` as usual; only the starting state changes, not the
-        posterior. The data, the settings and `n_chains` must be those of
-        the previous fit. Iterative fitting is not bit-identical to one
-        longer fit, because the generator's state is not carried.
+        kept draw instead of the cold start; only the starting state
+        changes, not the posterior. Each continuation draws from a fresh
+        stream derived from the seed `random_state` resolves to, so a
+        fixed `random_state` reproduces the whole sequence of fits. The
+        data, the settings and `n_chains` must be those of the previous
+        fit. Iterative fitting is not bit-identical to one longer fit,
+        because the generator's state is not carried.
         Experimental: needs a core built with the ``experimental``
         feature.
 
@@ -570,7 +579,7 @@ class AddiVortesClassifier(ClassifierMixin, _BaseAddiVortes):
     feature_names_in_ : ndarray of shape (n_features_in_,)
         Feature names seen at fit, when the input carried them.
     random_state_ : int
-        The resolved seed.
+        The seed of the last fit's chains.
 
     See Also
     --------

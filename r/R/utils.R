@@ -441,13 +441,13 @@ resolve_chains <- function(chains, call = rlang::caller_env()) {
 #' @param init `NULL`, or an object of class `"thiessen"`.
 #' @param init_draw `NULL`, or the 1-based draw of `init` the first chain
 #'   starts from.
-#' @param chains The number of chains of the new fit.
+#' @param seed The resolved seed of the new fit.
 #' @param call The calling environment to report.
 #' @return `NULL` for the cold start; otherwise a list of the live fitted
-#'   state, the 0-based draw (`NULL` for the last) and the 0-based draw of
-#'   each chain (`NULL` unless each chain continues its counterpart).
+#'   state and the 0-based draw (`NULL` to leave the choice to the core's
+#'   rule).
 #' @noRd
-resolve_init <- function(init, init_draw, chains,
+resolve_init <- function(init, init_draw, seed,
                          call = rlang::caller_env()) {
   if (is.null(init)) {
     if (!is.null(init_draw)) {
@@ -458,12 +458,16 @@ resolve_init <- function(init, init_draw, chains,
   if (!inherits(init, "thiessen")) {
     thiessen_abort("`init` must be a fit from `thiessen()`.", call = call)
   }
-  draw <- NULL
-  draws <- NULL
-  if (is.null(init_draw) && identical(as.integer(init$n_chains), chains)) {
-    per_chain <- init$n_draws %/% chains
-    draws <- as.numeric(seq_len(chains) * per_chain - 1)
+  if (identical(as.double(init$seed), seed)) {
+    rlang::warn(
+      paste(
+        "`seed` is the seed `init` was fitted with, so the chains replay",
+        "its random numbers; pass another `seed`."
+      ),
+      class = "thiessen_warning"
+    )
   }
+  draw <- NULL
   if (!is.null(init_draw)) {
     check_whole_number(init_draw, min = 1, call = call)
     if (init_draw > init$n_draws) {
@@ -475,7 +479,7 @@ resolve_init <- function(init, init_draw, chains,
     }
     draw <- as.numeric(init_draw) - 1
   }
-  list(state = fit_state(init, call = call), draw = draw, draws = draws)
+  list(state = fit_state(init, call = call), draw = draw)
 }
 
 #' Resolve the number of threads of a fit

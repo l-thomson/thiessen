@@ -122,7 +122,6 @@ def fit(
     n_threads: int,
     init: Fitted | None = None,
     init_draw: int | None = None,
-    init_draws: list[int] | None = None,
 ) -> Fitted: ...
 def fit_aft(
     config_json: str,
@@ -134,7 +133,6 @@ def fit_aft(
     n_threads: int,
     init: Fitted | None = None,
     init_draw: int | None = None,
-    init_draws: list[int] | None = None,
 ) -> Fitted: ...
 def fit_interval_censored(
     config_json: str,
@@ -146,7 +144,6 @@ def fit_interval_censored(
     n_threads: int,
     init: Fitted | None = None,
     init_draw: int | None = None,
-    init_draws: list[int] | None = None,
 ) -> Fitted: ...
 def fitted_from_json(json: str, n_threads: int = 1) -> Fitted: ...
 def fit_xaddivortes(

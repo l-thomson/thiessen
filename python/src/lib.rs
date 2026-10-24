@@ -522,33 +522,25 @@ impl Sampler {
     }
 }
 
-/// Where the chains of a fit start: the cold start; a previous fit's
-/// draws by the stochtree rule from `init_draw`; or the draw `init_draws`
-/// names for each chain.
+/// Where the chains of a fit start: the cold start, or a previous fit's
+/// draws by the core's rule from `init_draw` ([`thiessen::Init::From`]).
 struct Start {
     previous: Option<thiessen::Fitted>,
     draw: Option<usize>,
-    draws: Option<Vec<usize>>,
 }
 
 impl Start {
-    fn new(
-        init: Option<PyRef<'_, Fitted>>,
-        init_draw: Option<usize>,
-        init_draws: Option<Vec<usize>>,
-    ) -> Self {
+    fn new(init: Option<PyRef<'_, Fitted>>, init_draw: Option<usize>) -> Self {
         Self {
             previous: init.map(|f| f.inner.clone()),
             draw: init_draw,
-            draws: init_draws,
         }
     }
 
     fn init(&self) -> thiessen::Init<'_> {
-        match (&self.previous, &self.draws) {
-            (None, _) => thiessen::Init::Cold,
-            (Some(fitted), Some(draws)) => thiessen::Init::Draws { fitted, draws },
-            (Some(fitted), None) => thiessen::Init::From {
+        match &self.previous {
+            None => thiessen::Init::Cold,
+            Some(fitted) => thiessen::Init::From {
                 fitted,
                 draw: self.draw,
             },
@@ -562,7 +554,7 @@ impl Start {
 /// the cold start, or from a draw of `init` ([`thiessen::Init`]). The GIL
 /// is released for the fit.
 #[pyfunction]
-#[pyo3(signature = (config_json, x, y, seed, n_chains, n_threads, init = None, init_draw = None, init_draws = None))]
+#[pyo3(signature = (config_json, x, y, seed, n_chains, n_threads, init = None, init_draw = None))]
 #[allow(clippy::too_many_arguments)]
 fn fit(
     py: Python<'_>,
@@ -574,12 +566,11 @@ fn fit(
     n_threads: usize,
     init: Option<PyRef<'_, Fitted>>,
     init_draw: Option<usize>,
-    init_draws: Option<Vec<usize>>,
 ) -> PyResult<Fitted> {
     let config = config(config_json)?;
     let data = design(&x)?;
     let y = response(&y);
-    let start = Start::new(init, init_draw, init_draws);
+    let start = Start::new(init, init_draw);
     let (inner, _) = py
         .detach(|| {
             thiessen::fit_chains_with_init(
@@ -600,7 +591,7 @@ fn fit(
 /// through [`thiessen::fit_aft_chains_with_init`]. The GIL is released for
 /// the fit.
 #[pyfunction]
-#[pyo3(signature = (config_json, x, times, events, seed, n_chains, n_threads, init = None, init_draw = None, init_draws = None))]
+#[pyo3(signature = (config_json, x, times, events, seed, n_chains, n_threads, init = None, init_draw = None))]
 #[allow(clippy::too_many_arguments)]
 fn fit_aft(
     py: Python<'_>,
@@ -613,13 +604,12 @@ fn fit_aft(
     n_threads: usize,
     init: Option<PyRef<'_, Fitted>>,
     init_draw: Option<usize>,
-    init_draws: Option<Vec<usize>>,
 ) -> PyResult<Fitted> {
     let config = config(config_json)?;
     let data = design(&x)?;
     let times = response(&times);
     let events = flags(&events);
-    let start = Start::new(init, init_draw, init_draws);
+    let start = Start::new(init, init_draw);
     let (inner, _) = py
         .detach(|| {
             thiessen::fit_aft_chains_with_init(
@@ -641,7 +631,7 @@ fn fit_aft(
 /// [`fit`], through [`thiessen::fit_interval_censored_chains_with_init`].
 /// The GIL is released for the fit.
 #[pyfunction]
-#[pyo3(signature = (config_json, x, lower, upper, seed, n_chains, n_threads, init = None, init_draw = None, init_draws = None))]
+#[pyo3(signature = (config_json, x, lower, upper, seed, n_chains, n_threads, init = None, init_draw = None))]
 #[allow(clippy::too_many_arguments)]
 fn fit_interval_censored(
     py: Python<'_>,
@@ -654,13 +644,12 @@ fn fit_interval_censored(
     n_threads: usize,
     init: Option<PyRef<'_, Fitted>>,
     init_draw: Option<usize>,
-    init_draws: Option<Vec<usize>>,
 ) -> PyResult<Fitted> {
     let config = config(config_json)?;
     let data = design(&x)?;
     let lower = response(&lower);
     let upper = response(&upper);
-    let start = Start::new(init, init_draw, init_draws);
+    let start = Start::new(init, init_draw);
     let (inner, _) = py
         .detach(|| {
             thiessen::fit_interval_censored_chains_with_init(

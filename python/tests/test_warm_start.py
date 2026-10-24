@@ -8,7 +8,6 @@ import warnings
 import numpy as np
 import pytest
 from thiessen import Model, RequiresFeatureError, ThiessenError, _native
-from thiessen._response import _as_response, _fit
 from thiessen.estimators import AddiVortesClassifier, AddiVortesRegressor
 
 from .conftest import SMALL
@@ -50,24 +49,26 @@ def test_each_chain_continues_its_counterpart_by_default(gaussian_fixture):
     x, y = gaussian_fixture
     model = Model(**SMALL)
     previous = quiet(model.fit, x, y, random_state=1, n_chains=2)
-    per_chain = previous.n_draws // 2
     default = quiet(model.fit, x, y, random_state=2, n_chains=2, init=previous)
-    named = quiet(
-        model.fit, x, y, random_state=2, n_chains=2, init=previous, init_draw=0
+    last = quiet(
+        model.fit,
+        x,
+        y,
+        random_state=2,
+        n_chains=2,
+        init=previous,
+        init_draw=previous.n_draws - 1,
     )
-    config = default._fitted.config
-    continued = _fit(
-        config,
-        np.ascontiguousarray(x),
-        _as_response(y),
-        2,
-        2,
-        1,
-        init=previous._fitted,
-        init_draws=[per_chain - 1, 2 * per_chain - 1],
-    )
-    np.testing.assert_array_equal(default.predict_draws(x), continued.predict_draws(x))
-    assert not np.array_equal(default.predict_draws(x), named.predict_draws(x))
+    assert not np.array_equal(default.predict_draws(x), last.predict_draws(x))
+
+
+@experimental
+def test_reusing_the_seed_of_init_warns(gaussian_fixture):
+    x, y = gaussian_fixture
+    model = Model(**SMALL)
+    previous = quiet(model.fit, x, y, random_state=1, n_chains=1)
+    with pytest.warns(UserWarning, match="replay its random numbers"):
+        model.fit(x, y, random_state=1, n_chains=1, init=previous)
 
 
 @experimental
@@ -83,7 +84,7 @@ def test_too_few_draws_warn_that_the_chains_share_a_start(gaussian_fixture):
 def test_the_previous_fit_must_be_of_this_model_and_data(gaussian_fixture):
     x, y = gaussian_fixture
     previous = Model(**SMALL).fit(x, y, random_state=1, n_chains=1)
-    with pytest.raises(ThiessenError, match="different data"):
+    with pytest.raises(ThiessenError, match="differ from this data"):
         Model(**SMALL).fit(x, y + 1.0, random_state=2, n_chains=1, init=previous)
 
 
@@ -118,6 +119,7 @@ def test_warm_start_continues_each_chain(gaussian_fixture, estimator):
     quiet(cold.fit, x, y)
     quiet(cold.fit, x, y)
     assert warm._fitted is not first
+    assert warm.random_state_ != 3
     assert not np.array_equal(warm.predict(x), cold.predict(x))
 
 

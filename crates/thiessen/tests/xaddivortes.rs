@@ -49,24 +49,24 @@ fn settings_validate_and_round_trip() {
     let json = serde_json::to_string(&d).unwrap();
     assert_eq!(serde_json::from_str::<XAddiVortesParams>(&json).unwrap(), d);
     let partial: XAddiVortesParams = serde_json::from_str(r#"{"budget": 50}"#).unwrap();
-    assert_eq!(partial, XAddiVortesParams::default().budget(50.0));
+    assert_eq!(partial, XAddiVortesParams::default().with_budget(50.0));
     assert!(serde_json::from_str::<XAddiVortesParams>(r#"{"budjet": 50}"#).is_err());
     let bad = [
-        d.clone().budget(0.0),
-        d.clone().budget(f64::NAN),
-        d.clone().value_scale(0.0),
-        d.clone().value_scale(1.5),
-        d.clone().main_effect_share(-0.1),
-        d.clone().replace_share(1.1),
-        d.clone().score_floor(-1.0),
-        d.clone().max_columns(0),
-        d.clone().centres(0),
-        d.clone().pair_screen(1),
-        d.clone().column_bins(1),
-        d.clone().column_bins(256),
-        d.clone().response_bins(1),
-        d.clone().tries(0),
-        d.clone().refit_passes(0),
+        d.clone().with_budget(0.0),
+        d.clone().with_budget(f64::NAN),
+        d.clone().with_value_scale(0.0),
+        d.clone().with_value_scale(1.5),
+        d.clone().with_main_effect_share(-0.1),
+        d.clone().with_replace_share(1.1),
+        d.clone().with_score_floor(-1.0),
+        d.clone().with_max_columns(0),
+        d.clone().with_centres(0),
+        d.clone().with_pair_screen(1),
+        d.clone().with_column_bins(1),
+        d.clone().with_column_bins(256),
+        d.clone().with_response_bins(1),
+        d.clone().with_tries(0),
+        d.clone().with_refit_passes(0),
     ];
     for b in bad {
         let e = b.validate().unwrap_err();
@@ -109,7 +109,7 @@ mod fit {
         assert_eq!(fa, fb);
         assert_ne!(a.tessellations(), c.tessellations());
         assert_eq!(a.tessellations().len(), 15);
-        assert!(fa.planned_sweeps <= p.budget * thiessen::PLANNING_MARGIN + 0.15 / 15.0);
+        assert!(fa.planned_sweeps <= p.budget * thiessen::XAddiVortesParams::PLANNING_MARGIN);
         assert!(fa.sigma.is_finite() && fa.sigma > 0.0);
         assert_eq!(fa.column_scores.len(), 2);
         assert!(a.fitted_values().iter().all(|v| v.is_finite()));
@@ -144,7 +144,9 @@ mod fit {
     fn warm_start_runs_on() {
         let (config, x, y) = fixture();
         let run = || {
-            let params = XAddiVortesParams::default().budget(20.0).pair_screen(2);
+            let params = XAddiVortesParams::default()
+                .with_budget(20.0)
+                .with_pair_screen(2);
             let (mut s, f) = fit(&config, &x, &y, SEED, &params);
             assert!(f.zeroed == 0 && f.rounds > 0, "{f:?}");
             for _ in 0..10 {
@@ -172,11 +174,24 @@ mod fit {
         assert_eq!(fitted.n_draws(), 1);
     }
 
+    /// One column fits: every tessellation is a main effect, and a tied,
+    /// two-valued response is scored without error.
+    #[test]
+    fn one_column_and_a_two_valued_response_fit() {
+        let rows: Vec<[f64; 1]> = (0..120).map(|i| [i as f64 / 120.0]).collect();
+        let x = Data::from_rows(&rows).unwrap();
+        let y: Vec<f64> = rows.iter().map(|r| f64::from(r[0] > 0.4)).collect();
+        let config = Config::new().with_m(20);
+        let (s, f) = fit(&config, &x, &y, SEED, &XAddiVortesParams::default());
+        assert!(s.tessellations().iter().all(|t| t.dims() == [0]));
+        assert_eq!(f.column_scores.len(), 1);
+        assert!(f.sigma.is_finite() && f.rounds > 0);
+    }
+
     /// The cross-binding fixture: `fit_xaddivortes` on the shared fixture
     /// with seed 7 and default settings, its predictions at the training
-    /// rows. The R and Python packages test against the same file, so the
-    /// three surfaces agree bit for bit. `XADDI_WRITE_FIXTURE=1` rewrites
-    /// it.
+    /// rows. The Python package tests against the same file, so the two
+    /// surfaces agree bit for bit. `XADDI_WRITE_FIXTURE=1` rewrites it.
     #[test]
     fn cross_binding_fixture() {
         let (config, x, y) = fixture();
@@ -203,7 +218,9 @@ mod fit {
     #[test]
     fn chains_from_fast_starts() {
         let (config, x, y) = fixture();
-        let params = XAddiVortesParams::default().budget(20.0).pair_screen(2);
+        let params = XAddiVortesParams::default()
+            .with_budget(20.0)
+            .with_pair_screen(2);
         let (a, ma) = thiessen::fit_chains_from_fast(&config, &x, &y, SEED, 2, 1, &params).unwrap();
         assert!(a.warnings().is_empty(), "{:?}", a.warnings());
         let (b, mb) = thiessen::fit_chains_from_fast(&config, &x, &y, SEED, 2, 2, &params).unwrap();
@@ -224,7 +241,7 @@ mod fit {
             &x,
             &y,
             SEED,
-            &XAddiVortesParams::default().budget(0.05),
+            &XAddiVortesParams::default().with_budget(0.05),
         );
         assert!(f.zeroed > 0);
         assert_eq!(f.rounds, 0);
@@ -238,28 +255,34 @@ mod fit {
         let (config, x, y) = fixture();
         let d = XAddiVortesParams::default();
         let variants = [
-            d.clone().max_columns(1),
-            d.clone().max_columns(3),
-            d.clone().tries(1),
-            d.clone().rescore(true),
-            d.clone().refit_passes(1),
-            d.clone().update_sigma(false),
-            d.clone().worth(thiessen::Worth::SquaredValues),
-            d.clone().replace_share(0.0),
-            d.clone().main_effect_share(1.0),
-            d.clone().accept_if_better(true),
+            d.clone().with_max_columns(1),
+            d.clone().with_max_columns(3),
+            d.clone().with_tries(1),
+            d.clone().with_rescore(true),
+            d.clone().with_refit_passes(1),
+            d.clone().with_update_sigma(false),
+            d.clone().with_worth(thiessen::Worth::SquaredValues),
+            d.clone().with_replace_share(0.0),
+            d.clone().with_main_effect_share(1.0),
+            d.clone().with_accept_if_better(true),
         ];
         for v in variants {
             let (s, f) = fit(&config, &x, &y, SEED, &v);
             assert_eq!(s.tessellations().len(), 15, "{v:?}");
             assert!(f.sigma.is_finite(), "{v:?}");
             assert!(
-                f.planned_sweeps <= v.budget * thiessen::PLANNING_MARGIN + 0.15 / 15.0,
+                f.planned_sweeps <= v.budget * thiessen::XAddiVortesParams::PLANNING_MARGIN,
                 "{v:?}"
             );
         }
         let (a, _) = fit(&config, &x, &y, SEED, &d);
-        let (b, _) = fit(&config, &x, &y, SEED, &d.clone().tries(4).refit_passes(2));
+        let (b, _) = fit(
+            &config,
+            &x,
+            &y,
+            SEED,
+            &d.clone().with_tries(4).with_refit_passes(2),
+        );
         assert_eq!(a.tessellations(), b.tessellations());
     }
 
@@ -288,8 +311,8 @@ mod fit {
         let (config, x, y) = fixture();
         for seed in 0..8 {
             let params = XAddiVortesParams::default()
-                .accept_if_better(true)
-                .budget(30.0);
+                .with_accept_if_better(true)
+                .with_budget(30.0);
             let (_, f) = fit(&config, &x, &y, seed, &params);
             for w in f.train_score.windows(2) {
                 assert!(
@@ -303,13 +326,14 @@ mod fit {
 
     /// Fewer than four tessellations build and refit, with every slot
     /// built once the pair screen leaves budget for it; at the default
-    /// pair screen the scoring cost zeroes them and the fit warns.
+    /// pair screen the scoring cost zeroes them, they stay at zero through
+    /// the rounds, and the fit warns.
     #[test]
     fn small_ensembles_work() {
         let (_, x, y) = fixture();
         for m in 1..4 {
             let config = Config::new().with_m(m);
-            let params = XAddiVortesParams::default().pair_screen(2);
+            let params = XAddiVortesParams::default().with_pair_screen(2);
             let (s, f) = fit(&config, &x, &y, SEED, &params);
             assert_eq!(s.tessellations().len(), m);
             assert_eq!(f.zeroed, 0, "m = {m}");
@@ -318,6 +342,8 @@ mod fit {
                 thiessen::fit_xaddivortes(&config, &x, &y, SEED, &XAddiVortesParams::default())
                     .unwrap();
             assert_eq!(zeroed.zeroed, m);
+            let draw = &fitted.posterior().tessellations()[0];
+            assert!(draw.iter().all(|t| t.mus().iter().all(|&v| v == 0.0)));
             assert!(fitted
                 .warnings()
                 .iter()
@@ -346,12 +372,13 @@ mod fit {
         assert_eq!(got, want);
     }
 
-    /// Friedman 1 at n = 2,000, p = 10, noise 1, B = 20, every setting
-    /// pinned to those of the reference implementation: the fast fit's
-    /// relative RMSE against the noiseless truth on 1,000 test rows stays
-    /// within 10% of the reference's on the same data and seed
-    /// (`fixtures/xaddivortes/friedman_reference.txt`). The package
-    /// defaults differ and are covered by the regression fixture.
+    /// Friedman 1 at n = 2,000, p = 10, noise 1, B = 20, at the settings
+    /// the method was evaluated with: the fast fit's relative RMSE against
+    /// the noiseless truth on 1,000 test rows stays within 10% of the
+    /// value the implementation this module reimplements reached on the
+    /// same data and seed (`fixtures/xaddivortes/friedman_reference.txt`).
+    /// The package defaults differ and are covered by the regression
+    /// fixture.
     #[test]
     fn friedman1_accuracy() {
         let (x, _, y) = friedman1(2000, 10, 1.0, 101);
@@ -362,18 +389,18 @@ mod fit {
             &y,
             thiessen::chain_seed(3, 0),
             &XAddiVortesParams::default()
-                .budget(20.0)
-                .max_columns(2)
-                .centres(16)
-                .value_scale(0.5)
-                .main_effect_share(0.5)
-                .replace_share(0.25)
-                .pair_screen(12)
-                .tries(1)
-                .rescore(false)
-                .refit_passes(1)
-                .update_sigma(false)
-                .worth(thiessen::Worth::SquaredValues),
+                .with_budget(20.0)
+                .with_max_columns(2)
+                .with_centres(16)
+                .with_value_scale(0.5)
+                .with_main_effect_share(0.5)
+                .with_replace_share(0.25)
+                .with_pair_screen(12)
+                .with_tries(1)
+                .with_rescore(false)
+                .with_refit_passes(1)
+                .with_update_sigma(false)
+                .with_worth(thiessen::Worth::SquaredValues),
         );
         s.keep();
         let pred = s.finish().unwrap().predict(&xt).unwrap();
@@ -407,10 +434,10 @@ mod fit {
         for step in 4..240 {
             let budget = step as f64 * 0.25;
             let params = XAddiVortesParams::default()
-                .budget(budget)
-                .accept_if_better(true);
+                .with_budget(budget)
+                .with_accept_if_better(true);
             let (_, f) = fit(&config, &x, &y, SEED, &params);
-            let limit = budget * thiessen::PLANNING_MARGIN + 0.15 / m;
+            let limit = budget * thiessen::XAddiVortesParams::PLANNING_MARGIN;
             let scoring = ((48f64).ln() + 4.0 + 3.0 * 253.0) * 0.15 / m;
             assert!(
                 f.planned_sweeps <= limit.max(scoring) + 1e-9,
@@ -454,8 +481,8 @@ mod fit {
         for update in [true, false] {
             for budget in [0.5, 50.0] {
                 let params = XAddiVortesParams::default()
-                    .budget(budget)
-                    .update_sigma(update);
+                    .with_budget(budget)
+                    .with_update_sigma(update);
                 let (fitted, fast) =
                     thiessen::fit_xaddivortes(&config, &x, &y, SEED, &params).unwrap();
                 let sigma = fitted.sigma();
@@ -487,19 +514,19 @@ mod fit {
             let rows: Vec<Vec<f64>> = (0..n).map(|_| (0..p).map(|_| rng.uniform()).collect()).collect();
             let y: Vec<f64> = rows.iter().map(|r| r[0] + 0.1 * rng.normal()).collect();
             let x = Data::from_rows(&rows).unwrap();
-            let params = XAddiVortesParams::default().budget(budget).centres(centres).max_columns(max_columns);
+            let params = XAddiVortesParams::default().with_budget(budget).with_centres(centres).with_max_columns(max_columns);
             let mut s = Sampler::new(&Config::new().with_m(m), &x, &y, seed).unwrap();
             let f = s.xaddivortes(&params).unwrap();
             prop_assert_eq!(s.tessellations().len(), m);
-            // The plan: 0.8 B plus at most one worth pass (1.5 n of 10 n m),
-            // or the fixed cost of scoring the columns when that is larger.
+            // The plan: 0.8 B, or the fixed cost of scoring the columns when
+            // that is larger.
             let s_pairs = (params.pair_screen * (params.pair_screen - 1) / 2) as f64;
             let scoring = ((n as f64).ln() + 2.0 * p as f64 + 3.0 * s_pairs) * 0.15 / m as f64;
-            let limit = (budget * thiessen::PLANNING_MARGIN + 0.15 / m as f64).max(scoring);
+            let limit = (budget * thiessen::XAddiVortesParams::PLANNING_MARGIN).max(scoring);
             prop_assert!(f.planned_sweeps <= limit + 1e-9, "planned {} limit {}", f.planned_sweeps, limit);
             prop_assert!(f.sigma.is_finite());
             prop_assert_eq!(f.train_score.len(), f.rounds + 1);
-            let guarded = params.clone().accept_if_better(true);
+            let guarded = params.clone().with_accept_if_better(true);
             let mut g = Sampler::new(&Config::new().with_m(m), &x, &y, seed).unwrap();
             let fg = g.xaddivortes(&guarded).unwrap();
             prop_assert!(fg.planned_sweeps <= limit + 1e-9, "guarded planned {} limit {}", fg.planned_sweeps, limit);

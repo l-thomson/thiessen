@@ -133,14 +133,6 @@ pub enum Warning {
         /// Number of observations.
         n: usize,
     },
-    /// The fast fit's budget ran out while building, so some
-    /// tessellations were left at zero.
-    FastFitZeroed {
-        /// Tessellations left at zero.
-        zeroed: usize,
-        /// Tessellations in the ensemble.
-        tessellations: usize,
-    },
     /// A warm start asked for more chains than the previous fit holds
     /// draws up to the starting draw, so every chain starts from that
     /// draw.
@@ -150,6 +142,14 @@ pub enum Warning {
         /// Draws available, counting back from the starting draw.
         draws: usize,
     },
+    /// The fast fit's budget ran out while building, so some
+    /// tessellations were left at zero.
+    FastFitZeroed {
+        /// Tessellations left at zero.
+        zeroed: usize,
+        /// Tessellations in the ensemble.
+        tessellations: usize,
+    },
 }
 
 impl std::fmt::Display for Warning {
@@ -158,6 +158,11 @@ impl std::fmt::Display for Warning {
             Warning::MoreFeaturesThanObservations { p, n } => {
                 write!(f, "more features ({p}) than observations ({n})")
             }
+            Warning::WarmStartDrawsReused { chains, draws } => write!(
+                f,
+                "{chains} chains but only {draws} draws to start them from; \
+                 every chain starts from the same draw"
+            ),
             Warning::FastFitZeroed {
                 zeroed,
                 tessellations,
@@ -166,11 +171,6 @@ impl std::fmt::Display for Warning {
                 "the fast fit's budget ran out while building: {zeroed} of \
                  {tessellations} tessellations left at zero; raise the budget or \
                  lower pair_screen"
-            ),
-            Warning::WarmStartDrawsReused { chains, draws } => write!(
-                f,
-                "{chains} chains but only {draws} draws to start them from; \
-                 every chain starts from the same draw"
             ),
         }
     }
