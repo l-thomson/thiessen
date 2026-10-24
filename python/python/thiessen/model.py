@@ -10,7 +10,7 @@ import json
 import os
 import warnings
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -154,7 +154,7 @@ class Model(Params):
         n_threads: int = 1,
         init: FittedModel | None = None,
         init_draw: int | None = None,
-        start: str = "cold",
+        start: Literal["cold", "fast"] = "cold",
         fast_settings: Mapping[str, Any] | None = None,
     ) -> FittedModel:
         """Fit the model to `X` and `y`.
@@ -215,8 +215,8 @@ class Model(Params):
             feature.
         fast_settings : dict, optional
             XAddiVortes settings for ``start='fast'``, by the names of
-            `XAddiVortesRegressor`; unset settings take its defaults. Given
-            with ``start='cold'`` it is an error.
+            `XAddiVortesRegressor`; an omitted setting takes its default.
+            Given with ``start='cold'`` it is an error.
 
         Returns
         -------
@@ -244,10 +244,12 @@ class Model(Params):
         ValueError
             For ``start`` other than 'cold' or 'fast', `fast_settings` with
             ``start='cold'``, ``start='fast'`` with `init` or a response
-            other than numeric, or a fast setting of the wrong type.
+            other than numeric, or a fast setting of unknown name or of a
+            non-finite value.
         ThiessenError
             If `init` is not a fit of this model to this data, or
-            `init_draw` is at or beyond its number of draws.
+            `init_draw` is at or beyond its number of draws, or for a fast
+            setting of the wrong type or out of its range, naming it.
         RequiresFeatureError
             For `init` or ``start='fast'`` in a build without the
             ``experimental`` feature.
@@ -305,7 +307,7 @@ class Model(Params):
             chains,
             design,
             stacklevel=3,
-            warm=previous is not None,
+            start="warm" if previous is not None else start,
         )
         return FittedModel(fitted, seed, chains, threads)
 

@@ -36,8 +36,19 @@ fn config(json: &str) -> PyResult<thiessen::Config> {
     serde_json::from_str(json).map_err(|e| ThiessenError::new_err(e.to_string()))
 }
 
+/// The settings of `json`, an object of setting names to values. serde's
+/// errors do not name the field, so each setting is read on its own first
+/// and a rejected one is named in the form of the core's range errors.
 fn xaddivortes_params(json: &str) -> PyResult<thiessen::XAddiVortesParams> {
-    serde_json::from_str(json).map_err(|e| ThiessenError::new_err(e.to_string()))
+    let fields: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_str(json).map_err(|e| ThiessenError::new_err(e.to_string()))?;
+    for (name, value) in &fields {
+        let single = serde_json::Map::from_iter([(name.clone(), value.clone())]);
+        serde_json::from_value::<thiessen::XAddiVortesParams>(single.into()).map_err(|e| {
+            ThiessenError::new_err(format!("invalid hyperparameter `xaddivortes.{name}`: {e}"))
+        })?;
+    }
+    serde_json::from_value(fields.into()).map_err(|e| ThiessenError::new_err(e.to_string()))
 }
 
 fn design(x: &PyReadonlyArray2<'_, f64>) -> PyResult<thiessen::Data> {

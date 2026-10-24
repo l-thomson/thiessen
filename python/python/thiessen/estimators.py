@@ -2,11 +2,12 @@
 
 `AddiVortesRegressor` fits the Gaussian model, with the heteroscedastic
 extension when a variance ensemble is attached; `AddiVortesClassifier`
-fits the binary probit model. Both meet the scikit-learn estimator
-contract, so they compose with `Pipeline`, `GridSearchCV`,
-`cross_val_score` and `sklearn.inspection`, and the parameter groups
-implement ``get_params``/``set_params``, so grid search routes into them:
-``{"mean_params__tessellations": [50, 200]}``.
+fits the binary probit model; `XAddiVortesRegressor` fits the Gaussian
+model's ensemble by the XAddiVortes fast fit. All three meet the
+scikit-learn estimator contract, so they compose with `Pipeline`,
+`GridSearchCV`, `cross_val_score` and `sklearn.inspection`, and the
+parameter groups implement ``get_params``/``set_params``, so grid search
+routes into them: ``{"mean_params__tessellations": [50, 200]}``.
 
 Requires scikit-learn 1.6 or later, the `sklearn` extra.
 """
@@ -14,6 +15,7 @@ Requires scikit-learn 1.6 or later, the `sklearn` extra.
 from __future__ import annotations
 
 import json
+import math
 import os
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal, overload
@@ -21,6 +23,7 @@ from typing import Any, Literal, overload
 import numpy as np
 import numpy.typing as npt
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
+from sklearn.utils import check_scalar
 from sklearn.utils.multiclass import type_of_target, unique_labels
 from sklearn.utils.validation import check_is_fitted, validate_data
 
@@ -29,7 +32,16 @@ from ._arrays import _as_numeric
 from ._config import _config_json
 from ._convergence import _warn_convergence
 from ._encoding import Encoding, columns_of, resolve_mask
-from ._fast import FAST_SETTINGS, _fast_json, fast_defaults
+from ._fast import (
+    FAST_FLAGS,
+    FAST_RANGES,
+    FAST_SETTINGS,
+    WORTHS,
+    Worth,
+    _check_names,
+    _fast_json,
+    fast_defaults,
+)
 from ._seed import SeedLike, _resolve_seed, _spawn_seed
 from .families import Gaussian, Probit
 from .model import _emit_warnings, _resolve_chains
@@ -64,41 +76,87 @@ def _resolve_jobs(n_jobs: int | None) -> int:
     return max(1, _cpu_count() + 1 + jobs)
 
 
+def _check_option(value: Any, name: str, options: Sequence[str]) -> str:
+    """Return `value` where it is one of the strings `options`.
+
+    Raises
+    ------
+    ValueError
+        For any other value.
+    """
+    if not isinstance(value, str) or value not in options:
+        allowed = " or ".join(repr(option) for option in options)
+        raise ValueError(f"{name} must be {allowed}; got {value!r}")
+    return value
+
+
+def _check_fast_setting(name: str, value: Any) -> Any:
+    """Return XAddiVortes setting `value` checked, as a Python scalar.
+
+    A number is checked by `sklearn.utils.check_scalar` against the core's
+    range, `FAST_RANGES`; a flag must be a bool and `worth` one of its
+    options.
+
+    Raises
+    ------
+    TypeError
+        For a value of the wrong type, `None` among them.
+    ValueError
+        For a value out of its range.
+    """
+    if name == "worth":
+        return _check_option(value, name, WORTHS)
+    if name in FAST_FLAGS:
+        check_scalar(value, name, (bool, np.bool_))
+    else:
+        target, low, high, boundaries = FAST_RANGES[name]
+        # bool is an Integral, so check_scalar would take it as 0 or 1.
+        if isinstance(value, (bool, np.bool_)):
+            raise TypeError(f"{name} must be a number, not {type(value).__name__}.")
+        check_scalar(
+            value,
+            name,
+            target,
+            min_val=low,
+            max_val=high,
+            include_boundaries=boundaries,
+        )
+        # check_scalar's comparisons are all false for nan.
+        if math.isnan(value):
+            raise ValueError(f"{name} == nan, must be a number.")
+    return value.item() if isinstance(value, np.generic) else value
+
+
+def _check_fast_settings(settings: Any) -> dict[str, Any]:
+    """Return the XAddiVortes `settings` mapping checked, as Python scalars.
+
+    Raises
+    ------
+    TypeError
+        For `settings` other than a mapping, or a value of the wrong type.
+    ValueError
+        For an unknown name or a value out of its range.
+    """
+    if not isinstance(settings, Mapping):
+        raise TypeError(f"fast_settings must be a dict or None; got {settings!r}")
+    _check_names(settings)
+    return {name: _check_fast_setting(name, value) for name, value in settings.items()}
+
+
 __all__ = ["AddiVortesClassifier", "AddiVortesRegressor", "XAddiVortesRegressor"]
 
 
-class _BaseAddiVortes(BaseEstimator):
-    """Shared configuration, fitting and prediction."""
+class _CoreEstimator(BaseEstimator):
+    """Input validation, categorical encoding, prediction threads and pickling.
 
-    _fit_chains: int
-    _fit_segments: int
+    Subclasses take `mean_params`, `categorical_features` and `n_jobs` as
+    parameters and set `_fitted` in `fit`.
+    """
 
-    def __init__(
-        self,
-        *,
-        mean_params: TermParams | None = None,
-        variance_params: TermParams | None = None,
-        burn_in: int = 200,
-        draws: int = 1000,
-        thinning: int = 1,
-        prior_only: bool = False,
-        categorical_features: str | Sequence[Any] | None = None,
-        n_chains: int = 4,
-        n_jobs: int | None = None,
-        random_state: SeedLike = None,
-        warm_start: bool = False,
-    ) -> None:
-        self.mean_params = mean_params
-        self.variance_params = variance_params
-        self.burn_in = burn_in
-        self.draws = draws
-        self.thinning = thinning
-        self.prior_only = prior_only
-        self.categorical_features = categorical_features
-        self.n_chains = n_chains
-        self.n_jobs = n_jobs
-        self.random_state = random_state
-        self.warm_start = warm_start
+    mean_params: TermParams | None
+    categorical_features: str | Sequence[Any] | None
+    n_jobs: int | None
+    _fitted: _native.Fitted
 
     def __sklearn_tags__(self) -> Any:
         tags = super().__sklearn_tags__()
@@ -111,19 +169,6 @@ class _BaseAddiVortes(BaseEstimator):
         if self.mean_params is None or self.mean_params.geometry is None:
             return None
         return self.mean_params.geometry.metric
-
-    def _config(self, core_metric: list[MetricEntry]) -> str:
-        varies = any(entry != "euclidean" for entry in core_metric)
-        return _config_json(
-            self._outcome(),
-            self.mean_params,
-            self.variance_params,
-            self.burn_in,
-            self.draws,
-            self.thinning,
-            self.prior_only,
-            core_metric=core_metric if varies else None,
-        )
 
     def _encode_fit(self, x: Any) -> npt.NDArray[np.float64]:
         """Learn the categorical encoding and return the core's design."""
@@ -168,6 +213,66 @@ class _BaseAddiVortes(BaseEstimator):
             return np.asarray(checked, dtype=np.float64)
         return self._encode_predict(x)
 
+    def __getstate__(self) -> dict[str, Any]:
+        state = self.__dict__.copy()
+        fitted = state.pop("_fitted", None)
+        if fitted is not None:
+            state["_fitted_json"] = fitted.to_json()
+        return state
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        payload = state.pop("_fitted_json", None)
+        self.__dict__.update(state)
+        if payload is not None:
+            self._fitted = _native.fitted_from_json(payload, _resolve_jobs(self.n_jobs))
+
+
+class _BaseAddiVortes(_CoreEstimator):
+    """The sampler's run settings, configuration and multi-chain fit."""
+
+    _fit_chains: int
+    _fit_segments: int
+
+    def __init__(
+        self,
+        *,
+        mean_params: TermParams | None = None,
+        variance_params: TermParams | None = None,
+        burn_in: int = 200,
+        draws: int = 1000,
+        thinning: int = 1,
+        prior_only: bool = False,
+        categorical_features: str | Sequence[Any] | None = None,
+        n_chains: int = 4,
+        n_jobs: int | None = None,
+        random_state: SeedLike = None,
+        warm_start: bool = False,
+    ) -> None:
+        self.mean_params = mean_params
+        self.variance_params = variance_params
+        self.burn_in = burn_in
+        self.draws = draws
+        self.thinning = thinning
+        self.prior_only = prior_only
+        self.categorical_features = categorical_features
+        self.n_chains = n_chains
+        self.n_jobs = n_jobs
+        self.random_state = random_state
+        self.warm_start = warm_start
+
+    def _config(self, core_metric: list[MetricEntry]) -> str:
+        varies = any(entry != "euclidean" for entry in core_metric)
+        return _config_json(
+            self._outcome(),
+            self.mean_params,
+            self.variance_params,
+            self.burn_in,
+            self.draws,
+            self.thinning,
+            self.prior_only,
+            core_metric=core_metric if varies else None,
+        )
+
     def _fit_core(
         self,
         x: npt.NDArray[np.float64],
@@ -192,7 +297,7 @@ class _BaseAddiVortes(BaseEstimator):
             seed = _spawn_seed(seed, segment)
         self.random_state_ = seed
         design = np.ascontiguousarray(x, dtype=np.float64)
-        self._fitted: _native.Fitted = _native.fit(
+        self._fitted = _native.fit(
             self._config(self._encoding.core_metric),
             design,
             _as_numeric(y),
@@ -209,24 +314,11 @@ class _BaseAddiVortes(BaseEstimator):
             chains,
             design,
             stacklevel=stacklevel,
-            warm=previous is not None,
+            start="warm" if previous is not None else "cold",
         )
 
     def _outcome(self) -> Gaussian | Probit:
         raise NotImplementedError
-
-    def __getstate__(self) -> dict[str, Any]:
-        state = self.__dict__.copy()
-        fitted = state.pop("_fitted", None)
-        if fitted is not None:
-            state["_fitted_json"] = fitted.to_json()
-        return state
-
-    def __setstate__(self, state: dict[str, Any]) -> None:
-        payload = state.pop("_fitted_json", None)
-        self.__dict__.update(state)
-        if payload is not None:
-            self._fitted = _native.fitted_from_json(payload, _resolve_jobs(self.n_jobs))
 
 
 class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
@@ -304,8 +396,9 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         built with the ``experimental`` feature.
     fast_settings : dict, optional
         XAddiVortes settings for ``start='fast'``, by the names of
-        `XAddiVortesRegressor`; unset settings take its defaults. Given
-        with ``start='cold'`` it is an error.
+        `XAddiVortesRegressor`; an omitted setting takes its default.
+        Checked at every `fit`, under `warm_start` too; given with
+        ``start='cold'`` it is an error.
 
     Attributes
     ----------
@@ -360,7 +453,7 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         n_jobs: int | None = None,
         random_state: SeedLike = None,
         warm_start: bool = False,
-        start: str = "cold",
+        start: Literal["cold", "fast"] = "cold",
         fast_settings: Mapping[str, Any] | None = None,
     ) -> None:
         super().__init__(
@@ -386,12 +479,12 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         y: npt.NDArray[np.float64],
         stacklevel: int = 4,
     ) -> None:
-        if self.start not in ("cold", "fast"):
-            raise ValueError(f"start must be 'cold' or 'fast'; got {self.start!r}")
-        if self.start == "cold" and self.fast_settings is not None:
+        start = _check_option(self.start, "start", ("cold", "fast"))
+        if start == "cold" and self.fast_settings is not None:
             raise ValueError("fast_settings sets the fast start; it needs start='fast'")
+        settings = _check_fast_settings(self.fast_settings or {})
         continuing = self.warm_start and getattr(self, "_fitted", None) is not None
-        if self.start == "cold" or continuing:
+        if start == "cold" or continuing:
             super()._fit_core(x, y, stacklevel=stacklevel + 1)
             return
         seed = _resolve_seed(self.random_state)
@@ -406,12 +499,14 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
             seed,
             chains,
             threads,
-            _fast_json(self.fast_settings),
+            _fast_json(settings),
         )
         self._fit_chains = chains
         self._fit_segments = 1
         _emit_warnings(self._fitted, stacklevel=stacklevel)
-        _warn_convergence(self._fitted, chains, design, stacklevel=stacklevel)
+        _warn_convergence(
+            self._fitted, chains, design, stacklevel=stacklevel, start="fast"
+        )
 
     def _outcome(self) -> Gaussian | Probit:
         # The estimator holds no family list of its own: any family object
@@ -444,6 +539,13 @@ class AddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         ThiessenError
             For data the core rejects: missing or non-finite values, a
             constant response, a constant column, or fewer than two rows.
+        TypeError
+            For `fast_settings` other than a dict, or a setting in it of the
+            wrong type.
+        ValueError
+            For `start` other than 'cold' or 'fast', `fast_settings` with
+            ``start='cold'``, or a setting in it of unknown name or out of
+            its range.
         """
         design, response = self._validate_fit(X, y)
         self._fit_core(design, response)
@@ -717,7 +819,7 @@ class AddiVortesClassifier(ClassifierMixin, _BaseAddiVortes):
         return np.asarray(self.classes_)[indices]
 
 
-class XAddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
+class XAddiVortesRegressor(RegressorMixin, _CoreEstimator):
     """XAddiVortes, a fast point fit of AddiVortes.
 
     The additive ensemble of Voronoi tessellations of AddiVortes (Stone and
@@ -739,16 +841,18 @@ class XAddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
     ----------
     budget : float, default=50.0
         The compute budget, in approximate sweeps of the exact sampler on
-        the same data. More budget runs more replacement rounds; measured
-        fit times are typically below the time of that many exact sweeps.
+        the same data, positive and finite. More budget runs more
+        replacement rounds; measured fit times are typically below the time
+        of that many exact sweeps.
     max_columns : int, default=2
-        Columns per tessellation for those that are not main effects.
+        Columns per tessellation for those that are not main effects, at
+        least 1.
     mean_params : TermParams, optional
         The ensemble: its tessellation count is the number of tessellations
         fitted (default 200); its geometry declares the columns' metrics.
     centres : int, default=11
         Centres drawn per tessellation at random training rows, before
-        empty cells are dropped.
+        empty cells are dropped, from 1 to 65,535.
     value_scale : float, default=0.5
         The share of the shrunk cell mean used as a cell value, in (0, 1].
     main_effect_share : float, default=0.2
@@ -756,23 +860,26 @@ class XAddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
     replace_share : float, default=0.3
         The share of tessellations replaced each round, in [0, 1].
     max_rounds : int, default=200
-        The most replacement rounds; the budget usually stops the fit first.
+        The most replacement rounds, at least 0; the budget usually stops
+        the fit first.
     pair_screen : int, default=23
-        The best-scoring columns whose pairs are scored. The budget is
-        charged for ``pair_screen * (pair_screen - 1) / 2`` pairs whatever
+        The best-scoring columns whose pairs are scored, at least 2. The
+        budget is charged for ``pair_screen * (pair_screen - 1) / 2`` pairs whatever
         the column count.
     column_bins : int, default=8
-        Equal-width bins of a column for its score.
+        Equal-width bins of a column for its score, from 2 to 255.
     response_bins : int, default=4
-        Rank bins of the response for the scores.
+        Rank bins of the response for the scores, from 2 to 255.
     score_floor : float, default=0.02
-        The floor added to every score, as a share of the mean score.
+        The floor added to every score, as a share of the mean score, at
+        least 0 and finite.
     tries : int, default=4
-        Fresh candidates per replacement, the one of highest gain kept.
+        Fresh candidates per replacement, the one of highest gain kept, at
+        least 1.
     rescore : bool, default=False
         Re-score the columns from the residual after every round.
     refit_passes : int, default=2
-        Refit passes over all tessellations per round.
+        Refit passes over all tessellations per round, at least 1.
     update_sigma : bool, default=True
         Re-estimate the noise variance used in the shrinkage after every
         round.
@@ -859,7 +966,7 @@ class XAddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         rescore: bool = False,
         refit_passes: int = 2,
         update_sigma: bool = True,
-        worth: str = "gain",
+        worth: Worth = "gain",
         accept_if_better: bool = False,
         categorical_features: str | Sequence[Any] | None = None,
         n_jobs: int | None = None,
@@ -898,9 +1005,6 @@ class XAddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
         """
         return fast_defaults()
 
-    def _outcome(self) -> Gaussian | Probit:
-        return Gaussian()
-
     def _config(self, core_metric: list[MetricEntry]) -> str:
         varies = any(entry != "euclidean" for entry in core_metric)
         return _config_json(
@@ -931,17 +1035,22 @@ class XAddiVortesRegressor(RegressorMixin, _BaseAddiVortes):
 
         Raises
         ------
+        TypeError
+            For a setting of the wrong type, `None` among them.
         ValueError
-            For a setting of the wrong type.
+            For a setting out of its range, or `worth` other than its
+            options.
         ThiessenError
-            For data or a setting value the core rejects.
+            For data the core rejects.
         RequiresFeatureError
             In a core built without the ``experimental`` feature.
         """
+        settings = _check_fast_settings(
+            {name: getattr(self, name) for name in FAST_SETTINGS}
+        )
         design, response = self._validate_fit(X, y)
         seed = _resolve_seed(self.random_state)
         self.random_state_ = seed
-        settings = {name: getattr(self, name) for name in FAST_SETTINGS}
         fitted, fast = _native.fit_xaddivortes(
             self._config(self._encoding.core_metric),
             np.ascontiguousarray(design, dtype=np.float64),

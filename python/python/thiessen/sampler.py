@@ -169,8 +169,8 @@ class Sampler:
         ----------
         settings : dict, optional
             XAddiVortes settings, by the names of
-            `thiessen.estimators.XAddiVortesRegressor`; unset settings take
-            its defaults.
+            `thiessen.estimators.XAddiVortesRegressor`; an omitted setting
+            takes its default.
 
         Returns
         -------
@@ -184,10 +184,13 @@ class Sampler:
         ------
         RequiresFeatureError
             If the core was built without the ``experimental`` feature.
+        ValueError
+            For a setting of unknown name or of a non-finite value.
         ThiessenError
-            After `finish`, once the chain has swept or kept a draw, or for
+            After `finish`, once the chain has swept or kept a draw, for
             an outcome family other than the Gaussian with a constant
-            spread.
+            spread, or for a setting of the wrong type or out of its range,
+            naming it.
         """
         raw = self._sampler.xaddivortes(_fast_json(settings))
         summary: dict[str, Any] = json.loads(raw)

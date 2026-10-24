@@ -65,16 +65,73 @@ def test_numpy_settings_reach_the_core_as_their_json_types():
     )
     assert json == '{"budget": 5.0, "centres": 8, "rescore": true}'
     assert _fast_json({"value_scale": 1 / 3}) == '{"value_scale": 0.3333333333333333}'
-    with pytest.raises(ValueError, match="whole number"):
-        _fast_json({"centres": True})
-    with pytest.raises(ValueError, match="whole number"):
-        _fast_json({"centres": 1.5})
     with pytest.raises(ValueError, match="unknown"):
         _fast_json({"budjet": 5})
-    with pytest.raises(ValueError, match="finite"):
+    with pytest.raises(ValueError, match="budget must be finite"):
         _fast_json({"budget": float("inf")})
-    with pytest.raises(ValueError, match="string"):
-        _fast_json({"worth": 3})
+
+
+@pytest.mark.parametrize(
+    ("setting", "error"),
+    [
+        ({"budget": None}, TypeError),
+        ({"budget": True}, TypeError),
+        ({"budget": "50"}, TypeError),
+        ({"centres": 8.0}, TypeError),
+        ({"centres": np.float64(8)}, TypeError),
+        ({"rescore": 1}, TypeError),
+        ({"update_sigma": None}, TypeError),
+        ({"budget": 0.0}, ValueError),
+        ({"budget": float("inf")}, ValueError),
+        ({"budget": float("nan")}, ValueError),
+        ({"value_scale": 0.0}, ValueError),
+        ({"replace_share": 1.5}, ValueError),
+        ({"centres": 0}, ValueError),
+        ({"centres": 65_536}, ValueError),
+        ({"pair_screen": 1}, ValueError),
+        ({"column_bins": 256}, ValueError),
+        ({"score_floor": -0.1}, ValueError),
+        ({"max_rounds": -1}, ValueError),
+        ({"worth": "best"}, ValueError),
+        ({"worth": None}, ValueError),
+    ],
+)
+def test_the_estimator_checks_each_setting_at_fit(setting, error):
+    x, y = _fixture()
+    (name,) = setting
+    model = XAddiVortesRegressor(mean_params=FIFTEEN).set_params(**setting)
+    with pytest.raises(error, match=name):
+        model.fit(x, y)
+
+
+def test_the_settings_accept_numpy_scalars_and_their_bounds():
+    x, y = _fixture()
+    model = XAddiVortesRegressor(
+        value_scale=1.0, replace_share=0.0, max_rounds=0, worth="squared_values"
+    ).set_params(
+        budget=np.float64(1e-3), centres=np.int64(65_535), rescore=np.bool_(False)
+    )
+    if not _native.EXPERIMENTAL:
+        with pytest.raises(RequiresFeatureError):
+            model.fit(x, y)
+        return
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        model.fit(x, y)
+    assert model.n_rounds_ == 0
+
+
+@pytest.mark.parametrize(
+    "setting",
+    [{"centres": 8.0}, {"centres": -1}, {"rescore": 1}, {"worth": "best"}],
+)
+def test_the_core_names_a_setting_it_rejects(setting):
+    x, y = _fixture()
+    (name,) = setting
+    with pytest.raises(ThiessenError, match=f"`xaddivortes.{name}`"):
+        Model(**SMALL).fit(
+            x, y, random_state=1, n_chains=1, start="fast", fast_settings=setting
+        )
 
 
 @experimental
@@ -156,7 +213,13 @@ def test_the_fast_start_arguments_are_checked():
     with pytest.raises(ValueError, match="needs start='fast'"):
         AddiVortesRegressor(fast_settings={"budget": 5.0}, **SMALL).fit(x, y)
     with pytest.raises(ValueError, match="start must be"):
-        AddiVortesRegressor(start="lukewarm", **SMALL).fit(x, y)
+        AddiVortesRegressor(start="lukewarm", **SMALL).fit(x, y)  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="fast_settings must be"):
+        AddiVortesRegressor(start="fast", fast_settings=[1], **SMALL).fit(x, y)  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="budget"):
+        AddiVortesRegressor(start="fast", fast_settings={"budget": None}, **SMALL).fit(
+            x, y
+        )
     model = Model(**SMALL)
     previous = quiet(model.fit, x, y, random_state=1, n_chains=1)
     with pytest.raises(ValueError, match="give one"):
@@ -174,3 +237,27 @@ def test_the_sampler_takes_a_fast_fit_before_its_first_sweep():
     stepped.step(1)
     with pytest.raises(ThiessenError):
         stepped.xaddivortes()
+
+
+def test_the_fast_settings_are_checked_when_a_warm_start_continues():
+    x, y = _fixture()
+    model = AddiVortesRegressor(warm_start=True, random_state=1, n_chains=1, **SMALL)
+    quiet(model.fit, x, y)
+    model.set_params(start="fast", fast_settings={"budjet": 5})
+    with pytest.raises(ValueError, match="unknown"):
+        model.fit(x, y)
+
+
+@experimental
+def test_the_convergence_warning_of_a_fast_start_says_the_chains_did_not_start_apart():
+    x, y = _fixture()
+    caveat = "started from their own fast fits"
+    regressor = AddiVortesRegressor(
+        start="fast", fast_settings=WORKING, random_state=4, n_chains=2, **SMALL
+    )
+    with pytest.warns(UserWarning, match=caveat):
+        regressor.fit(x, y)
+    with pytest.warns(UserWarning, match=caveat):
+        Model(**SMALL).fit(
+            x, y, random_state=4, n_chains=2, start="fast", fast_settings=WORKING
+        )

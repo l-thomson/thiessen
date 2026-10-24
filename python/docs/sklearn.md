@@ -1,12 +1,14 @@
 # scikit-learn
 
-`thiessen.estimators` holds two estimators meeting the scikit-learn contract,
-so they compose with `Pipeline`, `GridSearchCV`, `cross_val_score` and
-`sklearn.inspection`. They need the `sklearn` extra.
+`thiessen.estimators` holds three estimators meeting the scikit-learn
+contract, so they compose with `Pipeline`, `GridSearchCV`, `cross_val_score`
+and `sklearn.inspection`. They need the `sklearn` extra.
 
 `AddiVortesRegressor` fits the Gaussian and heteroscedastic models;
 `AddiVortesClassifier` fits the binary probit model. Both take the parameters
 of [Priors and scaling](priors.md) as explicit keyword arguments.
+`XAddiVortesRegressor`, the experimental fast fit, is described in
+[Fast fits and fast starts](fast-fits.md).
 
 ```python exec="on" source="above" result="text"
 import numpy as np

@@ -46,7 +46,13 @@ the core crate version the package builds against, which
   defaults in the signature and `core_defaults()`; `predict_interval` from
   the fit's sigma, which is also the model's noise draw. `start="fast"` and
   `fast_settings` on `AddiVortesRegressor` and `Model.fit`, and
-  `Sampler.xaddivortes`, start chains from fast fits. Settings accept NumPy
+  `Sampler.xaddivortes`, start chains from fast fits; the convergence
+  warning of a fast-started fit says the chains did not start at
+  overdispersed points. The estimators check each setting at `fit` with
+  `sklearn.utils.check_scalar` against the core's ranges, raising
+  `TypeError` for a wrong type, `None` included, and `ValueError` for a
+  value out of range; `Model.fit` and `Sampler.xaddivortes` leave the
+  check to the core, whose error names the setting. Settings accept NumPy
   scalars.
 
 - (experimental) `Model.fit(init=, init_draw=)`: each chain starts from a

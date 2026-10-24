@@ -1,4 +1,4 @@
-# Fast fits and warm starts
+# Fast fits and fast starts
 
 `XAddiVortesRegressor` fits the AddiVortes model, a sum of Voronoi
 tessellations, under a compute budget instead of by Markov chain Monte Carlo.
@@ -37,8 +37,10 @@ model.train_score_  # residual root mean square after the build and each round
 
 The budget is in approximate sweeps of the exact sampler on the same data
 (default 50); the constructor's defaults are the core's,
-`XAddiVortesRegressor.core_defaults()`. The settings accept NumPy scalars, so a
-`GridSearchCV` over `numpy` grids reaches the core unchanged.
+`XAddiVortesRegressor.core_defaults()`. Each setting is checked at `fit`
+against the range the core accepts, as scikit-learn estimators check theirs.
+The settings accept NumPy scalars, so a `GridSearchCV` over `numpy` grids
+reaches the core unchanged.
 
 ## Intervals
 
@@ -58,21 +60,30 @@ conformal.fit(X[:150], y[:150]).conformalize(X[150:], y[150:])
 prediction, interval = conformal.predict_interval(X[:5])
 ```
 
-## Warm starts
+## Fast starts
 
 ```python
 from thiessen.estimators import AddiVortesRegressor
 
-warm = AddiVortesRegressor(start="fast", fast_settings={"budget": 20.0})
-warm.fit(X, y)
+fast = AddiVortesRegressor(start="fast", fast_settings={"budget": 20.0})
+fast.fit(X, y)
 ```
 
 Each chain starts from its own fast fit, after which the configured burn-in and
 draws run. `fast_settings` takes the names of `XAddiVortesRegressor`; given
-with `start="cold"` it is an error.
+with `start="cold"` it is an error. Under `warm_start=True`, `start` applies to
+the first `fit` only; a repeated `fit` continues the previous chains.
+
+The chains start from fast fits, not from the overdispersed points R-hat
+assumes (Vehtari and others, 2021), so agreement between them is weaker
+evidence of convergence; the convergence warning of such a fit says so.
 
 ## References
 
 Lei, J., G'Sell, M., Rinaldo, A., Tibshirani, R. J. and Wasserman, L. (2018).
 Distribution-free predictive inference for regression. Journal of the American
 Statistical Association 113(523), 1094-1111.
+
+Vehtari, A., Gelman, A., Simpson, D., Carpenter, B. and Buerkner, P.-C. (2021).
+Rank-normalization, folding, and localization: an improved R-hat for assessing
+convergence of MCMC. Bayesian Analysis 16(2), 667-718.
