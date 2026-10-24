@@ -135,6 +135,15 @@ draws without adding information, so it is not the remedy for a low
 effective sample size. The <a href="https://l-thomson.github.io/thiessen/r/articles/convergence.html">chains
 and convergence</a> page shows a fit that warns beside one that does
 not.</p>
+<p>A fit that warned can be continued rather than rerun:
+<code>thiessen(x, y, control, init = fit)</code> with the same number of
+chains continues each chain from the last draw of its counterpart in
+<code>fit</code> instead of the cold start, and only the starting state
+differs from a cold-started fit. The continued chains start where the
+warned fit’s chains ended, so a clean R-hat on the continued fit checks
+that run, not dispersed starts (Vehtari and others, 2021). The option is
+experimental and needs a build with the <code>experimental</code>
+feature.</p>
 <p>The warning fires on any short schedule, this page’s included, and
 carries the condition class <code>thiessen_warning</code>, so a script
 that has chosen a short schedule silences it by class rather than by
