@@ -24,7 +24,7 @@ says "Sampled values changed" with the reason.
   `XAddiVortesParams`, `Sampler::xaddivortes`, `fit_xaddivortes` (the fit
   as a one-draw model whose noise draw is the fit's sigma) and
   `fit_chains_from_fast` (the exact sampler from per-chain fast fits).
-  `FastFit` reports sigma, the rounds, the planned sweeps, the column
+  `FastFit` reports sigma, the rounds, the sweeps charged, the column
   scores and the training-score path; a fit whose budget leaves
   tessellations at zero returns `Warning::FastFitZeroed`.
 - (experimental) Warm start from a previous fit: a chain starts from a

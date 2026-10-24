@@ -1494,7 +1494,7 @@ impl Sampler {
     /// let y: Vec<f64> = rows.iter().map(|r| (6.0 * r[0]).sin() + 0.1 * r[1]).collect();
     /// let x = Data::from_rows(&rows).unwrap();
     /// let mut s = Sampler::new(&Config::default(), &x, &y, 1).unwrap();
-    /// let fit = s.xaddivortes(&XAddiVortesParams::default().budget(10.0)).unwrap();
+    /// let fit = s.xaddivortes(&XAddiVortesParams::default().with_budget(10.0)).unwrap();
     /// assert!(fit.sigma > 0.0 && fit.planned_sweeps <= 10.0);
     /// s.keep();
     /// let fitted = s.finish().unwrap();
@@ -1621,7 +1621,9 @@ impl Sampler {
         } else {
             self.sigma_sq
         };
-        let state = self.state().with_mean(out.tessellations, Some(sigma_sq));
+        let state = self
+            .current_state()
+            .with_mean(out.tessellations, Some(sigma_sq));
         self.restore_state(&state)
             .map_err(|why| crate::error::invalid("xaddivortes", why.to_string()))?;
         if out.zeroed > 0 {
@@ -1632,7 +1634,7 @@ impl Sampler {
         }
         let y_range = self.scaler.y_range();
         Ok(crate::FastFit {
-            sigma: out.resid_ms.sqrt() * y_range,
+            sigma: sigma_sq.sqrt() * y_range,
             rounds: out.rounds,
             planned_sweeps: out.planned_sweeps,
             column_scores: out.column_scores,

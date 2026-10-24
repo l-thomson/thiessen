@@ -168,6 +168,4 @@ pub use sampler::Sampler;
 pub use scaler::Scaler;
 pub use state::{EnsembleState, Init};
 pub use tessellation::Tessellation;
-pub use xaddivortes::{
-    fit_chains_from_fast, fit_xaddivortes, FastFit, Worth, XAddiVortesParams, PLANNING_MARGIN,
-};
+pub use xaddivortes::{fit_chains_from_fast, fit_xaddivortes, FastFit, Worth, XAddiVortesParams};
