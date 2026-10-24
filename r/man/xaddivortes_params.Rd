@@ -48,8 +48,8 @@ value, in (0, 1].}
 \item{replace_share}{The share of tessellations replaced each round, in
 [0, 1].}
 
-\item{max_rounds}{The most replacement rounds; the budget usually stops
-the fit first.}
+\item{max_rounds}{The most replacement rounds, at least 0; the budget
+usually stops the fit first.}
 
 \item{pair_screen}{The best-scoring columns whose pairs are scored; at
 least 2. The budget is charged for \code{pair_screen * (pair_screen - 1) / 2}

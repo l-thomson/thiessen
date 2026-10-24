@@ -38,3 +38,15 @@ interval is the prediction plus and minus the normal quantile times
 interval that takes the fit as known, not a posterior interval (see
 \code{\link[=xaddivortes]{xaddivortes()}} for calibrated intervals).
 }
+\examples{
+\dontshow{if (core_experimental()) withAutoprint(\{ # examplesIf}
+set.seed(1)
+x <- matrix(runif(400), ncol = 2)
+y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
+fit <- xaddivortes(x, y, params = xaddivortes_params(budget = 100),
+                   control = thiessen_control(tessellations = 20),
+                   seed = 1)
+head(predict(fit, x))
+head(predict(fit, x, interval = "prediction"))
+\dontshow{\}) # examplesIf}
+}

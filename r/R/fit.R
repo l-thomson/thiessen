@@ -214,7 +214,6 @@ thiessen.default <- function(x, y, control = thiessen_control(), seed = NULL,
                              init = NULL, init_draw = NULL,
                              start = c("cold", "fast"), fast = NULL, ...) {
   rlang::check_dots_empty()
-  start <- rlang::arg_match(start)
   design <- as_design(x)
   response <- as_response(y)
   new_fit(design, response, control, seed, chains, threads,
@@ -231,16 +230,9 @@ thiessen.data.frame <- function(x, y, control = thiessen_control(),
                                 start = c("cold", "fast"), fast = NULL,
                                 ...) {
   rlang::check_dots_empty()
-  start <- rlang::arg_match(start)
-  molded <- core_call(
-    hardhat::mold(~ ., data = x, blueprint = blueprint_for(control))
-  )
-  design <- encode_predictors(
-    molded$predictors, molded$blueprint$indicators,
-    control$mean_params$geometry$metric
-  )
+  molded <- mold_design(~ ., x, control)
   response <- as_response(y)
-  new_fit(design, response, control, seed, chains, threads,
+  new_fit(molded$design, response, control, seed, chains, threads,
           generic_call(match.call()), blueprint = molded$blueprint,
           init = init, init_draw = init_draw, start = start, fast = fast)
 }
@@ -253,16 +245,9 @@ thiessen.formula <- function(formula, data, control = thiessen_control(),
                              init = NULL, init_draw = NULL,
                              start = c("cold", "fast"), fast = NULL, ...) {
   rlang::check_dots_empty()
-  start <- rlang::arg_match(start)
-  molded <- core_call(
-    hardhat::mold(formula, data, blueprint = blueprint_for(control))
-  )
-  design <- encode_predictors(
-    molded$predictors, molded$blueprint$indicators,
-    control$mean_params$geometry$metric
-  )
+  molded <- mold_design(formula, data, control)
   response <- encode_response(molded$outcomes)
-  new_fit(design, response, control, seed, chains, threads,
+  new_fit(molded$design, response, control, seed, chains, threads,
           generic_call(match.call()), blueprint = molded$blueprint,
           init = init, init_draw = init_draw, start = start, fast = fast)
 }
@@ -270,10 +255,11 @@ thiessen.formula <- function(formula, data, control = thiessen_control(),
 #' The method call with the generic's name, so `update()` can re-evaluate it
 #'
 #' @param call The method's `match.call()`.
-#' @return A call to `thiessen`.
+#' @param generic The generic's name.
+#' @return A call to `generic`.
 #' @noRd
-generic_call <- function(call) {
-  call[[1L]] <- as.name("thiessen")
+generic_call <- function(call, generic = "thiessen") {
+  call[[1L]] <- as.name(generic)
   call
 }
 
@@ -288,22 +274,19 @@ generic_call <- function(call) {
 #' @param call The call to store.
 #' @param blueprint The hardhat blueprint, or `NULL` for a matrix fit.
 #' @param call_env The calling environment to report.
+#' @param init,init_draw As [thiessen()] takes them.
+#' @param start `"cold"` or `"fast"`, or the methods' default of both.
+#' @param fast As [thiessen()] takes it.
 #' @return An object of class `"thiessen"`.
 #' @noRd
 new_fit <- function(design, response, control, seed, chains, threads, call,
                     blueprint = NULL, call_env = rlang::caller_env(),
                     init = NULL, init_draw = NULL, start = "cold",
                     fast = NULL) {
-  if (response$n != nrow(design)) {
-    thiessen_abort(
-      sprintf(
-        "The design has %d rows and the response has %d values; they must agree.",
-        nrow(design), response$n
-      ),
-      call = call_env
-    )
-  }
+  check_design_rows(design, response, call = call_env)
   check_group(control, "control", "thiessen_control", call = call_env)
+  start <- resignal(rlang::arg_match0(start, c("cold", "fast")),
+                    call = call_env)
   control <- resolve_outcome(control, response, call = call_env)
   chains <- resolve_chains(chains, call = call_env)
   threads <- resolve_threads(threads, call = call_env)
@@ -320,10 +303,12 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
       call = call_env
     )
   }
-  fast_start <- if (start == "fast") {
-    fast_json(fast, arg = "fast", call = call_env)
+  fast_start <- NULL
+  if (start == "fast") {
+    check_fast_family(control, "`start = \"fast\"`", call = call_env)
+    fast_start <- fast_json(fast, arg = "fast", call = call_env)
   }
-  start <- resolve_init(init, init_draw, resolved, call = call_env)
+  warm <- resolve_init(init, init_draw, resolved, call = call_env)
   # The progressor's life must span the whole fit, so the count never ends
   # it: `auto_finish` would close the handler on the last step, and the
   # frame this progressor belongs to exits when the fit is complete.
@@ -334,13 +319,13 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
   )
   fit <- core_call(
     run_schedule(control, design, response, resolved, chains, threads,
-                 report, phase_steps[["pooling"]], start = start,
+                 report, phase_steps[["pooling"]], start = warm,
                  fast_start = fast_start),
     call = call_env
   )
   assemble_fit(fit, design, response, resolved, call, threads = threads,
                blueprint = blueprint, call_env = call_env, report = report,
-               phase_steps = phase_steps, warm_start = !is.null(start),
+               phase_steps = phase_steps, warm_start = !is.null(warm),
                fast_start = !is.null(fast_start))
 }
 

@@ -8,7 +8,6 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-# The chunks run only in a build with the core's `experimental` feature.
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
                       eval = thiessen::core_experimental())
 ```
@@ -20,7 +19,11 @@ built in turn on the running residual, and rounds replace the least useful
 share and refit the rest while the budget lasts. The fit has two uses: a
 fast point estimate, and the starting state of the exact sampler, which
 changes where the chains start and not the posterior they target. Both are
-experimental.
+experimental: they need a build with the core's `experimental` feature,
+and each chunk is skipped in a build without it, so a rendering with no
+output below is that, not a failure. The
+[table of experimental items](https://github.com/l-thomson/thiessen/blob/dev/docs/experimental.md)
+gives the install command.
 
 ## A fast fit
 
@@ -69,9 +72,9 @@ absolute residuals on the other.
 ```{r}
 half <- sample(nrow(train$x), nrow(train$x) / 2)
 proper <- xaddivortes(train$x[half, ], train$y[half], seed = 1)
-residuals <- abs(train$y[-half] - predict(proper, train$x[-half, ]))
-k <- ceiling(0.95 * (length(residuals) + 1))
-width <- sort(residuals)[k]
+scores <- abs(train$y[-half] - predict(proper, train$x[-half, ]))
+k <- ceiling(0.95 * (length(scores) + 1))
+width <- sort(scores)[k]
 mean(abs(y_test - predict(proper, test$x)) <= width)
 ```
 
@@ -84,11 +87,15 @@ which the configured burn-in and draws run:
 control <- thiessen_control(
   general_params = general_params(burn_in = 50, draws = 100)
 )
-warm <- suppressWarnings(
-  thiessen(train$x, train$y, control, seed = 1, chains = 2, start = "fast")
-)
+warm <- thiessen(train$x, train$y, control, seed = 1, chains = 2,
+                 start = "fast")
 sqrt(mean((predict(warm, test$x) - test$f)^2))
 ```
+
+The schedule above is short so that the page builds quickly, and the fit
+warns that the chains may not have converged. A fast start changes where
+the chains start; the convergence checks apply as they do to a cold
+start.
 
 ## References
 

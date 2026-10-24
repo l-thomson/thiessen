@@ -59,6 +59,8 @@ reference:
   contents:
   - xaddivortes
   - predict.xaddivortes
+  - summary.xaddivortes
+  - print.xaddivortes
   - xaddivortes_params
   - xaddivortes_defaults
 - title: Outcome families
