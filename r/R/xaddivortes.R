@@ -22,8 +22,8 @@
 #'   \[0, 1\].
 #' @param replace_share The share of tessellations replaced each round, in
 #'   \[0, 1\].
-#' @param max_rounds The most replacement rounds; the budget usually stops
-#'   the fit first.
+#' @param max_rounds The most replacement rounds, at least 0; the budget
+#'   usually stops the fit first.
 #' @param pair_screen The best-scoring columns whose pairs are scored; at
 #'   least 2. The budget is charged for `pair_screen * (pair_screen - 1) / 2`
 #'   pairs whatever the column count.
@@ -60,20 +60,23 @@ xaddivortes_params <- function(budget = 50, max_columns = 2, centres = 11,
                                update_sigma = TRUE,
                                worth = c("gain", "squared_values"),
                                accept_if_better = FALSE) {
-  for (name in c("budget", "value_scale", "main_effect_share",
-                 "replace_share", "score_floor")) {
-    check_number(get(name), allow_infinite = FALSE, arg = name)
-  }
-  minimum <- c(max_columns = 1, centres = 1, max_rounds = 0, pair_screen = 2,
-               column_bins = 2, response_bins = 2, tries = 1,
-               refit_passes = 1)
-  for (name in names(minimum)) {
-    check_whole_number(get(name), min = minimum[[name]], arg = name)
-  }
+  check_positive(budget)
+  check_whole_number(max_columns, min = 1)
+  check_whole_number(centres, min = 1, max = 65535)
+  check_positive(value_scale, max = 1)
+  check_number(main_effect_share, min = 0, max = 1)
+  check_number(replace_share, min = 0, max = 1)
+  check_whole_number(max_rounds, min = 0)
+  check_whole_number(pair_screen, min = 2)
+  check_whole_number(column_bins, min = 2, max = 255)
+  check_whole_number(response_bins, min = 2, max = 255)
+  check_number(score_floor, min = 0, allow_infinite = FALSE)
+  check_whole_number(tries, min = 1)
   check_flag(rescore)
+  check_whole_number(refit_passes, min = 1)
   check_flag(update_sigma)
+  worth <- resignal(rlang::arg_match0(worth, c("gain", "squared_values")))
   check_flag(accept_if_better)
-  worth <- rlang::arg_match(worth)
   structure(
     list(
       budget = budget, max_columns = max_columns, centres = centres,
@@ -88,6 +91,15 @@ xaddivortes_params <- function(budget = 50, max_columns = 2, centres = 11,
     class = "xaddivortes_params"
   )
 }
+
+#' @export
+format.xaddivortes_params <- function(x, ...) {
+  constructor_call("xaddivortes_params", compact(unclass(x)))
+}
+
+#' @rdname print.params
+#' @export
+print.xaddivortes_params <- print.term_params
 
 #' The core's default XAddiVortes settings
 #'
@@ -134,15 +146,21 @@ fast_json <- function(params, arg = "params", call = rlang::caller_env()) {
 #' The noise estimate `sigma(fit)` is the in-sample residual root mean
 #' square. It understates the noise when the fit overfits, most on small
 #' data, so the intervals of `predict(fit, interval = "prediction")` can
-#' cover far less than their level: on the 300-row example of the vignette
-#' they cover 0.28 at a nominal 0.95. Split-conformal intervals around the fit (Lei and others,
-#' 2018) are calibrated without that assumption: fit on one part of the
-#' data and widen the prediction by the `level` quantile of the absolute
-#' residuals on the other part.
+#' cover far less than their level;
+#' `vignette("fast-fits", package = "thiessen")` measures the coverage on
+#' held-out data. Split-conformal intervals around the fit (Lei and
+#' others, 2018) are calibrated without that assumption: fit on one part
+#' of the data and widen the prediction by the `level` quantile of the
+#' absolute residuals on the other part.
+#'
+#' The fit holds one draw, so it has no posterior to compare models by:
+#' `log_lik()`, and with it `loo::loo()` and `loo::waic()`, refuse it with
+#' an error of class `thiessen_error`.
 #'
 #' The design and response are handled as by [thiessen()]: a matrix, a data
 #' frame or a formula, factors encoded as treatment-contrast indicators.
-#' The response must be numeric.
+#' The model is the Gaussian one, so the response must be numeric; a
+#' response or a `control` that selects another family is an error.
 #'
 #' XAddiVortes is experimental: it needs a build with the core's
 #' `experimental` feature ([core_experimental()]) and errors with the
@@ -172,23 +190,26 @@ fast_json <- function(params, arg = "params", call = rlang::caller_env()) {
 #'   `seconds`, the elapsed fit time.
 #' @references
 #' Lei, J., G'Sell, M., Rinaldo, A., Tibshirani, R. J. and Wasserman, L.
-#' (2018). Distribution-free predictive inference for regression. Journal
-#' of the American Statistical Association 113(523), 1094-1111.
+#' (2018). Distribution-free predictive inference for regression. *Journal
+#' of the American Statistical Association* 113(523), 1094-1111.
+#' \doi{10.1080/01621459.2017.1307116}
 #'
 #' Stone, A. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive
-#' Voronoi tessellations. Journal of Computational and Graphical Statistics
-#' 34(3), 859-871.
-#' @seealso [xaddivortes_params()], [thiessen()], [predict.xaddivortes()]
-#' @examples
-#' if (core_experimental()) {
-#'   set.seed(1)
-#'   x <- matrix(runif(400), ncol = 2)
-#'   y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
-#'   fit <- xaddivortes(x, y, params = xaddivortes_params(budget = 10),
-#'                      seed = 1)
-#'   fit
-#'   head(predict(fit, x, interval = "prediction"))
-#' }
+#' Voronoi tessellations. *Journal of Computational and Graphical
+#' Statistics* 34(3), 859-871. \doi{10.1080/10618600.2024.2414104}
+#' @seealso [xaddivortes_params()], [thiessen()], [predict.xaddivortes()],
+#'   [summary.xaddivortes()]
+#' @examplesIf core_experimental()
+#' set.seed(1)
+#' x <- matrix(runif(400), ncol = 2)
+#' y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
+#' control <- thiessen_control(tessellations = 20)
+#' fit <- xaddivortes(x, y, params = xaddivortes_params(budget = 100),
+#'                    control = control, seed = 1)
+#' fit
+#'
+#' frame <- data.frame(y = y, a = x[, 1], b = x[, 2])
+#' xaddivortes(y ~ a + b, frame, control = control, seed = 1)
 #' @export
 xaddivortes <- function(x, ...) {
   UseMethod("xaddivortes")
@@ -201,7 +222,7 @@ xaddivortes.default <- function(x, y, params = NULL,
                                 threads = getOption("mc.cores", 1L), ...) {
   rlang::check_dots_empty()
   new_fast_fit(as_design(x), as_response(y), params, control, seed, threads,
-               fast_call(match.call()))
+               generic_call(match.call(), "xaddivortes"))
 }
 
 #' @rdname xaddivortes
@@ -211,15 +232,10 @@ xaddivortes.data.frame <- function(x, y, params = NULL,
                                    threads = getOption("mc.cores", 1L),
                                    ...) {
   rlang::check_dots_empty()
-  molded <- core_call(
-    hardhat::mold(~ ., data = x, blueprint = blueprint_for(control))
-  )
-  design <- encode_predictors(
-    molded$predictors, molded$blueprint$indicators,
-    control$mean_params$geometry$metric
-  )
-  new_fast_fit(design, as_response(y), params, control, seed, threads,
-               fast_call(match.call()), blueprint = molded$blueprint)
+  molded <- mold_design(~ ., x, control)
+  new_fast_fit(molded$design, as_response(y), params, control, seed,
+               threads, generic_call(match.call(), "xaddivortes"),
+               blueprint = molded$blueprint)
 }
 
 #' @rdname xaddivortes
@@ -228,26 +244,11 @@ xaddivortes.formula <- function(formula, data, params = NULL,
                                 control = thiessen_control(), seed = NULL,
                                 threads = getOption("mc.cores", 1L), ...) {
   rlang::check_dots_empty()
-  molded <- core_call(
-    hardhat::mold(formula, data, blueprint = blueprint_for(control))
-  )
-  design <- encode_predictors(
-    molded$predictors, molded$blueprint$indicators,
-    control$mean_params$geometry$metric
-  )
-  new_fast_fit(design, encode_response(molded$outcomes), params, control,
-               seed, threads, fast_call(match.call()),
+  molded <- mold_design(formula, data, control)
+  new_fast_fit(molded$design, encode_response(molded$outcomes), params,
+               control, seed, threads,
+               generic_call(match.call(), "xaddivortes"),
                blueprint = molded$blueprint)
-}
-
-#' The method call with the generic's name, so `update()` re-evaluates it
-#'
-#' @param call The method's `match.call()`.
-#' @return A call to `xaddivortes`.
-#' @noRd
-fast_call <- function(call) {
-  call[[1L]] <- as.name("xaddivortes")
-  call
 }
 
 #' Run the fast fit and assemble the object the methods return
@@ -259,18 +260,11 @@ fast_call <- function(call) {
 new_fast_fit <- function(design, response, params, control, seed, threads,
                          call, blueprint = NULL,
                          call_env = rlang::caller_env()) {
-  if (response$n != nrow(design)) {
-    thiessen_abort(
-      sprintf(
-        "The design has %d rows and the response has %d values; they must agree.",
-        nrow(design), response$n
-      ),
-      call = call_env
-    )
-  }
+  check_design_rows(design, response, call = call_env)
   check_group(control, "control", "thiessen_control", call = call_env)
   params_json <- fast_json(params, call = call_env)
   control <- resolve_outcome(control, response, call = call_env)
+  check_fast_family(control, "`xaddivortes()`", call = call_env)
   threads <- resolve_threads(threads, call = call_env)
   resolved <- resolve_seed(seed, call = call_env)
   config <- config_json(control, call = call_env)
@@ -299,6 +293,25 @@ new_fast_fit <- function(design, response, params, control, seed, threads,
   fit
 }
 
+#' Refuse a family other than the Gaussian one for the fast fit
+#'
+#' @param control An object of class `"thiessen_control"` with its family
+#'   resolved.
+#' @param what The function or argument to name in the error.
+#' @param call The calling environment to report.
+#' @noRd
+check_fast_family <- function(control, what, call = rlang::caller_env()) {
+  kind <- attr(control$outcome, "kind")
+  if (identical(kind, "gaussian")) {
+    return(invisible(NULL))
+  }
+  thiessen_abort(
+    sprintf("%s fits the Gaussian family only, not the %s family.", what,
+            kind),
+    call = call
+  )
+}
+
 #' Predictions of an XAddiVortes fit
 #'
 #' The prediction is the sum of the fitted cell values. The prediction
@@ -317,69 +330,129 @@ new_fast_fit <- function(design, response, params, control, seed, threads,
 #'
 #' @return A numeric vector, or with an interval a matrix with columns
 #'   `fit`, `lower` and `upper`.
+#' @examplesIf core_experimental()
+#' set.seed(1)
+#' x <- matrix(runif(400), ncol = 2)
+#' y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
+#' fit <- xaddivortes(x, y, params = xaddivortes_params(budget = 100),
+#'                    control = thiessen_control(tessellations = 20),
+#'                    seed = 1)
+#' head(predict(fit, x))
+#' head(predict(fit, x, interval = "prediction"))
 #' @export
 predict.xaddivortes <- function(object, newdata = NULL,
                                 interval = c("none", "prediction"),
                                 level = 0.95, threads = NULL, ...) {
   rlang::check_dots_empty()
-  interval <- match.arg(interval)
+  interval <- resignal(rlang::arg_match0(interval, c("none", "prediction")))
   predict.thiessen(object, newdata = newdata, type = "mean",
                    interval = interval, level = level, threads = threads)
 }
 
+#' Print an XAddiVortes fit
+#'
+#' @param x An object of class `"xaddivortes"`.
+#' @param ... Ignored.
+#' @return `x`, invisibly.
+#' @examplesIf core_experimental()
+#' set.seed(1)
+#' x <- matrix(runif(400), ncol = 2)
+#' y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
+#' print(xaddivortes(x, y, params = xaddivortes_params(budget = 100),
+#'                   control = thiessen_control(tessellations = 20),
+#'                   seed = 1))
 #' @export
 print.xaddivortes <- function(x, ...) {
   cat("XAddiVortes fast fit (experimental)\n")
-  cat(sprintf("  %d observations, %d design columns, %d tessellations\n",
-              length(x$y), x$n_features, tessellation_count(x)))
-  cat(sprintf("  budget used: %.2f sweeps in %d rounds (%.2f s)\n",
-              x$fast$planned_sweeps, x$fast$rounds, x$fast$seconds))
-  if (x$fast$zeroed > 0) {
-    cat(sprintf("  %d tessellations left at zero: the budget ran out\n",
-                x$fast$zeroed))
-  }
-  cat(sprintf("  in-sample residual standard deviation: %s\n",
-              format(signif(x$fast$sigma, 4))))
+  cat("Call: ", paste(deparse(x$call), collapse = " "), "\n", sep = "")
+  cat(sprintf(
+    "%s model, %d observations, %d covariates\n",
+    x$model, nobs(x), x$n_features
+  ))
+  cat(fast_line(x$control$mean_params$tessellations, x$fast))
+  cat(sprintf("In-sample RMSE %.4g, seed %.0f\n", x$in_sample_rmse, x$seed))
   invisible(x)
 }
 
-#' The number of tessellations of a fit
+#' The budget, the rounds and the zeroed tessellations of a fast fit
+#'
+#' @param tessellations The number of tessellations.
+#' @param fast The `fast` element of an XAddiVortes fit.
+#' @return One or two lines of text, each ending in a newline.
 #' @noRd
-tessellation_count <- function(fit) {
-  m <- fit$control$mean_params$tessellations
-  if (is.null(m)) 200L else as.integer(m)
+fast_line <- function(tessellations, fast) {
+  line <- sprintf(
+    "%d tessellations, %.4g sweeps of budget spent in %d rounds (%.2f s)\n",
+    tessellations, fast$planned_sweeps, fast$rounds, fast$seconds
+  )
+  if (fast$zeroed > 0) {
+    line <- paste0(line, sprintf(
+      "%d tessellations left at zero: the budget ran out\n", fast$zeroed
+    ))
+  }
+  line
 }
 
+#' Summarise an XAddiVortes fit
+#'
+#' @param object An object of class `"xaddivortes"`.
+#' @param ... Ignored.
+#'
+#' @return An object of class `"summary.xaddivortes"`: a list of the call,
+#'   the model, the dimensions of the fit, the number of tessellations, the
+#'   `fast` element of the fit, the in-sample root mean squared error and
+#'   the column scores, highest first.
+#'
+#' @examplesIf core_experimental()
+#' set.seed(1)
+#' x <- matrix(runif(400), ncol = 2)
+#' y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
+#' summary(xaddivortes(x, y, params = xaddivortes_params(budget = 100),
+#'                     control = thiessen_control(tessellations = 20),
+#'                     seed = 1))
 #' @export
 summary.xaddivortes <- function(object, ...) {
-  scores <- sort(object$fast$column_scores, decreasing = TRUE)
   structure(
     list(
-      n = length(object$y), p = object$n_features,
-      tessellations = tessellation_count(object),
-      budget_used = object$fast$planned_sweeps, rounds = object$fast$rounds,
-      zeroed = object$fast$zeroed, sigma = object$fast$sigma,
-      in_sample_rmse = object$in_sample_rmse, column_scores = scores,
-      seconds = object$fast$seconds
+      call = object$call,
+      model = object$model,
+      nobs = nobs(object),
+      n_features = object$n_features,
+      tessellations = object$control$mean_params$tessellations,
+      fast = object$fast,
+      in_sample_rmse = object$in_sample_rmse,
+      column_scores = sort(object$fast$column_scores, decreasing = TRUE)
     ),
     class = "summary.xaddivortes"
   )
 }
 
+#' @param x An object of class `"summary.xaddivortes"`.
+#' @return `x`, invisibly.
+#' @rdname summary.xaddivortes
 #' @export
 print.summary.xaddivortes <- function(x, ...) {
   cat("XAddiVortes fast fit (experimental)\n")
-  cat(sprintf("  n = %d, %d design columns, %d tessellations\n", x$n, x$p,
-              x$tessellations))
-  cat(sprintf("  budget used %.2f sweeps, %d rounds, %d zeroed, %.2f s\n",
-              x$budget_used, x$rounds, x$zeroed, x$seconds))
-  cat(sprintf("  in-sample residual standard deviation %s\n",
-              format(signif(x$sigma, 4))))
-  cat("  column scores (mutual information with the response):\n")
-  shown <- utils::head(x$column_scores, 10L)
-  print(round(shown, 4))
+  cat("Call: ", paste(deparse(x$call), collapse = " "), "\n", sep = "")
+  cat(sprintf(
+    "%s model, %d observations, %d covariates\n",
+    x$model, x$nobs, x$n_features
+  ))
+  cat(fast_line(x$tessellations, x$fast))
+  cat(sprintf("\nIn-sample RMSE %.4g\n", x$in_sample_rmse))
+  cat("\nColumn scores, mutual information with the response:\n")
+  shown <- seq_len(min(length(x$column_scores), 10L))
+  print(round(x$column_scores[shown], 4))
   if (length(x$column_scores) > 10L) {
-    cat(sprintf("  ... and %d more\n", length(x$column_scores) - 10L))
+    cat(sprintf("... and %d more\n", length(x$column_scores) - 10L))
   }
   invisible(x)
+}
+
+#' @exportS3Method rstantools::log_lik
+log_lik.xaddivortes <- function(object, ...) {
+  thiessen_abort(paste(
+    "An XAddiVortes fit holds one point fit, not posterior draws, so it",
+    "has no pointwise log-likelihood; fit with `thiessen()` for one."
+  ))
 }

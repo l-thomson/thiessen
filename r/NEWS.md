@@ -2,11 +2,13 @@
 
 * (experimental) `xaddivortes()`, the XAddiVortes fast fit, with
   `xaddivortes_params()` and `xaddivortes_defaults()`, `predict()` with
-  prediction intervals from the fit's sigma, and `thiessen(start = "fast")`
-  starting each chain from its own fast fit. The fit's sigma is its noise
-  draw, so every method of the fit uses one value. It is an in-sample
-  estimate, so the intervals can undercover; the vignette shows a
-  split-conformal alternative.
+  prediction intervals from the fit's sigma, and `print()` and `summary()`
+  methods. `thiessen(start = "fast")` starts each chain from its own fast
+  fit, with the settings in its `fast` argument. The fit's sigma is its
+  noise draw, so every method of the fit uses one value. It is an
+  in-sample estimate, so the intervals can undercover; the vignette shows
+  a split-conformal alternative. The fit holds one draw, so `log_lik()`
+  refuses it. Both need the Gaussian family.
 
 * (experimental) `thiessen(init = , init_draw = )`: each chain starts from
   a kept draw of a previous fit of the same model to the same data, by

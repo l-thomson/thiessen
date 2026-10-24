@@ -87,40 +87,51 @@ the burn-in.
 The noise estimate \code{sigma(fit)} is the in-sample residual root mean
 square. It understates the noise when the fit overfits, most on small
 data, so the intervals of \code{predict(fit, interval = "prediction")} can
-cover far less than their level: on the 300-row example of the vignette
-they cover 0.28 at a nominal 0.95. Split-conformal intervals around the fit (Lei and others,
-2018) are calibrated without that assumption: fit on one part of the
-data and widen the prediction by the \code{level} quantile of the absolute
-residuals on the other part.
+cover far less than their level;
+\code{vignette("fast-fits", package = "thiessen")} measures the coverage on
+held-out data. Split-conformal intervals around the fit (Lei and
+others, 2018) are calibrated without that assumption: fit on one part
+of the data and widen the prediction by the \code{level} quantile of the
+absolute residuals on the other part.
+
+The fit holds one draw, so it has no posterior to compare models by:
+\code{log_lik()}, and with it \code{loo::loo()} and \code{loo::waic()}, refuse it with
+an error of class \code{thiessen_error}.
 
 The design and response are handled as by \code{\link[=thiessen]{thiessen()}}: a matrix, a data
 frame or a formula, factors encoded as treatment-contrast indicators.
-The response must be numeric.
+The model is the Gaussian one, so the response must be numeric; a
+response or a \code{control} that selects another family is an error.
 
 XAddiVortes is experimental: it needs a build with the core's
 \code{experimental} feature (\code{\link[=core_experimental]{core_experimental()}}) and errors with the
 condition class \code{thiessen_requires_feature} otherwise.
 }
 \examples{
-if (core_experimental()) {
-  set.seed(1)
-  x <- matrix(runif(400), ncol = 2)
-  y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
-  fit <- xaddivortes(x, y, params = xaddivortes_params(budget = 10),
-                     seed = 1)
-  fit
-  head(predict(fit, x, interval = "prediction"))
-}
+\dontshow{if (core_experimental()) withAutoprint(\{ # examplesIf}
+set.seed(1)
+x <- matrix(runif(400), ncol = 2)
+y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
+control <- thiessen_control(tessellations = 20)
+fit <- xaddivortes(x, y, params = xaddivortes_params(budget = 100),
+                   control = control, seed = 1)
+fit
+
+frame <- data.frame(y = y, a = x[, 1], b = x[, 2])
+xaddivortes(y ~ a + b, frame, control = control, seed = 1)
+\dontshow{\}) # examplesIf}
 }
 \references{
 Lei, J., G'Sell, M., Rinaldo, A., Tibshirani, R. J. and Wasserman, L.
-(2018). Distribution-free predictive inference for regression. Journal
-of the American Statistical Association 113(523), 1094-1111.
+(2018). Distribution-free predictive inference for regression. \emph{Journal
+of the American Statistical Association} 113(523), 1094-1111.
+\doi{10.1080/01621459.2017.1307116}
 
 Stone, A. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive
-Voronoi tessellations. Journal of Computational and Graphical Statistics
-34(3), 859-871.
+Voronoi tessellations. \emph{Journal of Computational and Graphical
+Statistics} 34(3), 859-871. \doi{10.1080/10618600.2024.2414104}
 }
 \seealso{
-\code{\link[=xaddivortes_params]{xaddivortes_params()}}, \code{\link[=thiessen]{thiessen()}}, \code{\link[=predict.xaddivortes]{predict.xaddivortes()}}
+\code{\link[=xaddivortes_params]{xaddivortes_params()}}, \code{\link[=thiessen]{thiessen()}}, \code{\link[=predict.xaddivortes]{predict.xaddivortes()}},
+\code{\link[=summary.xaddivortes]{summary.xaddivortes()}}
 }
