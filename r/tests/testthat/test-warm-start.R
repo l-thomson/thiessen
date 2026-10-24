@@ -70,7 +70,20 @@ test_that("the previous fit must be of this model and data", {
   expect_error(
     thiessen(data$x, data$y + 1, small_control(), seed = 2, chains = 1,
              init = previous),
-    "different data"
+    "differ from this data",
+    class = "thiessen_error"
+  )
+})
+
+test_that("reusing the seed of init warns", {
+  skip_if_not(core_experimental())
+  data <- small_fixture()
+  previous <- thiessen(data$x, data$y, small_control(), seed = 1, chains = 1)
+  expect_warning(
+    thiessen(data$x, data$y, small_control(), seed = 1, chains = 1,
+             init = previous),
+    "replay its random numbers",
+    class = "thiessen_warning"
   )
 })
 

@@ -33,7 +33,8 @@ use crate::tessellation::Tessellation;
 /// Laplace scale-mixture weights are not part of it: the first sweep
 /// after a restore redraws them from their full conditionals before
 /// anything conditions on them, a valid Gibbs step. Neither is the
-/// generator's state, which comes from the seed.
+/// generator's state, which comes from the seed. Experimental
+/// (`docs/experimental.md`), the serialised form included.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EnsembleState {
     tessellations: Vec<Tessellation>,
@@ -140,7 +141,10 @@ impl EnsembleState {
     }
 }
 
-/// Where each chain of a multi-chain fit starts.
+/// Where each chain of a multi-chain fit starts. Experimental
+/// (`docs/experimental.md`): any start other than [`Init::Cold`] is
+/// `RequiresFeature` without the feature.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Init<'a> {
     /// The cold start: one single-cell tessellation per slot, every cell
@@ -148,24 +152,23 @@ pub enum Init<'a> {
     #[default]
     Cold,
     /// Kept draws of a previous fit of the same model to the same data.
-    /// Chain k (from 0) starts from draw `draw - k`, `draw` defaulting
-    /// to the last; when the fit holds fewer than `n_chains` draws up to
-    /// `draw`, every chain starts from `draw` and the fit records
+    /// With `draw` unset and as many chains as `fitted` holds, chain k
+    /// continues from the last draw of chain k of `fitted`. Otherwise
+    /// chain k (from 0) starts from pooled draw `draw - k`, `draw`
+    /// defaulting to the last, which is stochtree's rule; when the fit
+    /// holds fewer than `n_chains` draws up to `draw`, every chain starts
+    /// from `draw` and the fit records
     /// [`Warning::WarmStartDrawsReused`](crate::Warning::WarmStartDrawsReused).
-    /// This is stochtree's rule. Experimental: `RequiresFeature` without
-    /// the feature.
     From {
         /// The previous fit.
         fitted: &'a Fitted,
-        /// The 0-based pooled draw chain 0 starts from; `None` for the
-        /// last.
+        /// The 0-based pooled draw chain 0 starts from; `None` to
+        /// continue each chain, or for the last draw.
         draw: Option<usize>,
     },
     /// Chain k starts from kept draw `draws[k]` (0-based, pooled order)
     /// of a previous fit of the same model to the same data; `draws` has
-    /// one entry per chain. A binding continuing every chain of a fit
-    /// from its own last draw names them here. Experimental:
-    /// `RequiresFeature` without the feature.
+    /// one entry per chain.
     Draws {
         /// The previous fit.
         fitted: &'a Fitted,
@@ -175,19 +178,30 @@ pub enum Init<'a> {
 }
 
 /// The draw each of `n_chains` chains starts from under [`Init::From`],
-/// and whether every chain shares one draw, for a fit of `n_draws`
-/// draws.
+/// and whether every chain shares one draw, for a fit whose chains kept
+/// `chain_draws` draws each, in pooled order.
 #[cfg_attr(not(feature = "experimental"), allow(dead_code))]
 pub(crate) fn starting_draws(
-    n_draws: usize,
+    chain_draws: &[usize],
     n_chains: usize,
     draw: Option<usize>,
 ) -> crate::Result<(Vec<usize>, bool)> {
+    let n_draws: usize = chain_draws.iter().sum();
     if n_draws == 0 {
         return Err(crate::error::invalid(
             "init",
             "the previous fit has no draws",
         ));
+    }
+    if draw.is_none() && chain_draws.len() == n_chains {
+        let ends = chain_draws
+            .iter()
+            .scan(0, |end, &d| {
+                *end += d;
+                Some(*end - 1)
+            })
+            .collect();
+        return Ok((ends, false));
     }
     let first = draw.unwrap_or(n_draws - 1);
     if first >= n_draws {
@@ -207,30 +221,46 @@ mod tests {
     use super::*;
 
     #[test]
+    fn as_many_chains_continue_their_own() {
+        assert_eq!(
+            starting_draws(&[5, 5], 2, None).unwrap(),
+            (vec![4, 9], false)
+        );
+        assert_eq!(
+            starting_draws(&[3, 4, 2], 3, None).unwrap(),
+            (vec![2, 6, 8], false)
+        );
+    }
+
+    #[test]
     fn chains_count_back_from_the_starting_draw() {
         assert_eq!(
-            starting_draws(10, 4, None).unwrap(),
+            starting_draws(&[10], 4, None).unwrap(),
             (vec![9, 8, 7, 6], false)
         );
         assert_eq!(
-            starting_draws(10, 4, Some(5)).unwrap(),
+            starting_draws(&[5, 5], 4, Some(5)).unwrap(),
             (vec![5, 4, 3, 2], false)
         );
         assert_eq!(
-            starting_draws(10, 4, Some(3)).unwrap(),
-            (vec![3, 2, 1, 0], false)
+            starting_draws(&[5, 5], 2, Some(3)).unwrap(),
+            (vec![3, 2], false)
         );
     }
 
     #[test]
     fn too_few_draws_share_the_starting_draw() {
-        assert_eq!(starting_draws(10, 4, Some(2)).unwrap(), (vec![2; 4], true));
-        assert_eq!(starting_draws(1, 3, None).unwrap(), (vec![0; 3], true));
+        assert_eq!(
+            starting_draws(&[10], 4, Some(2)).unwrap(),
+            (vec![2; 4], true)
+        );
+        assert_eq!(starting_draws(&[1], 3, None).unwrap(), (vec![0; 3], true));
     }
 
     #[test]
     fn out_of_range_draws_are_refused() {
-        assert!(starting_draws(0, 1, None).is_err());
-        assert!(starting_draws(5, 1, Some(5)).is_err());
+        assert!(starting_draws(&[], 1, None).is_err());
+        assert!(starting_draws(&[0], 1, None).is_err());
+        assert!(starting_draws(&[5], 1, Some(5)).is_err());
     }
 }

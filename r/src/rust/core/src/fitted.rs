@@ -87,6 +87,7 @@ impl Posterior {
     }
 
     /// The state of kept draw `draw`.
+    #[cfg_attr(not(feature = "experimental"), allow(dead_code))]
     pub(crate) fn state(&self, draw: usize) -> crate::state::EnsembleState {
         crate::state::EnsembleState::new(
             self.tessellations[draw].clone(),
@@ -323,6 +324,10 @@ pub struct Fitted {
     in_sample_rmse: f64,
     /// Levels of each categorical column; empty for the other columns.
     categories: Vec<Vec<f64>>,
+    /// The draws each chain kept, in pooled order; empty for a save from
+    /// before fits kept the count per chain.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    chain_draws: Vec<usize>,
     /// The thread count of the predictions; an execution setting, not
     /// part of the model, so not persisted.
     #[serde(skip)]
@@ -337,6 +342,7 @@ impl PartialEq for Fitted {
             && self.warnings == other.warnings
             && self.in_sample_rmse == other.in_sample_rmse
             && self.categories == other.categories
+            && self.chain_draws == other.chain_draws
     }
 }
 
@@ -349,6 +355,8 @@ struct FittedParts {
     in_sample_rmse: f64,
     #[serde(default)]
     categories: Vec<Vec<f64>>,
+    #[serde(default)]
+    chain_draws: Vec<usize>,
 }
 
 impl TryFrom<FittedParts> for Fitted {
@@ -365,6 +373,7 @@ impl TryFrom<FittedParts> for Fitted {
             warnings,
             in_sample_rmse,
             categories,
+            chain_draws,
         } = parts;
         config.validate()?;
         let scaler = Scaler::try_from(scaler)?;
@@ -505,6 +514,11 @@ impl TryFrom<FittedParts> for Fitted {
         if !in_sample_rmse.is_finite() {
             return Err(bad("in-sample RMSE must be finite"));
         }
+        if !chain_draws.is_empty()
+            && (chain_draws.contains(&0) || chain_draws.iter().sum::<usize>() != n_draws)
+        {
+            return Err(bad("the chains' draw counts do not add up to the draws"));
+        }
         Ok(Self {
             config,
             scaler,
@@ -512,6 +526,7 @@ impl TryFrom<FittedParts> for Fitted {
             warnings,
             in_sample_rmse,
             categories,
+            chain_draws,
             threads: 1,
         })
     }
@@ -547,6 +562,7 @@ impl Fitted {
         in_sample_rmse: f64,
         categories: Vec<Vec<f64>>,
     ) -> Self {
+        let chain_draws = vec![posterior.n_draws()];
         Self {
             config,
             scaler,
@@ -554,6 +570,7 @@ impl Fitted {
             warnings,
             in_sample_rmse,
             categories,
+            chain_draws,
             threads: 1,
         }
     }
@@ -748,8 +765,14 @@ impl Fitted {
         }
         let mut posterior = Posterior::empty();
         let mut warnings: Vec<Warning> = Vec::new();
+        let mut chain_draws = Vec::new();
         for fit in fits {
             posterior.extend(&fit.posterior);
+            if fit.chain_draws.is_empty() {
+                chain_draws.push(fit.posterior.n_draws());
+            } else {
+                chain_draws.extend_from_slice(&fit.chain_draws);
+            }
             for warning in &fit.warnings {
                 if !warnings.contains(warning) {
                     warnings.push(*warning);
@@ -764,6 +787,7 @@ impl Fitted {
             0.0,
             first.categories.clone(),
         );
+        pooled.chain_draws = chain_draws;
         let mean = match mean {
             Some(mean) => {
                 data::validate_predict(x, pooled.scaler.n_cols())?;
@@ -1681,21 +1705,38 @@ impl Fitted {
 
     /// The chain state at kept draw `draw` (0-based, in pooled chain
     /// order), from which [`Sampler::start_from`](crate::Sampler::start_from)
-    /// continues a chain.
+    /// continues a chain. Experimental (`docs/experimental.md`).
     ///
     /// # Errors
     ///
+    /// `RequiresFeature` in a build without the feature;
     /// `InvalidHyperparameter` for `init_draw` at or beyond
     /// [`n_draws`](Self::n_draws).
+    #[cfg_attr(not(feature = "experimental"), allow(unused_variables))]
     pub fn state(&self, draw: usize) -> Result<crate::state::EnsembleState> {
-        let n = self.posterior.n_draws();
-        if draw >= n {
-            return Err(crate::error::invalid(
-                "init_draw",
-                format!("draw {draw} of a fit with {n} draws"),
-            ));
+        #[cfg(not(feature = "experimental"))]
+        return Err(Error::RequiresFeature {
+            item: "Fitted::state".into(),
+            feature: "experimental",
+        });
+        #[cfg(feature = "experimental")]
+        {
+            let n = self.posterior.n_draws();
+            if draw >= n {
+                return Err(crate::error::invalid(
+                    "init_draw",
+                    format!("draw {draw} of a fit with {n} draws"),
+                ));
+            }
+            Ok(self.posterior.state(draw))
         }
-        Ok(self.posterior.state(draw))
+    }
+
+    /// The draws each chain kept, in pooled order; empty for a save from
+    /// before fits kept the count per chain.
+    #[cfg_attr(not(feature = "experimental"), allow(dead_code))]
+    pub(crate) fn chain_draws(&self) -> &[usize] {
+        &self.chain_draws
     }
 
     /// The levels of each categorical column; empty for the other

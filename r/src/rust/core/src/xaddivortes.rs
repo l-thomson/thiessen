@@ -15,8 +15,9 @@
 //!
 //! 1. Column scores, from the response: each column's binned
 //!    mutual information with the response (equal-width column bins over
-//!    the column's training range, rank bins of the response, Miller-Madow
-//!    corrected) plus a floor; and for every pair among the
+//!    the column's training range, rank bins of the response with tied
+//!    values sharing a bin), less its expected value under independence,
+//!    plus a floor; and for every pair among the
 //!    [`pair_screen`](XAddiVortesParams::pair_screen) best columns its
 //!    interaction information plus a floor. Optionally
 //!    ([`rescore`](XAddiVortesParams::rescore)) they are scored again from
@@ -41,9 +42,11 @@
 //!    in the shrinkage is re-estimated from the residual after each round.
 //!
 //! The budget is in approximate sweep-equivalents of the exact sampler on
-//! the same data, through a deterministic cost model (not a clock), so a
-//! seed reproduces its fit. The cost model is conservative: measured fit
-//! times are typically below the time of that many exact sweeps.
+//! the same data, through a deterministic count of operations per row
+//! (not a clock), so a seed reproduces its fit. The count is an
+//! approximation: the time a sweep-equivalent takes varies with the data
+//! and the settings, and fixed costs such as copying the data are not
+//! counted, so they dominate small budgets.
 //!
 //! Experimental (`docs/experimental.md`): the types exist in every build,
 //! the fit only with the `experimental` feature.
@@ -62,6 +65,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::{invalid, Result};
 
 /// How a round ranks the tessellations it may replace.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Worth {
@@ -80,12 +84,14 @@ pub enum Worth {
 /// public regression benchmark datasets and synthetic designs; `budget`,
 /// `max_columns` and the ensemble size (the configuration's number of
 /// tessellations) are the settings most users change.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct XAddiVortesParams {
     /// The compute budget B, in approximate sweeps of the exact sampler on
     /// the same data (default 50). More budget means more replacement
-    /// rounds; the fit plans against [`PLANNING_MARGIN`] times B. Scoring
+    /// rounds; the fit plans against
+    /// [`PLANNING_MARGIN`](Self::PLANNING_MARGIN) times B. Scoring
     /// the columns is always done and costs about
     /// `(ln n + 2p + 3 S (S - 1) / 2) * 0.15 / m` sweeps for a pair screen
     /// of S, roughly 115 / m sweeps at the default S = 23. A budget that this
@@ -118,13 +124,14 @@ pub struct XAddiVortesParams {
     /// two-column tessellations (default 23). At least 2. The budget is
     /// charged for `pair_screen (pair_screen - 1) / 2` pairs whatever the
     /// column count, so with few columns a large value spends budget on
-    /// pairs that do not exist.
+    /// pairs that do not exist, and a value whose pairs cost more than the
+    /// budget leaves every tessellation at zero.
     pub pair_screen: usize,
     /// Equal-width bins of a column, over its training range, for its
     /// score (default 8). From 2 to 255.
     pub column_bins: usize,
-    /// Rank bins of the response for the scores (default 4). From 2 to
-    /// 255.
+    /// Rank bins of the response for the scores (default 4); tied values
+    /// share a bin. From 2 to 255.
     pub response_bins: usize,
     /// The floor added to every score, as a share of the mean score
     /// (default 0.02), so that every column and pair can be drawn. At
@@ -153,10 +160,6 @@ pub struct XAddiVortesParams {
     pub accept_if_better: bool,
 }
 
-/// The share of the budget the fit plans against: its cost model is
-/// calibrated, not exact, so it plans to finish early.
-pub const PLANNING_MARGIN: f64 = 0.8;
-
 impl Default for XAddiVortesParams {
     fn default() -> Self {
         Self {
@@ -182,11 +185,11 @@ impl Default for XAddiVortesParams {
 }
 
 macro_rules! setter {
-    ($(#[$doc:meta] $name:ident: $ty:ty),* $(,)?) => {
+    ($(#[$doc:meta] $setter:ident => $name:ident: $ty:ty),* $(,)?) => {
         $(
             #[$doc]
             #[must_use]
-            pub fn $name(mut self, value: $ty) -> Self {
+            pub fn $setter(mut self, value: $ty) -> Self {
                 self.$name = value;
                 self
             }
@@ -195,41 +198,45 @@ macro_rules! setter {
 }
 
 impl XAddiVortesParams {
+    /// The share of the budget the fit plans against: its count of
+    /// operations is approximate, so it plans to finish early.
+    pub const PLANNING_MARGIN: f64 = 0.8;
+
     setter! {
         /// Set [`budget`](Self::budget).
-        budget: f64,
+        with_budget => budget: f64,
         /// Set [`max_columns`](Self::max_columns).
-        max_columns: usize,
+        with_max_columns => max_columns: usize,
         /// Set [`centres`](Self::centres).
-        centres: usize,
+        with_centres => centres: usize,
         /// Set [`value_scale`](Self::value_scale).
-        value_scale: f64,
+        with_value_scale => value_scale: f64,
         /// Set [`main_effect_share`](Self::main_effect_share).
-        main_effect_share: f64,
+        with_main_effect_share => main_effect_share: f64,
         /// Set [`replace_share`](Self::replace_share).
-        replace_share: f64,
+        with_replace_share => replace_share: f64,
         /// Set [`max_rounds`](Self::max_rounds).
-        max_rounds: usize,
+        with_max_rounds => max_rounds: usize,
         /// Set [`pair_screen`](Self::pair_screen).
-        pair_screen: usize,
+        with_pair_screen => pair_screen: usize,
         /// Set [`column_bins`](Self::column_bins).
-        column_bins: usize,
+        with_column_bins => column_bins: usize,
         /// Set [`response_bins`](Self::response_bins).
-        response_bins: usize,
+        with_response_bins => response_bins: usize,
         /// Set [`score_floor`](Self::score_floor).
-        score_floor: f64,
+        with_score_floor => score_floor: f64,
         /// Set [`tries`](Self::tries).
-        tries: usize,
+        with_tries => tries: usize,
         /// Set [`rescore`](Self::rescore).
-        rescore: bool,
+        with_rescore => rescore: bool,
         /// Set [`refit_passes`](Self::refit_passes).
-        refit_passes: usize,
+        with_refit_passes => refit_passes: usize,
         /// Set [`update_sigma`](Self::update_sigma).
-        update_sigma: bool,
+        with_update_sigma => update_sigma: bool,
         /// Set [`worth`](Self::worth).
-        worth: Worth,
+        with_worth => worth: Worth,
         /// Set [`accept_if_better`](Self::accept_if_better).
-        accept_if_better: bool,
+        with_accept_if_better => accept_if_better: bool,
     }
 
     /// Check every setting is in its range.
@@ -298,6 +305,7 @@ impl XAddiVortesParams {
 
 /// What [`Sampler::xaddivortes`](crate::Sampler::xaddivortes) returns
 /// besides the new chain state.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FastFit {
     /// The root mean square of the training residual of the fit, on the
@@ -308,14 +316,15 @@ pub struct FastFit {
     pub sigma: f64,
     /// Replacement rounds run.
     pub rounds: usize,
-    /// The work the fit planned, in sweeps (its cost model).
+    /// The work the fit charged, in sweeps (its count of operations).
     pub planned_sweeps: f64,
-    /// The final score of each column (its floored mutual information with
-    /// the response, or with the residual under
-    /// [`rescore`](XAddiVortesParams::rescore)).
+    /// The final score of each column: its mutual information with the
+    /// response (or with the residual under
+    /// [`rescore`](XAddiVortesParams::rescore)) less its expected value
+    /// under independence, floored.
     pub column_scores: Vec<f64>,
     /// Tessellations left at zero because the budget ran out while
-    /// building.
+    /// building, and not replaced by a later round.
     pub zeroed: usize,
     /// The root mean square of the training residual after the build and
     /// after each round, on the response's own scale, in the form of
@@ -422,7 +431,7 @@ pub(crate) use algorithm::{fit, Inputs};
 
 #[cfg(feature = "experimental")]
 mod algorithm {
-    use super::{Worth, XAddiVortesParams, PLANNING_MARGIN};
+    use super::{Worth, XAddiVortesParams};
     use crate::data::Data;
     use crate::geometry::Geometry;
     use crate::rng::{uniform, uniform_index, Rng};
@@ -459,18 +468,21 @@ mod algorithm {
         pub train_rms: Vec<f64>,
     }
 
-    /// Cost of one sweep per row and tessellation, in cost units.
+    // The count's unit is one distance term (one centre on one column) for
+    // one row. Every fit at a given budget depends on these constants.
+
+    /// One sweep of the exact sampler, per row and tessellation.
     const SWEEP_OPS: f64 = 10.0;
-    /// Fixed cost per row of one pass over a tessellation's cells.
+    /// The fixed part of one pass over the rows, per row.
     const SCAN_OVERHEAD: f64 = 1.5;
-    /// Building a tessellation (assignment and values) costs this many
+    /// Building a tessellation (assignment, statistics and values), in
     /// plain passes on top of its centre scan.
     const BUILD_PASSES: f64 = 20.0;
-    /// Scoring the columns costs this many plain passes per pair screened,
-    /// on top of ln n + 2p.
+    /// Scoring one screened pair, in plain passes; the columns cost
+    /// `ln n + 2p` plain passes besides.
     const SCORE_PASSES_PER_PAIR: f64 = 3.0;
 
-    /// The deterministic cost model: one sweep of the exact sampler costs
+    /// The deterministic count: one sweep of the exact sampler costs
     /// `SWEEP_OPS` per row and tessellation; a pass over a tessellation
     /// with `cells` centres on `dims` columns costs `cells * dims +
     /// SCAN_OVERHEAD` per row.
@@ -488,7 +500,7 @@ mod algorithm {
             Self {
                 n,
                 sweep,
-                cap: (PLANNING_MARGIN * budget) * sweep,
+                cap: (XAddiVortesParams::PLANNING_MARGIN * budget) * sweep,
                 used: 0.0,
             }
         }
@@ -548,47 +560,54 @@ mod algorithm {
         out
     }
 
-    /// Rank bins of `r`: rows sorted by value (ties in row order), then
-    /// `rank * rb / n`.
+    /// Rank bins of `r`: rows sorted by value, then `rank * rb / n`, every
+    /// run of tied values taking the bin of its lowest rank, so the bins do
+    /// not depend on the row order.
     fn rank_bins(r: &[f64], rb: usize) -> Vec<u8> {
         let n = r.len();
         let mut order: Vec<usize> = (0..n).collect();
         order.sort_by(|&a, &b| r[a].total_cmp(&r[b]));
         let mut out = vec![0u8; n];
+        let mut bin = 0;
         for (k, &i) in order.iter().enumerate() {
-            out[i] = ((k * rb / n).min(rb - 1)) as u8;
+            if k == 0 || r[i].total_cmp(&r[order[k - 1]]).is_ne() {
+                bin = (k * rb / n).min(rb - 1);
+            }
+            out[i] = bin as u8;
         }
         out
     }
 
-    /// Mutual information of a binning (`nb` bins) with the rank bins
-    /// `rbin` (`rb` bins), with the Miller-Madow correction for the
-    /// nonempty column bins.
+    /// The plug-in mutual information of a binning (`nb` bins) with the
+    /// rank bins `rbin` (`rb` bins), less its expected value under
+    /// independence, `(kx - 1)(ky - 1) / 2n` over the `kx` and `ky`
+    /// occupied bins: `2n` times the plug-in estimate is the G statistic,
+    /// asymptotically chi-squared with that many degrees of freedom when
+    /// the binnings are independent.
     fn mutual_information(bins: impl Fn(usize) -> usize, nb: usize, rbin: &[u8], rb: usize) -> f64 {
         let n = rbin.len();
         let nf = n as f64;
         let mut joint = vec![0.0; nb * rb];
         let mut px = vec![0.0; nb];
+        let mut pr = vec![0.0; rb];
         for (i, &r) in rbin.iter().enumerate() {
             let b = bins(i);
             joint[b * rb + r as usize] += 1.0;
             px[b] += 1.0;
+            pr[r as usize] += 1.0;
         }
-        let pr = nf / rb as f64;
         let mut v = 0.0;
-        let mut used = 0usize;
         for b in 0..nb {
             for r in 0..rb {
                 let c = joint[b * rb + r];
                 if c > 0.0 {
-                    v += c / nf * (c * nf / (px[b] * pr)).ln();
+                    v += c / nf * (c * nf / (px[b] * pr[r])).ln();
                 }
             }
-            if px[b] > 0.0 {
-                used += 1;
-            }
         }
-        v - (used.saturating_sub(1) * (rb - 1)) as f64 / (2.0 * nf)
+        let occupied = |counts: &[f64]| counts.iter().filter(|&&c| c > 0.0).count();
+        let (kx, ky) = (occupied(&px), occupied(&pr));
+        v - (kx.saturating_sub(1) * ky.saturating_sub(1)) as f64 / (2.0 * nf)
     }
 
     fn scores(bins: &[Vec<u8>], r: &[f64], s: &XAddiVortesParams) -> Scores {
@@ -626,8 +645,8 @@ mod algorithm {
         Scores { single, pairs }
     }
 
-    /// An index drawn in proportion to nonnegative `weights` (the last on
-    /// rounding overflow).
+    /// An index drawn in proportion to nonnegative `weights`, at least one
+    /// positive (the last positive one on rounding overflow).
     fn draw_weighted(weights: impl Iterator<Item = f64> + Clone, rng: &mut Rng) -> usize {
         let total: f64 = weights.clone().sum();
         let mut u = uniform(rng) * total;
@@ -637,7 +656,9 @@ mod algorithm {
                 return k;
             }
             u -= w;
-            last = k;
+            if w > 0.0 {
+                last = k;
+            }
         }
         last
     }
@@ -822,9 +843,10 @@ mod algorithm {
         let mut cost = Cost::new(n, m, s.budget);
         let bins = column_bins(x, s.column_bins);
         let mut sc = scores(&bins, inp.y, s);
-        let pairs_screened = s.pair_screen * (s.pair_screen - 1) / 2;
+        let screen = s.pair_screen as f64;
+        let pairs_screened = screen * (screen - 1.0) / 2.0;
         let score_passes =
-            (n as f64).ln() + 2.0 * p as f64 + SCORE_PASSES_PER_PAIR * pairs_screened as f64;
+            (n as f64).ln() + 2.0 * p as f64 + SCORE_PASSES_PER_PAIR * pairs_screened;
         cost.charge_plain(score_passes);
 
         let mut sigma_sq = inp.sigma_sq;
@@ -839,11 +861,13 @@ mod algorithm {
         let mut cells = CellTable::new(m, n);
         let mut ws = Workspace::default();
         let mut gains: Vec<f64> = Vec::with_capacity(m);
-        let mut zeroed_slots = 0;
+        // A slot the build never reaches stays at zero, is not refitted, and
+        // is the first a round replaces (its worth is zero).
+        let mut built = vec![true; m];
         for j in 0..m {
             let d = if j < mains { 1 } else { s.max_columns }.min(p);
             if cost.sweeps_left() <= build {
-                zeroed_slots = m - j;
+                built[j..].iter_mut().for_each(|b| *b = false);
                 ts.extend(inp.current[j..].iter().map(zeroed));
                 gains.extend((j..m).map(|_| 0.0));
                 break;
@@ -864,9 +888,12 @@ mod algorithm {
         loop {
             let pass_cost: f64 = s.refit_passes as f64
                 * ts.iter()
-                    .map(|t| cost.pass_sweeps(t.mus.len() as f64, 0.0))
+                    .zip(&built)
+                    .filter(|(_, &b)| b)
+                    .map(|(t, _)| cost.pass_sweeps(t.mus.len() as f64, 0.0))
                     .sum::<f64>();
-            let mut round_cost = (replace * s.tries) as f64 * build + pass_cost;
+            let rank_cost = cost.pass_sweeps(1.0, 0.0);
+            let mut round_cost = (replace * s.tries) as f64 * build + pass_cost + rank_cost;
             if s.accept_if_better {
                 round_cost +=
                     2.0 * (replace + s.refit_passes * m) as f64 * cost.pass_sweeps(1.0, 0.0);
@@ -918,9 +945,10 @@ mod algorithm {
                 ts[j] = t;
                 cells.set(j, &c);
                 gains[j] = gain;
+                built[j] = true;
             }
             for _ in 0..s.refit_passes {
-                for j in 0..m {
+                for j in (0..m).filter(|&j| built[j]) {
                     add(&mut resid, &ts[j], cells.get(j));
                     cost.charge_pass(ts[j].mus.len(), 0);
                     let old = s.accept_if_better.then(|| (ts[j].mus.clone(), gains[j]));
@@ -954,7 +982,7 @@ mod algorithm {
             rounds,
             planned_sweeps: cost.sweeps_used(),
             column_scores: sc.single,
-            zeroed: zeroed_slots,
+            zeroed: built.iter().filter(|&&b| !b).count(),
             train_rms,
         }
     }
@@ -964,10 +992,32 @@ mod algorithm {
         use super::*;
 
         #[test]
-        fn rank_bins_follow_rank_with_ties_in_row_order() {
+        fn rank_bins_follow_rank_and_tied_values_share_a_bin() {
             assert_eq!(rank_bins(&[3.0, 1.0, 2.0, 0.0], 4), vec![3, 1, 2, 0]);
-            // Ties: rows 0 and 1 share a value; row order breaks the tie.
-            assert_eq!(rank_bins(&[1.0, 1.0, 0.0, 2.0], 2), vec![0, 1, 0, 1]);
+            assert_eq!(rank_bins(&[1.0, 1.0, 0.0, 2.0], 2), vec![0, 0, 0, 1]);
+            assert_eq!(rank_bins(&[0.0, 1.0, 0.0, 1.0], 4), vec![0, 2, 0, 2]);
+        }
+
+        #[test]
+        fn scores_do_not_depend_on_the_row_order() {
+            let n = 200;
+            let rows: Vec<[f64; 2]> = (0..n)
+                .map(|i| [(i % 17) as f64, ((i * 7919) % 101) as f64])
+                .collect();
+            let y: Vec<f64> = rows.iter().map(|r| f64::from(r[0] > 8.0)).collect();
+            let order: Vec<usize> = (0..n).map(|i| (i * 37) % n).collect();
+            let permuted_rows: Vec<[f64; 2]> = order.iter().map(|&i| rows[i]).collect();
+            let permuted_y: Vec<f64> = order.iter().map(|&i| y[i]).collect();
+            let s = XAddiVortesParams::default();
+            let a = scores(&column_bins(&Data::from_rows(&rows).unwrap(), 8), &y, &s);
+            let b = scores(
+                &column_bins(&Data::from_rows(&permuted_rows).unwrap(), 8),
+                &permuted_y,
+                &s,
+            );
+            for (u, v) in a.single.iter().zip(&b.single) {
+                assert!((u - v).abs() < 1e-12, "{u} vs {v}");
+            }
         }
 
         #[test]
@@ -994,6 +1044,16 @@ mod algorithm {
             assert!((mi - want).abs() < 1e-12, "{mi} vs {want}");
             let constant = mutual_information(|_| 0, 4, &rbin, 4);
             assert!(constant.abs() < 1e-12);
+        }
+
+        #[test]
+        fn the_correction_counts_occupied_bins_only() {
+            let n = 400;
+            // A binary response fills 2 of the 4 rank bins.
+            let rbin: Vec<u8> = (0..n).map(|i| if i < n / 2 { 0 } else { 2 }).collect();
+            let mi = mutual_information(|i| usize::from(rbin[i] > 0), 4, &rbin, 4);
+            let want = 2f64.ln() - 1.0 / (2.0 * n as f64);
+            assert!((mi - want).abs() < 1e-12, "{mi} vs {want}");
         }
 
         #[test]
@@ -1044,7 +1104,7 @@ mod algorithm {
             let sc = scores(
                 &column_bins(&x, 8),
                 &y,
-                &XAddiVortesParams::default().pair_screen(3),
+                &XAddiVortesParams::default().with_pair_screen(3),
             );
             assert_eq!(sc.pairs.len(), 3);
         }

@@ -463,16 +463,14 @@ fn core_samplers_advance(
     Ok(())
 }
 
-/// Start every sampler of a fit from draws of `previous`
-/// ([`thiessen::Sampler::start_all`]): by stochtree's rule counting back
-/// from the 0-based `draw` (`NULL` for the last), or at the 0-based draw
-/// `draws` names for each chain.
+/// Start every sampler of a fit from draws of `previous` by the core's
+/// rule ([`thiessen::Init::From`]), counting back from the 0-based
+/// `draw` when it is not `NULL`.
 #[extendr]
 fn core_samplers_start(
     samplers: List,
     previous: ExternalPtr<FittedHandle>,
     draw: Robj,
-    draws: Robj,
 ) -> Result<()> {
     let handles = samplers
         .values()
@@ -486,30 +484,14 @@ fn core_samplers_start(
         .iter_mut()
         .map(|guard| guard.as_mut().ok_or_else(finished))
         .collect::<Result<Vec<_>>>()?;
-    let index = |v: f64| v.max(0.0) as usize;
-    let named: Option<Vec<usize>> = if draws.is_null() {
+    let draw = if draw.is_null() {
         None
     } else {
-        Some(
-            Vec::<f64>::try_from(draws)?
-                .into_iter()
-                .map(index)
-                .collect(),
-        )
+        Some(f64::try_from(draw)?.max(0.0) as usize)
     };
-    let init = match &named {
-        Some(draws) => thiessen::Init::Draws {
-            fitted: &previous.inner,
-            draws,
-        },
-        None => thiessen::Init::From {
-            fitted: &previous.inner,
-            draw: if draw.is_null() {
-                None
-            } else {
-                Some(index(f64::try_from(draw)?))
-            },
-        },
+    let init = thiessen::Init::From {
+        fitted: &previous.inner,
+        draw,
     };
     thiessen::Sampler::start_all(&mut live, init).map_err(core_error)
 }
