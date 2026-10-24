@@ -6,7 +6,7 @@ from typing import Any, Union
 
 import numpy as np
 
-__all__ = ["SeedLike", "_resolve_seed"]
+__all__ = ["SeedLike", "_resolve_seed", "_spawn_seed"]
 
 SeedLike = Union[
     int, "np.integer[Any]", "np.random.Generator", "np.random.RandomState", None
@@ -62,3 +62,14 @@ def _resolve_seed(random_state: SeedLike) -> int:
         "random_state must be an int, a numpy.random.Generator, a "
         f"numpy.random.RandomState or None, got {type(random_state).__name__}"
     )
+
+
+def _spawn_seed(seed: int, key: int) -> int:
+    """Return the seed of the independent stream `key` derived from `seed`.
+
+    The derivation is `numpy.random.SeedSequence` spawning: the same pair
+    gives the same seed, and distinct keys give streams that do not
+    overlap in practice.
+    """
+    words = np.random.SeedSequence(seed, spawn_key=(key,)).generate_state(2, np.uint32)
+    return (int(words[0]) << 32) | int(words[1])

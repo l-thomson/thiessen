@@ -13,9 +13,9 @@ fn warm_starts_require_the_feature() {
     let (config, x, y) = common::fixture();
     let previous = thiessen::fit(&config, &x, &y, SEED).unwrap();
     let mut s = Sampler::new(&config, &x, &y, SEED).unwrap();
-    let state = s.state();
     let gated = |r: thiessen::Result<()>| matches!(r, Err(thiessen::Error::RequiresFeature { .. }));
-    assert!(gated(s.restore(&state)));
+    assert!(gated(s.state().map(drop)));
+    assert!(gated(previous.state(0).map(drop)));
     assert!(gated(s.start_from(&previous, 0)));
     let init = thiessen::Init::From {
         fitted: &previous,
@@ -224,11 +224,11 @@ mod experimental {
     fn a_restored_state_is_that_state() {
         for case in cases() {
             let source = stepped(&case, SEED, 15);
-            let state = source.state();
+            let state = source.state().unwrap();
             let mut s = case.sampler(SEED + 1);
             s.restore(&state)
                 .unwrap_or_else(|e| panic!("{}: {e}", case.name));
-            assert_eq!(s.state(), state, "{}", case.name);
+            assert_eq!(s.state().unwrap(), state, "{}", case.name);
             let (a, b) = (source.fitted_values(), s.fitted_values());
             let scale = a.iter().fold(1.0_f64, |m, v| m.max(v.abs()));
             let gap = a
@@ -259,7 +259,7 @@ mod experimental {
         for case in cases() {
             let mut a = stepped(&case, SEED, 30);
             let mut b = a.clone();
-            b.restore(&a.state()).unwrap();
+            b.restore(&a.state().unwrap()).unwrap();
             for _ in 0..10 {
                 a.step();
                 b.step();
@@ -287,7 +287,7 @@ mod experimental {
     #[test]
     fn states_round_trip_through_json() {
         for case in cases() {
-            let state = stepped(&case, SEED, 10).state();
+            let state = stepped(&case, SEED, 10).state().unwrap();
             let json = serde_json::to_string(&state).unwrap();
             let back: EnsembleState = serde_json::from_str(&json).unwrap();
             assert_eq!(back, state, "{}", case.name);
@@ -302,7 +302,7 @@ mod experimental {
             let mut states = Vec::new();
             for _ in 0..3 {
                 s.step();
-                states.push(s.state());
+                states.push(s.state().unwrap());
                 s.keep();
             }
             let fitted = s.finish().unwrap();
@@ -328,6 +328,52 @@ mod experimental {
         }
     }
 
+    /// With as many chains as the previous fit, each continues its own.
+    #[test]
+    fn each_chain_continues_its_own() {
+        for case in cases() {
+            let previous = case.fit(SEED, 2, Init::Cold);
+            let per_chain = previous.n_draws() / 2;
+            let draws = [per_chain - 1, 2 * per_chain - 1];
+            let continued = case.fit(
+                SEED + 1,
+                2,
+                Init::From {
+                    fitted: &previous,
+                    draw: None,
+                },
+            );
+            let named = case.fit(
+                SEED + 1,
+                2,
+                Init::Draws {
+                    fitted: &previous,
+                    draws: &draws,
+                },
+            );
+            assert_eq!(continued, named, "{}", case.name);
+        }
+    }
+
+    /// A warm-started fit does not depend on the thread count.
+    #[test]
+    fn warm_started_fits_ignore_the_thread_count() {
+        let case = &cases()[0];
+        let Response::Plain(y) = &case.response else {
+            unreachable!()
+        };
+        let previous = case.fit(SEED, 3, Init::Cold);
+        let init = Init::From {
+            fitted: &previous,
+            draw: None,
+        };
+        let one =
+            thiessen::fit_chains_with_init(&case.config, &case.x, y, SEED + 2, 3, 1, init).unwrap();
+        let three =
+            thiessen::fit_chains_with_init(&case.config, &case.x, y, SEED + 2, 3, 3, init).unwrap();
+        assert_eq!(one, three);
+    }
+
     /// Chain k starts from draw `draw - k` (stochtree's rule).
     #[test]
     fn chains_count_back_from_the_starting_draw() {
@@ -336,7 +382,7 @@ mod experimental {
         for (k, d) in [9, 8, 7].into_iter().enumerate() {
             let mut s = case.sampler(thiessen::chain_seed(SEED, k));
             s.start_from(&previous, d).unwrap();
-            assert_eq!(s.state(), previous.state(d).unwrap());
+            assert_eq!(s.state().unwrap(), previous.state(d).unwrap());
         }
         let quiet = case.fit(
             SEED,
@@ -454,7 +500,7 @@ mod experimental {
     #[test]
     fn a_malformed_state_is_refused_without_side_effects() {
         let case = &cases()[0];
-        let good = stepped(case, SEED, 10).state();
+        let good = stepped(case, SEED, 10).state().unwrap();
         let json = serde_json::to_value(&good).unwrap();
         let edit = |f: &dyn Fn(&mut serde_json::Value)| -> EnsembleState {
             let mut v = json.clone();
@@ -481,13 +527,13 @@ mod experimental {
             }),
         ];
         let mut s = case.sampler(SEED + 2);
-        let before = s.state();
+        let before = s.state().unwrap();
         for state in &bad {
             assert!(matches!(
                 s.restore(state),
                 Err(thiessen::Error::IncompatibleState { .. })
             ));
-            assert_eq!(s.state(), before);
+            assert_eq!(s.state().unwrap(), before);
         }
     }
 }

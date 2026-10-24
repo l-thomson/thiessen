@@ -136,7 +136,9 @@
 #'   the last draw of chain k of `init`. Otherwise chain k (from 1) starts
 #'   from pooled draw `init_draw - k + 1`, `init_draw` defaulting to the
 #'   last; with fewer draws than chains up to it, every chain starts from
-#'   it and the fit warns. This is the warm-start rule of stochtree. A
+#'   it and the fit warns. This is the warm-start rule of stochtree. Pass
+#'   a `seed` other than the one `init` was fitted with: the same seed
+#'   replays the random numbers of its chains, and the fit warns. A
 #'   clean R-hat across
 #'   chains started from one previous fit is a check within that run, not
 #'   across dispersed starts (Vehtari and others, 2021). Experimental:
@@ -288,7 +290,7 @@ new_fit <- function(design, response, control, seed, chains, threads, call,
   chains <- resolve_chains(chains, call = call_env)
   threads <- resolve_threads(threads, call = call_env)
   resolved <- resolve_seed(seed, call = call_env)
-  start <- resolve_init(init, init_draw, chains, call = call_env)
+  start <- resolve_init(init, init_draw, resolved, call = call_env)
   # The progressor's life must span the whole fit, so the count never ends
   # it: `auto_finish` would close the handler on the last step, and the
   # frame this progressor belongs to exits when the fit is complete.
@@ -356,7 +358,7 @@ run_schedule <- function(control, design, response, seed, chains, threads,
     new_sampler_handle(config, design, response, seed, chain)
   })
   if (!is.null(start)) {
-    core_samplers_start(samplers, start$state, start$draw, start$draws)
+    core_samplers_start(samplers, start$state, start$draw)
   }
   completed <- 0L
   while (completed < schedule$burn_in) {
