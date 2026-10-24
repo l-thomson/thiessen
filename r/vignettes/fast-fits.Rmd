@@ -1,8 +1,8 @@
 ---
-title: "Fast fits and warm starts"
+title: "Fast fits and fast starts"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Fast fits and warm starts}
+  %\VignetteIndexEntry{Fast fits and fast starts}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -78,18 +78,19 @@ width <- sort(scores)[k]
 mean(abs(y_test - predict(proper, test$x)) <= width)
 ```
 
-## Warm starts
+## Fast starts
 
 `thiessen(start = "fast")` starts every chain from its own fast fit, after
-which the configured burn-in and draws run:
+which the configured burn-in and draws run. A fast start and a warm start
+from a previous fit (`init`) cannot be combined.
 
 ```{r}
 control <- thiessen_control(
   general_params = general_params(burn_in = 50, draws = 100)
 )
-warm <- thiessen(train$x, train$y, control, seed = 1, chains = 2,
-                 start = "fast")
-sqrt(mean((predict(warm, test$x) - test$f)^2))
+started <- thiessen(train$x, train$y, control, seed = 1, chains = 2,
+                    start = "fast")
+sqrt(mean((predict(started, test$x) - test$f)^2))
 ```
 
 The schedule above is short so that the page builds quickly, and the fit
