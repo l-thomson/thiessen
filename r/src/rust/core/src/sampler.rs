@@ -476,6 +476,16 @@ impl Sampler {
             #[cfg(feature = "experimental")]
             Extra::None,
         )
+        .map(Self::assigned)
+    }
+
+    /// The sampler with its assignment caches built.
+    fn assigned(mut self) -> Self {
+        self.mean.assign(&self.x);
+        if let Some(variance) = &mut self.variance {
+            variance.assign(&self.x);
+        }
+        self
     }
 
     /// A sampler for the AFT model over raw data: `times` holds n
@@ -504,7 +514,7 @@ impl Sampler {
         {
             require_aft(config)?;
             let y = log_times(times, events)?;
-            Self::build(config, x, &y, seed, None, Extra::Events(events))
+            Self::build(config, x, &y, seed, None, Extra::Events(events)).map(Self::assigned)
         }
     }
 
@@ -536,6 +546,7 @@ impl Sampler {
             require_interval_censored(config)?;
             let y = interval_working(lower, upper)?;
             Self::build(config, x, &y, seed, None, Extra::Bounds { lower, upper })
+                .map(Self::assigned)
         }
     }
 
@@ -573,6 +584,7 @@ impl Sampler {
             Some(lambda),
             Extra::Bounds { lower, upper },
         )
+        .map(Self::assigned)
     }
 
     /// The AFT model under the pinned prior, as
@@ -602,7 +614,7 @@ impl Sampler {
         }
         require_aft(config)?;
         let y = log_times(times, events)?;
-        Self::build(config, x, &y, seed, Some(lambda), Extra::Events(events))
+        Self::build(config, x, &y, seed, Some(lambda), Extra::Events(events)).map(Self::assigned)
     }
 
     /// A sampler whose prior is fixed by the caller: `x` and `y` are taken
@@ -654,8 +666,10 @@ impl Sampler {
             #[cfg(feature = "experimental")]
             Extra::None,
         )
+        .map(Self::assigned)
     }
 
+    /// The sampler at its cold start, its assignment caches not built.
     fn build(
         config: &Config,
         x: &Data,
@@ -1406,12 +1420,24 @@ impl Sampler {
         };
         let tessellations = self.mean.tessellations();
         let assignments = self.mean.assignments();
+        let unassigned = (assignments.len() != tessellations.len()).then(|| {
+            self.mean.folded_total().map_or_else(
+                || self.mean.hard_values_unassigned(&self.x),
+                <[f64]>::to_vec,
+            )
+        });
         for i in 0..self.y.len() {
             let row = self.x.row(i);
-            let mut f = 0.0;
-            for (t, a) in tessellations.iter().zip(assignments) {
-                f += t.value_in_cell(a.cells[i], row);
-            }
+            let f = match &unassigned {
+                Some(values) => values[i],
+                None => {
+                    let mut f = 0.0;
+                    for (t, a) in tessellations.iter().zip(assignments) {
+                        f += t.value_in_cell(a.cells[i] as usize, row);
+                    }
+                    f
+                }
+            };
             sums.scaled[i] += if ordinal {
                 expected_category(f + offset)
             } else if probit {
@@ -2108,7 +2134,7 @@ impl Sampler {
     }
 
     /// The cell index of every training row under mean tessellation `j`.
-    pub(crate) fn mean_cells(&self, j: usize) -> &[usize] {
+    pub(crate) fn mean_cells(&self, j: usize) -> &[crate::tessellation::CellIndex] {
         &self.mean.assignments()[j].cells
     }
 
@@ -2381,16 +2407,16 @@ mod tests {
     }
 
     impl FixedCells {
-        fn accumulate(cells: &[usize], y: &[f64], b: usize) -> Self {
+        fn accumulate(cells: &[crate::tessellation::CellIndex], y: &[f64], b: usize) -> Self {
             let mut out = Self {
                 n: vec![0.0; b],
                 s1: vec![0.0; b],
                 s2: vec![0.0; b],
             };
             for (&cell, &v) in cells.iter().zip(y) {
-                out.n[cell] += 1.0;
-                out.s1[cell] += v;
-                out.s2[cell] += v * v;
+                out.n[cell as usize] += 1.0;
+                out.s1[cell as usize] += v;
+                out.s2[cell as usize] += v * v;
             }
             out
         }

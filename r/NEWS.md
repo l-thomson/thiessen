@@ -167,6 +167,12 @@
   weight is read from running sums formed once per sweep in place of an
   addition per row; sampled values are unchanged and a Gaussian or
   probit sweep executes 9 per cent fewer instructions.
+* The cell assignments of the training rows take 4 bytes per row and
+  tessellation in place of 16 under the default geometry, and the
+  nearest-centre search compares each centre with eight rows at a time;
+  sampled values are unchanged, a sweep executes 6.5 to 8 per cent fewer
+  instructions and prediction 55 per cent fewer, and a fit at
+  n = 300,000 peaks at a third of its former memory.
 * `thiessen(threads = )` runs the chains of a fit on up to that many
   threads, each chain on one thread with its own generator, and
   `predict()` on the fit, intervals included, splits its rows over the

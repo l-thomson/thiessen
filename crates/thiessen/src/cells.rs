@@ -42,7 +42,7 @@
 use crate::data::Data;
 use crate::maths;
 use crate::rng::{self, standard_normal, Rng};
-use crate::tessellation::Tessellation;
+use crate::tessellation::{CellIndex, Tessellation};
 
 mod sealed {
     pub trait Sealed {}
@@ -123,7 +123,7 @@ pub(crate) trait CellFamily: sealed::Sealed {
     #[allow(clippy::too_many_arguments)]
     fn accumulate(
         &self,
-        cells: &[usize],
+        cells: &[CellIndex],
         input: &[f64],
         weights: &[f64],
         partials: &[f64],
@@ -135,7 +135,7 @@ pub(crate) trait CellFamily: sealed::Sealed {
     }
 
     /// Under hard membership and the constant basis, each observation's
-    /// partial against its cell value `mus[cells[i]]` into `partials`,
+    /// partial against its cell value `mus[cells[i] as usize]` into `partials`,
     /// and its [`add`] to `out`, which [`begin`] has started.
     ///
     /// [`add`]: Self::add
@@ -143,7 +143,7 @@ pub(crate) trait CellFamily: sealed::Sealed {
     #[allow(clippy::too_many_arguments)]
     fn hard_partials(
         &self,
-        cells: &[usize],
+        cells: &[CellIndex],
         mus: &[f64],
         input: &[f64],
         weights: &[f64],
@@ -159,7 +159,7 @@ pub(crate) trait CellFamily: sealed::Sealed {
 
     /// Under hard membership and the constant basis for this tessellation
     /// and the next, per observation: the total after this tessellation's
-    /// update from `partials[i]` and `mus[cells[i]]` into `total[i]`, then
+    /// update from `partials[i]` and `mus[cells[i] as usize]` into `total[i]`, then
     /// [`hard_partials`] of the next tessellation against that total. The
     /// same operations in the same order as the update followed by the
     /// next tessellation's own pass.
@@ -168,9 +168,9 @@ pub(crate) trait CellFamily: sealed::Sealed {
     #[allow(clippy::too_many_arguments)]
     fn hard_totals_then_partials(
         &self,
-        cells: &[usize],
+        cells: &[CellIndex],
         mus: &[f64],
-        next_cells: &[usize],
+        next_cells: &[CellIndex],
         next_mus: &[f64],
         input: &[f64],
         weights: &[f64],
@@ -221,7 +221,7 @@ pub(crate) trait CellFamily: sealed::Sealed {
 #[allow(clippy::too_many_arguments)]
 fn accumulate_by_add<F: CellFamily + ?Sized>(
     family: &F,
-    cells: &[usize],
+    cells: &[CellIndex],
     input: &[f64],
     weights: &[f64],
     partials: &[f64],
@@ -233,7 +233,15 @@ fn accumulate_by_add<F: CellFamily + ?Sized>(
     let n = cells.len();
     let (input, weights, partials) = (&input[..n], &weights[..n], &partials[..n]);
     for i in 0..n {
-        family.add(out, i, cells[i], input[i], weights[i], partials[i], context);
+        family.add(
+            out,
+            i,
+            cells[i] as usize,
+            input[i],
+            weights[i],
+            partials[i],
+            context,
+        );
     }
 }
 
@@ -241,7 +249,7 @@ fn accumulate_by_add<F: CellFamily + ?Sized>(
 #[allow(clippy::too_many_arguments)]
 fn hard_partials_by_add<F: CellFamily + ?Sized>(
     family: &F,
-    cells: &[usize],
+    cells: &[CellIndex],
     mus: &[f64],
     input: &[f64],
     weights: &[f64],
@@ -254,9 +262,17 @@ fn hard_partials_by_add<F: CellFamily + ?Sized>(
     let (input, weights, total) = (&input[..n], &weights[..n], &total[..n]);
     let partials = &mut partials[..n];
     for i in 0..n {
-        let partial = family.partial(input[i], total[i], mus[cells[i]]);
+        let partial = family.partial(input[i], total[i], mus[cells[i] as usize]);
         partials[i] = partial;
-        family.add(out, i, cells[i], input[i], weights[i], partial, context);
+        family.add(
+            out,
+            i,
+            cells[i] as usize,
+            input[i],
+            weights[i],
+            partial,
+            context,
+        );
     }
 }
 
@@ -264,9 +280,9 @@ fn hard_partials_by_add<F: CellFamily + ?Sized>(
 #[allow(clippy::too_many_arguments)]
 fn hard_totals_then_partials_by_add<F: CellFamily + ?Sized>(
     family: &F,
-    cells: &[usize],
+    cells: &[CellIndex],
     mus: &[f64],
-    next_cells: &[usize],
+    next_cells: &[CellIndex],
     next_mus: &[f64],
     input: &[f64],
     weights: &[f64],
@@ -279,13 +295,13 @@ fn hard_totals_then_partials_by_add<F: CellFamily + ?Sized>(
     let (next_cells, input, weights) = (&next_cells[..n], &input[..n], &weights[..n]);
     let (total, partials) = (&mut total[..n], &mut partials[..n]);
     for i in 0..n {
-        total[i] = family.total(input[i], partials[i], mus[cells[i]]);
-        let partial = family.partial(input[i], total[i], next_mus[next_cells[i]]);
+        total[i] = family.total(input[i], partials[i], mus[cells[i] as usize]);
+        let partial = family.partial(input[i], total[i], next_mus[next_cells[i] as usize]);
         partials[i] = partial;
         family.add(
             out,
             i,
-            next_cells[i],
+            next_cells[i] as usize,
             input[i],
             weights[i],
             partial,
@@ -424,7 +440,7 @@ impl CellFamily for GaussianCells {
     /// and basis tests of [`add`](CellFamily::add).
     fn hard_partials(
         &self,
-        cells: &[usize],
+        cells: &[CellIndex],
         mus: &[f64],
         input: &[f64],
         weights: &[f64],
@@ -444,9 +460,9 @@ impl CellFamily for GaussianCells {
         let stats = &mut out.cells[..mus.len()];
         let weigh = context.uniform.is_none();
         for i in 0..n {
-            let partial = self.partial(input[i], total[i], mus[cells[i]]);
+            let partial = self.partial(input[i], total[i], mus[cells[i] as usize]);
             partials[i] = partial;
-            stats[cells[i]].add(weights[i], partial, weigh);
+            stats[cells[i] as usize].add(weights[i], partial, weigh);
         }
         if let Some(running) = context.uniform {
             weigh_by_count(stats, running);
@@ -457,9 +473,9 @@ impl CellFamily for GaussianCells {
     /// and basis tests of [`add`](CellFamily::add).
     fn hard_totals_then_partials(
         &self,
-        cells: &[usize],
+        cells: &[CellIndex],
         mus: &[f64],
-        next_cells: &[usize],
+        next_cells: &[CellIndex],
         next_mus: &[f64],
         input: &[f64],
         weights: &[f64],
@@ -480,10 +496,10 @@ impl CellFamily for GaussianCells {
         let stats = &mut out.cells[..next_mus.len()];
         let weigh = context.uniform.is_none();
         for i in 0..n {
-            total[i] = self.total(input[i], partials[i], mus[cells[i]]);
-            let partial = self.partial(input[i], total[i], next_mus[next_cells[i]]);
+            total[i] = self.total(input[i], partials[i], mus[cells[i] as usize]);
+            let partial = self.partial(input[i], total[i], next_mus[next_cells[i] as usize]);
             partials[i] = partial;
-            stats[next_cells[i]].add(weights[i], partial, weigh);
+            stats[next_cells[i] as usize].add(weights[i], partial, weigh);
         }
         if let Some(running) = context.uniform {
             weigh_by_count(stats, running);
@@ -496,7 +512,7 @@ impl CellFamily for GaussianCells {
     /// [`add`]: CellFamily::add
     fn accumulate(
         &self,
-        cells: &[usize],
+        cells: &[CellIndex],
         input: &[f64],
         weights: &[f64],
         partials: &[f64],
@@ -513,7 +529,7 @@ impl CellFamily for GaussianCells {
         let stats = &mut out.cells[..b];
         let weigh = context.uniform.is_none();
         for i in 0..n {
-            stats[cells[i]].add(weights[i], partials[i], weigh);
+            stats[cells[i] as usize].add(weights[i], partials[i], weigh);
         }
         if let Some(running) = context.uniform {
             weigh_by_count(stats, running);
@@ -885,7 +901,7 @@ mod tests {
         family: &F,
         x: &Data,
         tessellation: &Tessellation,
-        cells: &[usize],
+        cells: &[CellIndex],
         rows: &Rows,
         b: usize,
         soft: Option<&[f64]>,
@@ -1006,7 +1022,7 @@ mod tests {
     /// ln N(r; 0, D^-1 + sigma_mu^2 Z Z^T) with D = diag(w) and Z the cell
     /// indicator matrix, by dense Cholesky. Shares no code with
     /// `log_marginal`.
-    fn dense_log_density(r: &[f64], w: &[f64], cells: &[usize], sigma_mu_sq: f64) -> f64 {
+    fn dense_log_density(r: &[f64], w: &[f64], cells: &[CellIndex], sigma_mu_sq: f64) -> f64 {
         let n = r.len();
         let mut sigma = vec![0.0_f64; n * n];
         for i in 0..n {
@@ -1065,8 +1081,12 @@ mod tests {
             let w: Vec<f64> = (0..n)
                 .map(|_| (0.6 * standard_normal(&mut rng)).exp())
                 .collect();
-            let cells_a: Vec<usize> = (0..n).map(|_| uniform_index(b, &mut rng)).collect();
-            let cells_b: Vec<usize> = (0..n).map(|_| uniform_index(b, &mut rng)).collect();
+            let cells_a: Vec<CellIndex> = (0..n)
+                .map(|_| uniform_index(b, &mut rng) as CellIndex)
+                .collect();
+            let cells_b: Vec<CellIndex> = (0..n)
+                .map(|_| uniform_index(b, &mut rng) as CellIndex)
+                .collect();
             let partials = gaussian_partials(&r, &w);
             let delta = family.log_marginal(
                 &accumulated(&family, &ctx.0, &ctx.1, &cells_a, &partials, b, None),
@@ -1145,7 +1165,7 @@ mod tests {
     fn quadrature_log_density(
         e: &[f64],
         s: &[f64],
-        cells: &[usize],
+        cells: &[CellIndex],
         b: usize,
         nu: f64,
         lambda: f64,
@@ -1157,7 +1177,7 @@ mod tests {
         let h = (hi - lo) / steps as f64;
         let mut total = 0.0;
         for k in 0..b {
-            let members: Vec<usize> = (0..e.len()).filter(|&i| cells[i] == k).collect();
+            let members: Vec<usize> = (0..e.len()).filter(|&i| cells[i] as usize == k).collect();
             let mut log_terms = Vec::with_capacity(steps + 1);
             for step in 0..=steps {
                 let t = lo + h * step as f64;
@@ -1194,8 +1214,12 @@ mod tests {
                 .map(|_| (0.5 * standard_normal(&mut rng)).exp())
                 .collect();
             let partials = inverse_gamma_partials(&e, &s);
-            let cells_a: Vec<usize> = (0..n).map(|_| uniform_index(b, &mut rng)).collect();
-            let cells_b: Vec<usize> = (0..n).map(|_| uniform_index(b, &mut rng)).collect();
+            let cells_a: Vec<CellIndex> = (0..n)
+                .map(|_| uniform_index(b, &mut rng) as CellIndex)
+                .collect();
+            let cells_b: Vec<CellIndex> = (0..n)
+                .map(|_| uniform_index(b, &mut rng) as CellIndex)
+                .collect();
             let delta = family.log_marginal(
                 &accumulated(&family, &ctx.0, &ctx.1, &cells_a, &partials, b, None),
                 crate::broken::Breakage::None,
@@ -1283,8 +1307,8 @@ mod tests {
         /// both tessellations.
         #[derive(Debug, Clone)]
         struct Case {
-            cells: Vec<usize>,
-            next_cells: Vec<usize>,
+            cells: Vec<CellIndex>,
+            next_cells: Vec<CellIndex>,
             mus: Vec<f64>,
             next_mus: Vec<f64>,
             input: Vec<f64>,
@@ -1297,8 +1321,8 @@ mod tests {
             (0usize..48, 1usize..40, 1usize..40).prop_flat_map(|(n, b, next_b)| {
                 let values = || prop::collection::vec(value(), n);
                 (
-                    prop::collection::vec(0..b, n),
-                    prop::collection::vec(0..next_b, n),
+                    prop::collection::vec(0..b as CellIndex, n),
+                    prop::collection::vec(0..next_b as CellIndex, n),
                     prop::collection::vec(value(), b),
                     prop::collection::vec(value(), next_b),
                     values(),
@@ -1466,7 +1490,7 @@ mod tests {
             let got = format!("{total:?} {partials:?} {fused:?}");
 
             let total: Vec<f64> = (0..n)
-                .map(|i| family.total(c.input[i], c.partials[i], c.mus[c.cells[i]]))
+                .map(|i| family.total(c.input[i], c.partials[i], c.mus[c.cells[i] as usize]))
                 .collect();
             let mut partials = vec![0.0; n];
             let mut separate = F::Stats::default();
@@ -1526,10 +1550,10 @@ mod tests {
         }
 
         /// The hard indicator as a weight matrix.
-        fn indicator(cells: &[usize], b: usize) -> Vec<f64> {
+        fn indicator(cells: &[CellIndex], b: usize) -> Vec<f64> {
             let mut w = vec![0.0; cells.len() * b];
             for (i, &cell) in cells.iter().enumerate() {
-                w[i * b + cell] = 1.0;
+                w[i * b + cell as usize] = 1.0;
             }
             w
         }
@@ -1558,7 +1582,9 @@ mod tests {
                 let w: Vec<f64> = (0..n)
                     .map(|_| maths::exp(0.6 * standard_normal(&mut rng)))
                     .collect();
-                let cells: Vec<usize> = (0..n).map(|_| uniform_index(b, &mut rng)).collect();
+                let cells: Vec<CellIndex> = (0..n)
+                    .map(|_| uniform_index(b, &mut rng) as CellIndex)
+                    .collect();
                 let partials = gaussian_partials(&r, &w);
                 let soft = accumulated(
                     &family,
@@ -1644,7 +1670,9 @@ mod tests {
                 let prec: Vec<f64> = (0..n)
                     .map(|_| maths::exp(0.6 * standard_normal(&mut rng)))
                     .collect();
-                let cells: Vec<usize> = (0..n).map(|_| uniform_index(b, &mut rng)).collect();
+                let cells: Vec<CellIndex> = (0..n)
+                    .map(|_| uniform_index(b, &mut rng) as CellIndex)
+                    .collect();
                 let partials = gaussian_partials(&r, &prec);
                 let w_a = random_weights(n, b, &mut rng);
                 let w_b = random_weights(n, b, &mut rng);

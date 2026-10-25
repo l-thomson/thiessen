@@ -256,9 +256,9 @@ mod tests {
             let mut n0 = vec![0.0; b];
             for (&cell, &label) in cells.iter().zip(&labels) {
                 if label == 1.0 {
-                    n1[cell] += 1.0;
+                    n1[cell as usize] += 1.0;
                 } else {
-                    n0[cell] += 1.0;
+                    n0[cell as usize] += 1.0;
                 }
             }
             assert!(n1.iter().zip(&n0).all(|(a, z)| a + z > 0.0));

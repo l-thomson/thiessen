@@ -139,12 +139,11 @@ impl Tessellation {
         }
         if self.tau.is_none() && geometry.is_plain() {
             keys.clear();
-            keys.resize(self.n_cells() * n, 0.0);
-            add_all_keys(x, self, keys);
-            for i in 0..n {
-                let (cell, _) = nearest_in(keys, n, i);
-                f(i, self.value_in_cell(cell, x.row(i)));
-            }
+            nearest_blocks(x, self, |start, cells| {
+                for (i, &cell) in (start..).zip(cells) {
+                    f(i, self.value_in_cell(cell as usize, x.row(i)));
+                }
+            });
         } else {
             for i in 0..n {
                 f(i, self.value_at(x.row(i), geometry));
@@ -178,6 +177,7 @@ impl Tessellation {
     /// The value cell `cell` contributes at `row`: the cell mean, plus,
     /// under the linear basis, the slopes against the row's offset from
     /// the cell's centre on the active covariates.
+    #[inline]
     pub(crate) fn value_in_cell(&self, cell: usize, row: &[f64]) -> f64 {
         let mut value = self.mus[cell];
         if !self.betas.is_empty() {
@@ -280,13 +280,20 @@ pub(crate) enum Delta {
     Full,
 }
 
+/// A row's cell index in an [`Assignment`]: 4 bytes per row and
+/// tessellation. An index is below its tessellation's centre count, which
+/// is below 2^32: the coordinates of 2^32 centres alone would take 32 GiB.
+pub(crate) type CellIndex = u32;
+
 /// Cached nearest-centre assignment of every observation, with the winning
 /// key, for one tessellation; under soft membership also every key.
 #[derive(Debug, Default, PartialEq)]
 pub(crate) struct Assignment {
     /// Cell index per observation.
-    pub(crate) cells: Vec<usize>,
-    /// Squared distance to the assigned centre per observation.
+    pub(crate) cells: Vec<CellIndex>,
+    /// Squared distance to the assigned centre per observation; empty
+    /// under hard membership on an all-Euclidean geometry, whose moves
+    /// recompute it column by column in the arithmetic that formed it.
     keys: Vec<f64>,
     /// Column-major b by n keys of every observation against every
     /// centre; `None` under hard membership, whose moves need only the
@@ -294,30 +301,167 @@ pub(crate) struct Assignment {
     soft: Option<Vec<f64>>,
 }
 
-/// The key of every row of `x` against every centre of `t` under an
-/// all-Euclidean geometry into the `b` by `n` column-major `keys`. `x`
+/// Rows per block of [`nearest_blocks`].
+const BLOCK: usize = 256;
+
+/// Rows whose keys and winners stay in registers while every centre is
+/// compared.
+const LANES: usize = 8;
+
+/// The nearest centre of every row of `x` under `t`, an all-Euclidean
+/// hard-membership tessellation, `BLOCK` rows at a time: `emit(start,
+/// cells)` receives each block. Each key sums the squared differences in
+/// `dims` order, the sum [`Geometry::key`] forms for an all-Euclidean
+/// geometry, and the centres are compared in index order with the strict
+/// comparison of [`nearest_plain`], so ties go to the lowest index. `x`
 /// must have at least one row.
-fn add_all_keys(x: &Data, t: &Tessellation, keys: &mut [f64]) {
+pub(crate) fn nearest_blocks(
+    x: &Data,
+    t: &Tessellation,
+    mut emit: impl FnMut(usize, &[CellIndex]),
+) {
     let n = x.n_rows();
-    for (k, out) in keys.chunks_exact_mut(n).enumerate() {
-        add_centre_keys(x, t, k, out);
+    let mut cells = [0 as CellIndex; BLOCK];
+    let mut start = 0;
+    while start < n {
+        let cells = &mut cells[..BLOCK.min(n - start)];
+        nearest_in_block(x, start, t, cells);
+        emit(start, cells);
+        start += cells.len();
     }
 }
 
-/// The nearest centre of row `i` and its key over the `b` by `n`
-/// column-major keys `all`; the lowest index on ties.
-fn nearest_in(all: &[f64], n: usize, i: usize) -> (usize, f64) {
-    let b = all.len() / n;
-    let mut best = f64::INFINITY;
-    let mut best_cell = 0;
-    for k in 0..b {
-        let key = all[k * n + i];
-        if key < best {
-            best = key;
-            best_cell = k;
+/// The nearest centre of `t` to rows `start..start + cells.len()` of `x`,
+/// into `cells`: `LANES` rows at a time, then [`nearest_plain`] row by
+/// row.
+fn nearest_in_block(x: &Data, start: usize, t: &Tessellation, cells: &mut [CellIndex]) {
+    let n = x.n_rows();
+    let columns = x.columns();
+    let full = cells.len() - cells.len() % LANES;
+    let column = |j: usize| &columns[t.dims[j] * n + start..][..full];
+    let (lanes, rest) = cells.split_at_mut(full);
+    match t.dims.len() {
+        1 => nearest_in_columns([column(0)], &t.centres, lanes),
+        2 => nearest_in_columns([column(0), column(1)], &t.centres, lanes),
+        3 => nearest_in_columns([column(0), column(1), column(2)], &t.centres, lanes),
+        _ => {
+            for (i, out) in (start..).step_by(LANES).zip(lanes.chunks_exact_mut(LANES)) {
+                let winners = nearest_in_lanes_any(columns, n, i, t);
+                for (out, cell) in out.iter_mut().zip(winners) {
+                    *out = cell as CellIndex;
+                }
+            }
         }
     }
-    (best_cell, best)
+    for (i, out) in (start + full..).zip(rest) {
+        *out = nearest_plain(t, x.row(i)).0 as CellIndex;
+    }
+}
+
+/// [`nearest_in_block`] on `D` active columns of a whole number of
+/// `LANES` rows.
+#[inline(always)]
+fn nearest_in_columns<const D: usize>(x: [&[f64]; D], centres: &[f64], cells: &mut [CellIndex]) {
+    for (i, out) in (0..).step_by(LANES).zip(cells.chunks_exact_mut(LANES)) {
+        let rows: [&[f64; LANES]; D] =
+            std::array::from_fn(|j| x[j][i..i + LANES].try_into().expect("LANES rows"));
+        let (first, rest) = centres.split_at(D);
+        let mut nearest = Nearest::new(lane_keys(rows, first));
+        for centre in rest.chunks_exact(D) {
+            nearest.offer(lane_keys(rows, centre));
+        }
+        for (out, cell) in out.iter_mut().zip(nearest.cells) {
+            *out = cell as CellIndex;
+        }
+    }
+}
+
+/// The keys of `LANES` rows, one array per active column, against
+/// `centre`.
+#[inline(always)]
+fn lane_keys<const D: usize>(x: [&[f64; LANES]; D], centre: &[f64]) -> [f64; LANES] {
+    let mut key = [0.0; LANES];
+    for (key, &x) in key.iter_mut().zip(x[0]) {
+        let diff = x - centre[0];
+        *key = diff * diff;
+    }
+    for (x, &c) in x.iter().zip(centre).skip(1) {
+        for (key, &x) in key.iter_mut().zip(*x) {
+            let diff = x - c;
+            *key += diff * diff;
+        }
+    }
+    key
+}
+
+/// The nearest centre of `t` to rows `i..i + LANES` of the column-major
+/// `columns` of `n` rows, on any number of active columns.
+#[inline(always)]
+fn nearest_in_lanes_any(columns: &[f64], n: usize, i: usize, t: &Tessellation) -> [u64; LANES] {
+    let mut centres = t.centres.chunks_exact(t.dims.len());
+    let first = centres.next().expect("a centre");
+    let mut nearest = Nearest::new(lane_keys_any(columns, n, i, &t.dims, first));
+    for centre in centres {
+        nearest.offer(lane_keys_any(columns, n, i, &t.dims, centre));
+    }
+    nearest.cells
+}
+
+/// The keys of rows `i..i + LANES` of the column-major `columns` of `n`
+/// rows against `centre` on `dims`. Summing from zero leaves each key as
+/// [`lane_keys`] forms it, since every term is at least +0.
+#[inline(always)]
+fn lane_keys_any(
+    columns: &[f64],
+    n: usize,
+    i: usize,
+    dims: &[usize],
+    centre: &[f64],
+) -> [f64; LANES] {
+    let mut key = [0.0; LANES];
+    for (&dim, &c) in dims.iter().zip(centre) {
+        let x: &[f64; LANES] = columns[dim * n + i..][..LANES]
+            .try_into()
+            .expect("LANES rows");
+        for (key, &x) in key.iter_mut().zip(x) {
+            let diff = x - c;
+            *key += diff * diff;
+        }
+    }
+    key
+}
+
+/// The running nearest centre of `LANES` rows over centres offered in
+/// index order. The cells are held in lanes as wide as the keys so that
+/// the comparison and the selection vectorise together.
+struct Nearest {
+    keys: [f64; LANES],
+    cells: [u64; LANES],
+    next: u64,
+}
+
+impl Nearest {
+    /// Centre 0's keys.
+    #[inline(always)]
+    fn new(keys: [f64; LANES]) -> Self {
+        Self {
+            keys,
+            cells: [0; LANES],
+            next: 1,
+        }
+    }
+
+    /// The next centre's keys, taken where strictly smaller.
+    #[inline(always)]
+    fn offer(&mut self, keys: [f64; LANES]) {
+        let lanes = self.keys.iter_mut().zip(&mut self.cells).zip(keys);
+        for ((best, cell), key) in lanes {
+            let nearer = key < *best;
+            *best = if nearer { key } else { *best };
+            *cell = if nearer { self.next } else { *cell };
+        }
+        self.next += 1;
+    }
 }
 
 /// [`Tessellation::nearest`] for an all-Euclidean geometry: the same sum
@@ -342,9 +486,9 @@ fn nearest_plain(t: &Tessellation, row: &[f64]) -> (usize, f64) {
 
 /// The squared distance of every row of `x` to centre `k` of `t` into
 /// `out`, one active column at a time in `dims` order over the
-/// column-major design: the sums [`Geometry::key`] forms row by row, in
-/// the same order, for an all-Euclidean geometry.
-fn add_centre_keys(x: &Data, t: &Tessellation, k: usize, out: &mut [f64]) {
+/// column-major design: the sum [`Geometry::key`] forms row by row for an
+/// all-Euclidean geometry.
+fn centre_keys(x: &Data, t: &Tessellation, k: usize, out: &mut [f64]) {
     let n = x.n_rows();
     let columns = x.columns();
     let out = &mut out[..n];
@@ -364,19 +508,57 @@ fn add_centre_keys(x: &Data, t: &Tessellation, k: usize, out: &mut [f64]) {
     }
 }
 
+/// The squared distance of every row of `x` to the centre `cells` assigns
+/// it under `t`, into `out`, in the arithmetic of [`centre_keys`], so
+/// equal to the key that chose the cell. `coordinate`, of one entry per
+/// centre, holds one active column's centre coordinates at a time.
+fn own_keys(
+    x: &Data,
+    t: &Tessellation,
+    cells: &[CellIndex],
+    coordinate: &mut [f64],
+    out: &mut [f64],
+) {
+    let n = x.n_rows();
+    let columns = x.columns();
+    let d = t.dims.len();
+    let (cells, out) = (&cells[..n], &mut out[..n]);
+    for (j, &dim) in t.dims.iter().enumerate() {
+        for (c, &v) in coordinate
+            .iter_mut()
+            .zip(t.centres.iter().skip(j).step_by(d))
+        {
+            *c = v;
+        }
+        let column = &columns[dim * n..(dim + 1) * n];
+        if j == 0 {
+            for i in 0..n {
+                let diff = column[i] - coordinate[cells[i] as usize];
+                out[i] = diff * diff;
+            }
+        } else {
+            for i in 0..n {
+                let diff = column[i] - coordinate[cells[i] as usize];
+                out[i] += diff * diff;
+            }
+        }
+    }
+}
+
 /// Replace each row's winner with centre `k` where `column` holds a
-/// smaller key: the strict comparison of [`nearest_in`], as selects
+/// smaller key: the strict comparison of [`nearest_plain`], as selects
 /// rather than a branch because the comparison is a coin flip per row.
 /// The cell takes a mask rather than a select: on baseline x86-64 LLVM
 /// turns a select of the index back into a branch and the loop stops
 /// vectorising. Returns whether centre `k` took any row.
-fn take_nearer(column: &[f64], k: usize, cells: &mut [usize], best: &mut [f64]) -> bool {
+fn take_nearer(column: &[f64], k: usize, cells: &mut [CellIndex], best: &mut [f64]) -> bool {
     let n = cells.len();
     let (column, best) = (&column[..n], &mut best[..n]);
+    let k = k as CellIndex;
     let mut taken = 0;
     for i in 0..n {
         let nearer = column[i] < best[i];
-        let mask = (nearer as usize).wrapping_neg();
+        let mask = (nearer as CellIndex).wrapping_neg();
         best[i] = if nearer { column[i] } else { best[i] };
         cells[i] ^= (cells[i] ^ k) & mask;
         taken |= mask;
@@ -412,39 +594,26 @@ impl Assignment {
     /// Assignment of every row of `x` under `t`, computed in full.
     pub(crate) fn full(x: &Data, t: &Tessellation, geometry: &Geometry) -> Self {
         let mut out = Self::default();
-        Self::full_into(x, t, geometry, &mut Vec::new(), &mut out);
+        Self::full_into(x, t, geometry, &mut out);
         out
     }
 
-    /// [`full`](Self::full) written into `out`, with `scratch` as the
-    /// key buffer of the streaming path; both keep their capacity.
-    pub(crate) fn full_into(
-        x: &Data,
-        t: &Tessellation,
-        geometry: &Geometry,
-        scratch: &mut Vec<f64>,
-        out: &mut Self,
-    ) {
+    /// [`full`](Self::full) written into `out`, which keeps its capacity.
+    pub(crate) fn full_into(x: &Data, t: &Tessellation, geometry: &Geometry, out: &mut Self) {
         let n = x.n_rows();
         out.cells.clear();
         out.keys.clear();
         if t.tau.is_none() && geometry.is_plain() && n > 0 {
-            let b = t.n_cells();
-            let keys = key_buffer(scratch, b * n);
-            add_all_keys(x, t, keys);
             out.soft = None;
-            out.cells.resize(n, 0);
-            out.keys.extend_from_slice(&keys[..n]);
-            for k in 1..b {
-                take_nearer(&keys[k * n..(k + 1) * n], k, &mut out.cells, &mut out.keys);
-            }
+            out.cells.reserve(n);
+            nearest_blocks(x, t, |_, cells| out.cells.extend_from_slice(cells));
             return;
         }
         if t.tau.is_none() {
             out.soft = None;
             for i in 0..n {
                 let (cell, key) = t.nearest(x.row(i), geometry);
-                out.cells.push(cell);
+                out.cells.push(cell as CellIndex);
                 out.keys.push(key);
             }
             return;
@@ -465,7 +634,7 @@ impl Assignment {
                     best_cell = k;
                 }
             }
-            out.cells.push(best_cell);
+            out.cells.push(best_cell as CellIndex);
             out.keys.push(best);
         }
     }
@@ -514,14 +683,23 @@ impl Assignment {
     ) -> bool {
         let n = x.n_rows();
         match delta {
-            Delta::Full => Self::full_into(x, new, geometry, scratch, out),
+            Delta::Full => Self::full_into(x, new, geometry, out),
             Delta::CentreAdded => {
                 let added = new.n_cells() - 1;
                 out.clone_from(self);
                 if self.soft.is_none() && geometry.is_plain() {
-                    let keys = key_buffer(scratch, n);
-                    add_centre_keys(x, new, added, keys);
-                    return !take_nearer(keys, added, &mut out.cells, &mut out.keys);
+                    let buffer = key_buffer(scratch, 2 * n + new.n_cells());
+                    let (keys, rest) = buffer.split_at_mut(n);
+                    let (own, coordinate) = rest.split_at_mut(n);
+                    centre_keys(x, new, added, keys);
+                    // With one centre before the birth, every row's own key
+                    // is that centre's key.
+                    if added == 1 {
+                        centre_keys(x, new, 0, own);
+                    } else {
+                        own_keys(x, new, &out.cells, coordinate, own);
+                    }
+                    return !take_nearer(keys, added, &mut out.cells, own);
                 }
                 if let Some(soft) = &mut out.soft {
                     soft.reserve(n);
@@ -533,27 +711,31 @@ impl Assignment {
                     }
                     if key < out.keys[i] {
                         out.keys[i] = key;
-                        out.cells[i] = added;
+                        out.cells[i] = added as CellIndex;
                     }
                 }
             }
             Delta::CentreMoved(moved) => {
                 out.clone_from(self);
                 if self.soft.is_none() && geometry.is_plain() {
-                    let keys = key_buffer(scratch, n);
-                    add_centre_keys(x, new, moved, keys);
+                    // A lone centre keeps every row wherever it moves.
+                    if new.n_cells() == 1 {
+                        return false;
+                    }
+                    let buffer = key_buffer(scratch, 2 * n + new.n_cells());
+                    let (keys, rest) = buffer.split_at_mut(n);
+                    let (own, coordinate) = rest.split_at_mut(n);
+                    centre_keys(x, new, moved, keys);
+                    own_keys(x, new, &self.cells, coordinate, own);
                     let mut won = false;
-                    for (i, &key) in keys.iter().enumerate() {
-                        if self.cells[i] == moved {
-                            let (cell, key) = nearest_plain(new, x.row(i));
+                    for (i, (&key, &own)) in keys.iter().zip(own.iter()).enumerate() {
+                        let incumbent = self.cells[i] as usize;
+                        if incumbent == moved {
+                            let (cell, _) = nearest_plain(new, x.row(i));
                             won |= cell == moved;
-                            out.cells[i] = cell;
-                            out.keys[i] = key;
-                        } else if key < self.keys[i]
-                            || (key == self.keys[i] && moved < self.cells[i])
-                        {
-                            out.cells[i] = moved;
-                            out.keys[i] = key;
+                            out.cells[i] = cell as CellIndex;
+                        } else if key < own || (key == own && moved < incumbent) {
+                            out.cells[i] = moved as CellIndex;
                             won = true;
                         }
                     }
@@ -565,16 +747,18 @@ impl Assignment {
                     if let Some(soft) = &mut out.soft {
                         soft[moved * n + i] = key;
                     }
-                    if self.cells[i] == moved {
+                    let incumbent = self.cells[i] as usize;
+                    if incumbent == moved {
                         let (cell, key) = new.nearest(row, geometry);
-                        out.cells[i] = cell;
+                        out.cells[i] = cell as CellIndex;
                         out.keys[i] = key;
                     } else {
                         // Strict comparison keeps the lowest-index tie rule:
                         // `moved` wins only when nearer than the incumbent
                         // or equal with a lower index.
-                        if key < self.keys[i] || (key == self.keys[i] && moved < self.cells[i]) {
-                            out.cells[i] = moved;
+                        let own = self.keys[i];
+                        if key < own || (key == own && moved < incumbent) {
+                            out.cells[i] = moved as CellIndex;
                             out.keys[i] = key;
                         }
                     }
@@ -586,16 +770,19 @@ impl Assignment {
                     soft.drain(removed * n..(removed + 1) * n);
                 }
                 let plain = geometry.is_plain();
+                let removed_index = removed as CellIndex;
                 for i in 0..n {
-                    if self.cells[i] == removed {
+                    if self.cells[i] == removed_index {
                         let (cell, key) = if plain {
                             nearest_plain(new, x.row(i))
                         } else {
                             new.nearest(x.row(i), geometry)
                         };
-                        out.cells[i] = cell;
-                        out.keys[i] = key;
-                    } else if self.cells[i] > removed {
+                        out.cells[i] = cell as CellIndex;
+                        if !out.keys.is_empty() {
+                            out.keys[i] = key;
+                        }
+                    } else if self.cells[i] > removed_index {
                         out.cells[i] -= 1;
                     }
                 }
@@ -681,8 +868,7 @@ mod tests {
             let t = random_tessellation(p, b, d, &mut rng);
             let full = Assignment::full(&x, &t, &g);
             for i in 0..x.n_rows() {
-                let (cell, key) = t.nearest(x.row(i), &g);
-                assert_eq!((full.cells[i], full.keys[i]), (cell, key));
+                assert_eq!(full.cells[i] as usize, t.nearest(x.row(i), &g).0);
             }
         }
     }
@@ -821,10 +1007,14 @@ mod tests {
             (-4i8..=4).prop_map(|v| f64::from(v) * 0.25)
         }
 
-        /// Data, a hard tessellation of `b` centres on a shuffled subset
-        /// of the columns, and the index and coordinates of a moved centre.
-        fn case() -> impl Strategy<Value = (Data, Tessellation, usize, Vec<f64>)> {
-            (1usize..4, 1usize..6, 1usize..24).prop_flat_map(|(p, b, n)| {
+        /// Data of fewer than `rows` rows and `columns` columns, a hard
+        /// tessellation of `b` centres on a shuffled subset of the columns,
+        /// and the index and coordinates of a moved centre.
+        fn case(
+            columns: usize,
+            rows: usize,
+        ) -> impl Strategy<Value = (Data, Tessellation, usize, Vec<f64>)> {
+            (1..columns, 1usize..6, 1..rows).prop_flat_map(|(p, b, n)| {
                 (1..=p).prop_flat_map(move |d| {
                     (
                         prop::collection::vec(coordinate(), n * p),
@@ -851,13 +1041,13 @@ mod tests {
 
         /// Whether no observation sits in cell `k`.
         fn empty(a: &Assignment, k: usize) -> bool {
-            !a.cells.contains(&k)
+            !a.cells.contains(&(k as CellIndex))
         }
 
         proptest! {
             #[test]
             fn updates_equal_the_full_recompute_under_ties(
-                (x, t, k, coordinates) in case(),
+                (x, t, k, coordinates) in case(4, 24),
             ) {
                 let g = Geometry::euclidean(x.n_cols());
                 let cache = Assignment::full(&x, &t, &g);
@@ -884,6 +1074,19 @@ mod tests {
                 prop_assert_eq!(&out, &full);
                 prop_assert_eq!(known_empty, empty(&full, t.n_cells()));
             }
+
+            /// Up to 599 rows, past the block boundaries, and up to six
+            /// active columns, past the specialised widths.
+            #[test]
+            fn full_equals_the_row_by_row_search_under_ties(
+                (x, t, _, _) in case(7, 600),
+            ) {
+                let g = Geometry::euclidean(x.n_cols());
+                let full = Assignment::full(&x, &t, &g);
+                for i in 0..x.n_rows() {
+                    prop_assert_eq!(full.cells[i] as usize, t.nearest(x.row(i), &g).0);
+                }
+            }
         }
     }
 
@@ -907,7 +1110,7 @@ mod tests {
                 let total: f64 = row.iter().sum();
                 assert!((total - 1.0).abs() < 1e-12, "{total}");
                 // The hard winner carries the largest weight.
-                let winner = cache.cells[i];
+                let winner = cache.cells[i] as usize;
                 assert!(row.iter().all(|&w| w <= row[winner] + 1e-15));
                 let value: f64 = row.iter().zip(&t.mus).map(|(&w, &mu)| w * mu).sum();
                 let direct = t.value_at(x.row(i), &g);

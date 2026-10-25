@@ -389,7 +389,7 @@ mod tests {
             let assignments = sampler.mean_cells(0).to_vec();
             let mut cells: Vec<Vec<f64>> = vec![Vec::new(); b];
             for (&cell, &v) in assignments.iter().zip(&y) {
-                cells[cell].push(v);
+                cells[cell as usize].push(v);
             }
             let sigma_mu_sq = sampler.mean_sigma_mu_sq();
             let (ref_sigma_sq, ref_mus) = quadrature_reference(
