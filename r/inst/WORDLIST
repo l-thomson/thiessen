@@ -22,10 +22,12 @@ Dorie
 ECDF
 Econometrica
 Eskin
+G'Sell
 Gabry
 Gelman
 Geweke
 ggplot
+halvings
 hardhat
 HBART
 HBART's
@@ -39,6 +41,8 @@ Linero
 ln
 modeling
 nonlinear
+overfit
+overfits
 pkgdown
 Poisson
 Polya
@@ -69,6 +73,7 @@ srr
 stochtree
 Stolfo
 th
+Tibshirani
 tidybayes
 tobit
 Vehtari
@@ -76,4 +81,5 @@ vendored
 Voronoi
 WAIC
 Wei
+XAddiVortes
 ybar

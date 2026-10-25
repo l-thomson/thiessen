@@ -110,6 +110,16 @@ core_samplers_start <- function(samplers, previous, draw) {
 
 core_sampler_keep <- function(sampler) .Call(wrap__core_sampler_keep, sampler)
 
+core_sampler_xaddivortes <- function(sampler, params_json) {
+  .Call(wrap__core_sampler_xaddivortes, sampler, params_json)
+}
+
+core_samplers_xaddivortes <- function(samplers, params_json, threads) {
+  .Call(wrap__core_samplers_xaddivortes, samplers, params_json, threads)
+}
+
+core_xaddivortes_defaults <- function() .Call(wrap__core_xaddivortes_defaults)
+
 core_sampler_n_kept <- function(sampler) .Call(wrap__core_sampler_n_kept, sampler)
 
 core_sampler_set_response <- function(sampler, y) {
