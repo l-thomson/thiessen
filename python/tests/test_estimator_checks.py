@@ -10,7 +10,12 @@ from __future__ import annotations
 from typing import Any
 
 from sklearn.utils.estimator_checks import parametrize_with_checks
-from thiessen.estimators import AddiVortesClassifier, AddiVortesRegressor
+from thiessen import TermParams, _native
+from thiessen.estimators import (
+    AddiVortesClassifier,
+    AddiVortesRegressor,
+    XAddiVortesRegressor,
+)
 
 from .conftest import sweep
 
@@ -24,8 +29,15 @@ def _expected_failed_checks(estimator: object) -> dict[str, str]:
     return dict(EXPECTED_FAILURES)
 
 
+CHECKED: list[object] = [AddiVortesRegressor(**SMALL), AddiVortesClassifier(**SMALL)]
+if _native.EXPERIMENTAL:
+    CHECKED.append(
+        XAddiVortesRegressor(rounds=5, mean_params=TermParams(tessellations=10))
+    )
+
+
 @parametrize_with_checks(
-    [AddiVortesRegressor(**SMALL), AddiVortesClassifier(**SMALL)],
+    CHECKED,
     expected_failed_checks=_expected_failed_checks,
 )
 def test_sklearn_estimator_checks(estimator, check):

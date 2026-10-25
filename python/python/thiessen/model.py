@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 import os
 import warnings
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -19,6 +19,7 @@ from . import _native
 from ._arrays import _as_design
 from ._config import _config_json
 from ._convergence import _warn_convergence
+from ._fast import _fast_json
 from ._inference import _to_inference_data
 from ._params import Outcome, Params
 from ._response import (
@@ -153,6 +154,8 @@ class Model(Params):
         n_threads: int = 1,
         init: FittedModel | None = None,
         init_draw: int | None = None,
+        start: Literal["cold", "fast"] = "cold",
+        fast_settings: Mapping[str, Any] | None = None,
     ) -> FittedModel:
         """Fit the model to `X` and `y`.
 
@@ -202,6 +205,18 @@ class Model(Params):
             feature.
         init_draw : int, optional
             The 0-based pooled draw of `init` the first chain starts from.
+        start : {'cold', 'fast'}, default='cold'
+            Where each chain starts: the sampler's own start, or its own
+            XAddiVortes fast fit (`thiessen.estimators.XAddiVortesRegressor`),
+            after which the same burn-in and draws run. Only the starting
+            state differs. 'fast' needs a numeric response under the
+            Gaussian family with a constant spread, cannot be combined with
+            `init`, and needs a core built with the ``experimental``
+            feature.
+        fast_settings : dict, optional
+            XAddiVortes settings for ``start='fast'``, by the names of
+            `XAddiVortesRegressor`; an omitted setting takes its default.
+            Given with ``start='cold'`` it is an error.
 
         Returns
         -------
@@ -226,11 +241,18 @@ class Model(Params):
             `init` is not a `FittedModel` or `init_draw` not a
             non-negative integer, or for a response the named family does
             not take.
+        ValueError
+            For ``start`` other than 'cold' or 'fast', `fast_settings` with
+            ``start='cold'``, ``start='fast'`` with `init` or a response
+            other than numeric, or a fast setting of unknown name or of a
+            non-finite value.
         ThiessenError
             If `init` is not a fit of this model to this data, or
-            `init_draw` is at or beyond its number of draws.
+            `init_draw` is at or beyond its number of draws, or for a fast
+            setting of the wrong type or out of its range, naming it.
         RequiresFeatureError
-            For `init` in a build without the ``experimental`` feature.
+            For `init` or ``start='fast'`` in a build without the
+            ``experimental`` feature.
         """
         design = _as_design(X)
         response = _as_response(y)
@@ -248,19 +270,44 @@ class Model(Params):
         chains = _resolve_chains(n_chains)
         threads = _resolve_threads(n_threads)
         previous, draw = _resolve_init(init, init_draw, seed)
-        fitted = _fit(
-            config,
-            design,
-            response,
-            seed,
-            chains,
-            threads,
-            init=previous,
-            init_draw=draw,
-        )
+        if start not in ("cold", "fast"):
+            raise ValueError(f"start must be 'cold' or 'fast'; got {start!r}")
+        if start == "cold" and fast_settings is not None:
+            raise ValueError("fast_settings sets the fast start; it needs start='fast'")
+        if start == "fast" and previous is not None:
+            raise ValueError("start='fast' and init both set the start; give one")
+        if start == "fast":
+            if response.kind != "plain" or response.shape != "numeric":
+                raise ValueError(
+                    "start='fast' needs a numeric response under the Gaussian family"
+                )
+            fitted = _native.fit_from_fast(
+                config,
+                design,
+                response.y,
+                seed,
+                chains,
+                threads,
+                _fast_json(fast_settings),
+            )
+        else:
+            fitted = _fit(
+                config,
+                design,
+                response,
+                seed,
+                chains,
+                threads,
+                init=previous,
+                init_draw=draw,
+            )
         _emit_warnings(fitted, stacklevel=3)
         _warn_convergence(
-            fitted, chains, design, stacklevel=3, warm=previous is not None
+            fitted,
+            chains,
+            design,
+            stacklevel=3,
+            start="warm" if previous is not None else start,
         )
         return FittedModel(fitted, seed, chains, threads)
 
