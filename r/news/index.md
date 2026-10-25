@@ -2,6 +2,26 @@
 
 ## thiessen 0.0.0.9000
 
+- (experimental)
+  [`xaddivortes()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes.md),
+  the XAddiVortes fast fit, with
+  [`xaddivortes_params()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes_params.md)
+  and
+  [`xaddivortes_defaults()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes_defaults.md),
+  [`predict()`](https://rdrr.io/r/stats/predict.html) with prediction
+  intervals from the fit’s sigma, and
+  [`print()`](https://rdrr.io/r/base/print.html) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) methods.
+  `thiessen(start = "fast")` starts each chain from its own fast fit,
+  with the settings in its `fast` argument. The fit’s sigma is its noise
+  draw, so every method of the fit uses one value. The sigma is
+  corrected for the residual degrees of freedom of the final refit but
+  not for the choice of the cells, so the intervals can undercover; the
+  vignette shows a split-conformal alternative. The fit holds one draw,
+  so
+  [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
+  refuses it. Both need the Gaussian family.
+
 - (experimental) `thiessen(init = , init_draw = )`: each chain starts
   from a kept draw of a previous fit of the same model to the same data,
   by default the last draw of its counterpart chain, or counting back

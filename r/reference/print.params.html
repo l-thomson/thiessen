@@ -27,6 +27,7 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="../articles/posterior.html">Working with the posterior</a></li>
+    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="../articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="../articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="../articles/covariates.html">Covariates and the covariate space</a></li>
@@ -53,7 +54,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Print a parameter group</h1>
-      <small class="dont-index">Source: <a href="https://github.com/l-thomson/thiessen/blob/dev/R/params.R" class="external-link"><code>R/params.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/l-thomson/thiessen/blob/dev/R/params.R" class="external-link"><code>R/params.R</code></a>, <a href="https://github.com/l-thomson/thiessen/blob/dev/R/xaddivortes.R" class="external-link"><code>R/xaddivortes.R</code></a></small>
       <div class="d-none name"><code>print.params.Rd</code></div>
     </div>
 
@@ -76,6 +77,9 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'general_params'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'xaddivortes_params'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -85,7 +89,8 @@
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>A parameter group from <code><a href="term_params.html">term_params()</a></code>, <code><a href="geometry_params.html">geometry_params()</a></code>,
-<code><a href="structure_params.html">structure_params()</a></code>, <code><a href="cell_params.html">cell_params()</a></code> or <code><a href="general_params.html">general_params()</a></code>.</p></dd>
+<code><a href="structure_params.html">structure_params()</a></code>, <code><a href="cell_params.html">cell_params()</a></code>, <code><a href="general_params.html">general_params()</a></code> or
+<code><a href="xaddivortes_params.html">xaddivortes_params()</a></code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

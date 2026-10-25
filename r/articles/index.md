@@ -23,6 +23,8 @@ configuration group.
 
 - [Working with the
   posterior](https://l-thomson.github.io/thiessen/r/articles/posterior.md):
+- [Fast fits and fast
+  starts](https://l-thomson.github.io/thiessen/r/articles/fast-fits.md):
 - [Chains, convergence and
   compute](https://l-thomson.github.io/thiessen/r/articles/convergence.md):
 - [Priors and what they

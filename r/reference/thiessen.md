@@ -23,6 +23,8 @@ thiessen(
   threads = getOption("mc.cores", 1L),
   init = NULL,
   init_draw = NULL,
+  start = c("cold", "fast"),
+  fast = NULL,
   ...
 )
 
@@ -36,6 +38,8 @@ thiessen(
   threads = getOption("mc.cores", 1L),
   init = NULL,
   init_draw = NULL,
+  start = c("cold", "fast"),
+  fast = NULL,
   ...
 )
 
@@ -49,6 +53,8 @@ thiessen(
   threads = getOption("mc.cores", 1L),
   init = NULL,
   init_draw = NULL,
+  start = c("cold", "fast"),
+  fast = NULL,
   ...
 )
 ```
@@ -125,6 +131,22 @@ thiessen(
 
   The pooled draw of `init` the first chain starts from, a whole number
   from 1.
+
+- start:
+
+  Where each chain starts: `"cold"`, the sampler's own start, or
+  `"fast"`, its own XAddiVortes fit
+  ([`xaddivortes()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes.md)),
+  after which the same burn-in and draws run. Only the starting state
+  differs, so the chains target the same posterior either way. `"fast"`
+  needs the Gaussian family, cannot be combined with `init`, and needs a
+  build with the `experimental` feature.
+
+- fast:
+
+  The XAddiVortes settings of a fast start, from
+  [`xaddivortes_params()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes_params.md);
+  `NULL` takes the defaults. Given with `start = "cold"` it is an error.
 
 - formula:
 

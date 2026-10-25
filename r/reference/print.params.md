@@ -19,6 +19,9 @@ print(x, ...)
 
 # S3 method for class 'general_params'
 print(x, ...)
+
+# S3 method for class 'xaddivortes_params'
+print(x, ...)
 ```
 
 ## Arguments
@@ -29,9 +32,10 @@ print(x, ...)
   [`term_params()`](https://l-thomson.github.io/thiessen/r/reference/term_params.md),
   [`geometry_params()`](https://l-thomson.github.io/thiessen/r/reference/geometry_params.md),
   [`structure_params()`](https://l-thomson.github.io/thiessen/r/reference/structure_params.md),
-  [`cell_params()`](https://l-thomson.github.io/thiessen/r/reference/cell_params.md)
+  [`cell_params()`](https://l-thomson.github.io/thiessen/r/reference/cell_params.md),
+  [`general_params()`](https://l-thomson.github.io/thiessen/r/reference/general_params.md)
   or
-  [`general_params()`](https://l-thomson.github.io/thiessen/r/reference/general_params.md).
+  [`xaddivortes_params()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes_params.md).
 
 - ...:
 

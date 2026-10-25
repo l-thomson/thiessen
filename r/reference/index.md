@@ -7,6 +7,22 @@
 - [`thiessen_control()`](https://l-thomson.github.io/thiessen/r/reference/thiessen_control.md)
   : Configuration of a fit
 
+## Fast fits
+
+- [`xaddivortes()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes.md)
+  : Fit XAddiVortes, the fast fit of AddiVortes
+- [`predict(`*`<xaddivortes>`*`)`](https://l-thomson.github.io/thiessen/r/reference/predict.xaddivortes.md)
+  : Predictions of an XAddiVortes fit
+- [`summary(`*`<xaddivortes>`*`)`](https://l-thomson.github.io/thiessen/r/reference/summary.xaddivortes.md)
+  [`print(`*`<summary.xaddivortes>`*`)`](https://l-thomson.github.io/thiessen/r/reference/summary.xaddivortes.md)
+  : Summarise an XAddiVortes fit
+- [`print(`*`<xaddivortes>`*`)`](https://l-thomson.github.io/thiessen/r/reference/print.xaddivortes.md)
+  : Print an XAddiVortes fit
+- [`xaddivortes_params()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes_params.md)
+  : XAddiVortes settings
+- [`xaddivortes_defaults()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes_defaults.md)
+  : The core's default XAddiVortes settings
+
 ## Outcome families
 
 - [`gaussian_outcome()`](https://l-thomson.github.io/thiessen/r/reference/gaussian_outcome.md)
@@ -53,6 +69,7 @@ Compiled only into a core built with its `experimental` feature; see
   [`print(`*`<structure_params>`*`)`](https://l-thomson.github.io/thiessen/r/reference/print.params.md)
   [`print(`*`<cell_params>`*`)`](https://l-thomson.github.io/thiessen/r/reference/print.params.md)
   [`print(`*`<general_params>`*`)`](https://l-thomson.github.io/thiessen/r/reference/print.params.md)
+  [`print(`*`<xaddivortes_params>`*`)`](https://l-thomson.github.io/thiessen/r/reference/print.params.md)
   : Print a parameter group
 - [`print(`*`<thiessen_control>`*`)`](https://l-thomson.github.io/thiessen/r/reference/print.thiessen_control.md)
   : Print a control object
