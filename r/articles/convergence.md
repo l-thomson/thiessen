@@ -165,8 +165,8 @@ seconds <- function(threads) {
 }
 rbind(seconds(1), seconds(2))
 #>      threads seconds min_ess ess_per_second
-#> [1,]       1     3.3     899            272
-#> [2,]       2     1.9     899            483
+#> [1,]       1     2.8     899            327
+#> [2,]       2     1.5     899            585
 ```
 
 Pooling the draws and the diagnostics run on one thread after the
