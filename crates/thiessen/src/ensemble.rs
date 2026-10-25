@@ -18,6 +18,11 @@ use crate::tessellation::{Assignment, Tessellation};
 /// ln tau.
 const BANDWIDTH_STEP: f64 = 0.5;
 
+/// Writes the cell of every training row under tessellation `j` into the
+/// buffer, replacing its contents.
+#[cfg(feature = "experimental")]
+pub(crate) type CellSource<'a> = &'a dyn Fn(usize, &mut Vec<usize>);
+
 /// The tessellations of one cell family and their running total at the
 /// training rows.
 #[derive(Debug, Clone)]
@@ -150,7 +155,7 @@ impl<F: CellFamily> Ensemble<F> {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "experimental"))]
     pub(crate) fn family(&self) -> &F {
         &self.family
     }
@@ -198,6 +203,12 @@ impl<F: CellFamily> Ensemble<F> {
                 .map(|t| Assignment::full(x, t, geometry))
                 .collect();
         }
+    }
+
+    /// Drop the assignment caches; the next sweep rebuilds them.
+    #[cfg(feature = "experimental")]
+    pub(crate) fn release_assignments(&mut self) {
+        self.assignments = Vec::new();
     }
 
     /// Each training row's value under hard membership, summed over the
@@ -248,6 +259,41 @@ impl<F: CellFamily> Ensemble<F> {
                 total = self.family.total(0.0, partial, t.value_at(row, geometry));
             }
             *slot = total;
+        }
+        self.tessellations = tessellations;
+        self.assignments = Vec::new();
+        self.folded = true;
+        Ok(())
+    }
+
+    /// [`restore`](Self::restore) from the cell of every training row
+    /// under each tessellation, which `cells(j, out)` writes into `out`;
+    /// the cells must be those of the nearest centres, lowest index on
+    /// ties. Each row's total is formed as `restore` forms it.
+    #[cfg(feature = "experimental")]
+    pub(crate) fn restore_from_cells(
+        &mut self,
+        x: &Data,
+        tessellations: Vec<Tessellation>,
+        identity: f64,
+        cells: CellSource<'_>,
+    ) -> std::result::Result<(), usize> {
+        debug_assert_eq!(tessellations.len(), self.tessellations.len());
+        let mut column = Vec::with_capacity(x.n_rows());
+        self.total.iter_mut().for_each(|v| *v = identity);
+        for (j, t) in tessellations.iter().enumerate() {
+            cells(j, &mut column);
+            let mut occupied = vec![false; t.n_cells()];
+            column.iter().for_each(|&k| occupied[k] = true);
+            if occupied.iter().any(|&o| !o) {
+                return Err(j);
+            }
+            for (i, (slot, &k)) in self.total.iter_mut().zip(&column).enumerate() {
+                let partial = self.family.partial(0.0, *slot, identity);
+                *slot = self
+                    .family
+                    .total(0.0, partial, t.value_in_cell(k, x.row(i)));
+            }
         }
         self.tessellations = tessellations;
         self.assignments = Vec::new();
