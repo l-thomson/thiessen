@@ -461,3 +461,16 @@ says "Sampled values changed" with the reason.
   so sampled values are the same for a fixed seed. A Gaussian or probit
   sweep executes 9 per cent fewer instructions; on one machine its wall
   clock moved by 0 to 5 per cent, within the noise of the comparison.
+- The assignment caches hold each training row's cell as a 32-bit index,
+  and under hard membership on an all-Euclidean geometry they hold no
+  winning key: a centre birth or move recomputes the key of each row's
+  own centre from the centre coordinates, one active column at a time.
+  The caches are built at the first sweep in place of at construction,
+  and a restored state builds one tessellation's assignment at a time.
+  The nearest-centre search of a full reassignment and of prediction
+  compares each centre with eight rows held in registers. Every key is
+  the same sum in the same order and the winner the same strict
+  comparison, so sampled values are the same for a fixed seed. A sweep
+  executes 6.5 to 8 per cent fewer instructions and prediction 55 per
+  cent fewer; at m = 200 and n = 300,000 the peak memory of a fit falls
+  from 1,050 to 335 MB.

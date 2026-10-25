@@ -424,10 +424,10 @@ mod tests {
                 .collect();
             for (i, (&cell, &v)) in assignments.iter().zip(&values).enumerate() {
                 match i % 4 {
-                    0 => cells[cell].exact.push(v),
-                    1 => cells[cell].censored.push((v - 0.15, v + 0.1)),
-                    2 => cells[cell].censored.push((f64::NEG_INFINITY, v)),
-                    _ => cells[cell].censored.push((v, f64::INFINITY)),
+                    0 => cells[cell as usize].exact.push(v),
+                    1 => cells[cell as usize].censored.push((v - 0.15, v + 0.1)),
+                    2 => cells[cell as usize].censored.push((f64::NEG_INFINITY, v)),
+                    _ => cells[cell as usize].censored.push((v, f64::INFINITY)),
                 }
             }
             let sigma_mu_sq = sampler.mean_sigma_mu_sq();

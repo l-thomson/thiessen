@@ -28,9 +28,15 @@ pub(crate) struct Ensemble<F: CellFamily> {
     /// `None` under hard membership.
     bandwidth_rate: Option<f64>,
     tessellations: Vec<Tessellation>,
+    /// One per tessellation once built, empty until then:
+    /// [`assign`](Self::assign) builds them and a sweep calls it first.
     assignments: Vec<Assignment>,
     /// The combined value of the ensemble at each training row.
     total: Vec<f64>,
+    /// Whether `total` holds each row's values folded over the
+    /// tessellations in order from the identity, as a restore leaves it,
+    /// rather than a running total updated by sweeps.
+    folded: bool,
     /// For the sweep in progress, [`Context::uniform`]'s running sums;
     /// empty when the weights differ.
     running: Vec<f64>,
@@ -102,9 +108,10 @@ impl<S: Default> Default for Scratch<S> {
 
 impl<F: CellFamily> Ensemble<F> {
     /// `m` single-cell tessellations on one covariate each, every cell
-    /// holding `cell_value`, the total set to `total` at every row. Draw
-    /// order per tessellation: the covariate, then the centre coordinate,
-    /// then, under soft membership, the bandwidth from its prior.
+    /// holding `cell_value`, the total set to `total` at every row, the
+    /// assignment caches not built. Draw order per tessellation: the
+    /// covariate, then the centre coordinate, then, under soft
+    /// membership, the bandwidth from its prior.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         family: F,
@@ -130,17 +137,14 @@ impl<F: CellFamily> Ensemble<F> {
                 }
             })
             .collect();
-        let assignments = tessellations
-            .iter()
-            .map(|t| Assignment::full(x, t, &prior.geometry))
-            .collect();
         Self {
             family,
             prior,
             bandwidth_rate,
             tessellations,
-            assignments,
+            assignments: Vec::new(),
             total: vec![total; x.n_rows()],
+            folded: false,
             running: Vec::new(),
             scratch: Scratch::default(),
         }
@@ -163,6 +167,12 @@ impl<F: CellFamily> Ensemble<F> {
         &self.total
     }
 
+    /// The total when it holds each row's values folded over the
+    /// tessellations in order since a restore, with no sweep since.
+    pub(crate) fn folded_total(&self) -> Option<&[f64]> {
+        self.folded.then_some(self.total.as_slice())
+    }
+
     /// One sweep: every tessellation in turn through [`backfit`](Self::backfit).
     /// Replace the inclusion weights of the structural prior; the DART
     /// update writes the sampled vector here each sweep.
@@ -171,13 +181,43 @@ impl<F: CellFamily> Ensemble<F> {
         self.prior.weights = Some(weights);
     }
 
-    /// The cell of every training row under each tessellation.
+    /// The cell of every training row under each tessellation; empty
+    /// while the caches are not built.
     pub(crate) fn assignments(&self) -> &[Assignment] {
         &self.assignments
     }
 
+    /// Build the assignment caches of the training rows `x`, unless built.
+    pub(crate) fn assign(&mut self, x: &Data) {
+        self.folded = false;
+        if self.assignments.len() != self.tessellations.len() {
+            let geometry = &self.prior.geometry;
+            self.assignments = self
+                .tessellations
+                .iter()
+                .map(|t| Assignment::full(x, t, geometry))
+                .collect();
+        }
+    }
+
+    /// Each training row's value under hard membership, summed over the
+    /// tessellations in order from zero, with the caches not built: one
+    /// tessellation's assignment at a time.
+    pub(crate) fn hard_values_unassigned(&self, x: &Data) -> Vec<f64> {
+        let mut values = vec![0.0; x.n_rows()];
+        let mut a = Assignment::default();
+        for t in &self.tessellations {
+            Assignment::full_into(x, t, &self.prior.geometry, &mut a);
+            for (i, (v, &cell)) in values.iter_mut().zip(&a.cells).enumerate() {
+                *v += t.value_in_cell(cell as usize, x.row(i));
+            }
+        }
+        values
+    }
+
     /// Replace every tessellation by `tessellations`, of the same count,
-    /// rebuilding the assignment caches and the total. `identity` is the
+    /// rebuilding the total and leaving the assignment caches unbuilt;
+    /// one tessellation's assignment is held at a time. `identity` is the
     /// family's neutral value, 0 for an additive ensemble and 1 for a
     /// multiplicative one: each row's total folds the tessellations'
     /// values into it through the family's own update. Returns the index
@@ -191,13 +231,11 @@ impl<F: CellFamily> Ensemble<F> {
     ) -> std::result::Result<(), usize> {
         debug_assert_eq!(tessellations.len(), self.tessellations.len());
         let geometry = &self.prior.geometry;
-        let assignments: Vec<Assignment> = tessellations
-            .iter()
-            .map(|t| Assignment::full(x, t, geometry))
-            .collect();
-        for (j, (t, a)) in tessellations.iter().zip(&assignments).enumerate() {
+        let mut a = Assignment::default();
+        for (j, t) in tessellations.iter().enumerate() {
+            Assignment::full_into(x, t, geometry, &mut a);
             let mut occupied = vec![false; t.n_cells()];
-            a.cells.iter().for_each(|&k| occupied[k] = true);
+            a.cells.iter().for_each(|&k| occupied[k as usize] = true);
             if occupied.iter().any(|&o| !o) {
                 return Err(j);
             }
@@ -212,7 +250,8 @@ impl<F: CellFamily> Ensemble<F> {
             *slot = total;
         }
         self.tessellations = tessellations;
-        self.assignments = assignments;
+        self.assignments = Vec::new();
+        self.folded = true;
         Ok(())
     }
 
@@ -224,6 +263,7 @@ impl<F: CellFamily> Ensemble<F> {
         rng: &mut Rng,
         #[cfg(test)] breakage: crate::broken::Breakage,
     ) {
+        self.assign(x);
         let mut scratch = std::mem::take(&mut self.scratch);
         scratch.primed = false;
         running_sums(weights, &mut self.running);
@@ -282,7 +322,7 @@ impl<F: CellFamily> Ensemble<F> {
             return;
         }
         for i in 0..n {
-            let cell = cells[i];
+            let cell = cells[i] as usize;
             let own = match soft {
                 Some(w) => soft_value(&current.mus, &w[i * b..(i + 1) * b]),
                 None => current.training_value(cell, x, i),
@@ -526,7 +566,9 @@ impl<F: CellFamily> Ensemble<F> {
                 (&mut self.total[..n], &scratch.partials[..n], &cells[..n]);
             let mus = &tessellation.mus;
             for i in 0..n {
-                total[i] = self.family.total(input[i], partials[i], mus[cells[i]]);
+                total[i] = self
+                    .family
+                    .total(input[i], partials[i], mus[cells[i] as usize]);
             }
             return;
         }
@@ -534,7 +576,7 @@ impl<F: CellFamily> Ensemble<F> {
         for i in 0..n {
             let own = match soft {
                 Some(w) => soft_value(&tessellation.mus, &w[i * b..(i + 1) * b]),
-                None => tessellation.training_value(cells[i], x, i),
+                None => tessellation.training_value(cells[i] as usize, x, i),
             };
             total[i] = self.family.total(input[i], partials[i], own);
         }
@@ -558,6 +600,7 @@ impl<F: CellFamily> Ensemble<F> {
         weights: &[f64],
         rng: &mut Rng,
     ) {
+        self.assign(x);
         let mut scratch = std::mem::take(&mut self.scratch);
         running_sums(weights, &mut self.running);
         for j in 0..self.tessellations.len() {
@@ -572,6 +615,7 @@ impl<F: CellFamily> Ensemble<F> {
     /// Replace tessellation `j` and rebuild its cache; the caller resets
     /// the total.
     pub(crate) fn set_tessellation(&mut self, j: usize, x: &Data, t: Tessellation, total: f64) {
+        self.assign(x);
         self.assignments[j] = Assignment::full(x, &t, &self.prior.geometry);
         self.tessellations[j] = t;
         self.total.iter_mut().for_each(|v| *v = total);

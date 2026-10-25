@@ -398,11 +398,11 @@ mod tests {
                 .collect();
             for (&cell, &v) in assignments.iter().zip(&y) {
                 if v == lower {
-                    cells[cell].n_below += 1.0;
+                    cells[cell as usize].n_below += 1.0;
                 } else if v == upper {
-                    cells[cell].n_above += 1.0;
+                    cells[cell as usize].n_above += 1.0;
                 } else {
-                    cells[cell].observed.push(v);
+                    cells[cell as usize].observed.push(v);
                 }
             }
             let sigma_mu_sq = sampler.mean_sigma_mu_sq();

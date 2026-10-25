@@ -375,9 +375,9 @@ mod tests {
                 .collect();
             for ((&cell, &v), &event) in assignments.iter().zip(&engine_y).zip(&events) {
                 if event {
-                    cells[cell].events.push(v);
+                    cells[cell as usize].events.push(v);
                 } else {
-                    cells[cell].censored.push(v);
+                    cells[cell as usize].censored.push(v);
                 }
             }
             let sigma_mu_sq = sampler.mean_sigma_mu_sq();

@@ -524,7 +524,7 @@ mod tests {
         let assignments = sampler.mean_cells(0).to_vec();
         let mut cells: Vec<Vec<usize>> = vec![Vec::new(); b];
         for (&cell, &label) in assignments.iter().zip(labels) {
-            cells[cell].push(label as usize);
+            cells[cell as usize].push(label as usize);
         }
         for _ in 0..2000 {
             sampler.conjugate_sweep();
