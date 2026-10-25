@@ -64,6 +64,10 @@ feature; a configuration naming one otherwise raises
 
 ::: thiessen.estimators.AddiVortesClassifier
 
+## XAddiVortesRegressor
+
+::: thiessen.estimators.XAddiVortesRegressor
+
 ## Sampler
 
 ::: thiessen.sampler.Sampler

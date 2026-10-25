@@ -73,7 +73,7 @@ target reproduce the same draws; the resolved seed is on
 
 ## scikit-learn
 
-With the `sklearn` extra, `thiessen.estimators` holds two estimators meeting
+With the `sklearn` extra, `thiessen.estimators` holds three estimators meeting
 the scikit-learn contract, so they compose with `Pipeline`, `GridSearchCV`,
 `cross_val_score` and `sklearn.inspection`.
 
@@ -103,7 +103,8 @@ GridSearchCV(model, {"mean_params__tessellations": [50, 200]})
 `AddiVortesClassifier` fits the binary probit model and carries
 `predict_proba`. An integer `random_state` gives the same draws through either
 API, so `AddiVortesRegressor(random_state=1)` and `Model(random_state=1)`
-agree.
+agree. `XAddiVortesRegressor` is the experimental XAddiVortes fast fit, a
+point estimate of the same ensemble.
 
 ### Priors
 
