@@ -6,6 +6,11 @@ pub(crate) fn ln(x: f64) -> f64 {
     libm::log(x)
 }
 
+#[cfg(feature = "experimental")]
+pub(crate) fn ln_1p(x: f64) -> f64 {
+    libm::log1p(x)
+}
+
 pub(crate) fn exp(x: f64) -> f64 {
     libm::exp(x)
 }

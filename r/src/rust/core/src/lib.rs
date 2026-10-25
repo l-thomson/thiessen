@@ -137,6 +137,7 @@ mod scaler;
 mod state;
 mod tessellation;
 mod threads;
+mod xaddivortes;
 
 /// The crate version, as the bindings report it.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -167,3 +168,4 @@ pub use sampler::Sampler;
 pub use scaler::Scaler;
 pub use state::{EnsembleState, Init};
 pub use tessellation::Tessellation;
+pub use xaddivortes::{fit_chains_from_fast, fit_xaddivortes, FastFit, XAddiVortesParams};

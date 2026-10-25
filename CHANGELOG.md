@@ -19,6 +19,17 @@ says "Sampled values changed" with the reason.
 
 ### Added
 
+- (experimental) XAddiVortes, a fast point fit of the ensemble: a build
+  of the m tessellations, then `rounds` rounds that replace the share
+  with the smallest log Bayes factor by fresh tessellations whose shapes
+  and columns follow those the fit keeps, and a final refit whose damping
+  generalised cross-validation chooses. `XAddiVortesParams` (`rounds`,
+  `max_columns`, `centres`, `value_scale`, `replace_share`),
+  `Sampler::xaddivortes`, `fit_xaddivortes` (the fit as a one-draw model
+  whose noise draw is the fit's sigma) and `fit_chains_from_fast` (the
+  exact sampler from per-chain fast fits). `FastFit` reports sigma
+  corrected for the residual degrees of freedom, the column scores and
+  the training-score path.
 - (experimental) Warm start from a previous fit: a chain starts from a
   kept draw of an earlier fit of the same model to the same data in
   place of the cold start; the transition kernel and the posterior are
