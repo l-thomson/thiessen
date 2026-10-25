@@ -395,7 +395,8 @@ format.thiessen_option <- function(x, ...) {
 #' Print a parameter group
 #'
 #' @param x A parameter group from [term_params()], [geometry_params()],
-#'   [structure_params()], [cell_params()] or [general_params()].
+#'   [structure_params()], [cell_params()], [general_params()] or
+#'   [xaddivortes_params()].
 #' @param ... Ignored.
 #' @return `x`, invisibly.
 #' @examples

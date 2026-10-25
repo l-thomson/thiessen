@@ -97,6 +97,49 @@ check_probability <- function(x, arg = rlang::caller_arg(x),
   invisible(NULL)
 }
 
+#' Reject a value that is not a finite number above zero
+#'
+#' rlang's bounds are inclusive and it offers no exclusive option, so zero
+#' is excluded here.
+#'
+#' @param x The value to check.
+#' @param max The largest value allowed.
+#' @param arg The argument name to report.
+#' @param call The calling environment to report.
+#' @noRd
+check_positive <- function(x, max = Inf, arg = rlang::caller_arg(x),
+                           call = rlang::caller_env()) {
+  check_number(x, min = 0, max = max, allow_infinite = FALSE, arg = arg,
+               call = call)
+  if (x == 0) {
+    thiessen_abort(
+      paste0("`", arg, "` must be a number larger than 0, not the number 0."),
+      call = call
+    )
+  }
+  invisible(NULL)
+}
+
+#' Reject a design and a response of different lengths
+#'
+#' @param design The numeric design.
+#' @param response An object of class `"thiessen_response"`.
+#' @param call The calling environment to report.
+#' @noRd
+check_design_rows <- function(design, response,
+                              call = rlang::caller_env()) {
+  if (response$n != nrow(design)) {
+    thiessen_abort(
+      sprintf(
+        "The design has %d rows and the response has %d values; they must agree.",
+        nrow(design), response$n
+      ),
+      call = call
+    )
+  }
+  invisible(NULL)
+}
+
 #' Reject a group argument of the wrong class
 #'
 #' @param value The value to check.

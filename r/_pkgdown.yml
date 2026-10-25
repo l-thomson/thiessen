@@ -32,6 +32,7 @@ articles:
     space, and every configuration group.
   contents:
   - posterior
+  - fast-fits
   - articles/convergence
   - priors
   - articles/covariates
@@ -54,6 +55,14 @@ reference:
   contents:
   - thiessen
   - thiessen_control
+- title: Fast fits
+  contents:
+  - xaddivortes
+  - predict.xaddivortes
+  - summary.xaddivortes
+  - print.xaddivortes
+  - xaddivortes_params
+  - xaddivortes_defaults
 - title: Outcome families
   contents:
   - gaussian_outcome
