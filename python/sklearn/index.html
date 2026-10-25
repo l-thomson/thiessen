@@ -16,7 +16,7 @@
         <link rel="prev" href="../data/">
       
       
-        <link rel="next" href="../arviz/">
+        <link rel="next" href="../fast-fits/">
       
       
         
@@ -521,6 +521,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../fast-fits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fast fits and fast starts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../arviz/" class="md-nav__link">
         
   
@@ -770,12 +797,14 @@
 
 
 <h1 id="scikit-learn">scikit-learn<a class="headerlink" href="#scikit-learn" title="Permanent link">&para;</a></h1>
-<p><code>thiessen.estimators</code> holds two estimators meeting the scikit-learn contract,
-so they compose with <code>Pipeline</code>, <code>GridSearchCV</code>, <code>cross_val_score</code> and
-<code>sklearn.inspection</code>. They need the <code>sklearn</code> extra.</p>
+<p><code>thiessen.estimators</code> holds three estimators meeting the scikit-learn
+contract, so they compose with <code>Pipeline</code>, <code>GridSearchCV</code>, <code>cross_val_score</code>
+and <code>sklearn.inspection</code>. They need the <code>sklearn</code> extra.</p>
 <p><code>AddiVortesRegressor</code> fits the Gaussian and heteroscedastic models;
 <code>AddiVortesClassifier</code> fits the binary probit model. Both take the parameters
-of <a href="../priors/">Priors and scaling</a> as explicit keyword arguments.</p>
+of <a href="../priors/">Priors and scaling</a> as explicit keyword arguments.
+<code>XAddiVortesRegressor</code>, the experimental fast fit, is described in
+<a href="../fast-fits/">Fast fits and fast starts</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">thiessen</span><span class="w"> </span><span class="kn">import</span> <span class="n">TermParams</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">thiessen.estimators</span><span class="w"> </span><span class="kn">import</span> <span class="n">AddiVortesRegressor</span>
@@ -946,7 +975,7 @@ against 1.01); more <code>draws</code> per chain is the answer.</p>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"R^2:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="mi">4</span><span class="p">))</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>chains: 4
-R^2: 0.9499
+R^2: 0.9539
 </code></pre></div>
 <h2 id="seeds">Seeds<a class="headerlink" href="#seeds" title="Permanent link">&para;</a></h2>
 <p><code>random_state</code> takes an integer, a <code>numpy.random.Generator</code>, a
