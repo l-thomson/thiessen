@@ -7,4 +7,4 @@ mkdocstrings-python==2.0.9
 markdown-exec==1.12.3
 # Pulled in by mkdocs-material; 12.3 breaks mkdocstrings' highlighter
 # (`Highlight.__init__` requires `md`).
-pymdown-extensions==12.1
+pymdown-extensions==12.3
