@@ -926,7 +926,7 @@ dtypes; an index array or a boolean mask names the columns directly.</p>
     <span class="n">draws</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
     <span class="n">random_state</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"columns the core sees:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">expanded</span><span class="o">.</span><span class="n">_encoding</span><span class="o">.</span><span class="n">core_metric</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"R^2, indicator columns:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">expanded</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="mi">4</span><span class="p">))</span>
 
 <span class="n">codes</span> <span class="o">=</span> <span class="n">AddiVortesRegressor</span><span class="p">(</span>
     <span class="n">categorical_features</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
@@ -938,10 +938,10 @@ dtypes; an index array or a boolean mask names the columns directly.</p>
     <span class="n">draws</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
     <span class="n">random_state</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"under the categorical metric:"</span><span class="p">,</span> <span class="n">codes</span><span class="o">.</span><span class="n">_encoding</span><span class="o">.</span><span class="n">core_metric</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"R^2, categorical metric:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">codes</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="mi">4</span><span class="p">))</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>columns the core sees: 3
-under the categorical metric: ['euclidean', 'categorical']
+<div class="highlight"><pre><span></span><code>R^2, indicator columns: 0.9688
+R^2, categorical metric: 0.9728
 </code></pre></div>
 <p>Three levels become two indicator columns under the Euclidean metric, or stay
 as one column of codes under the categorical metric, which then takes the Eskin
@@ -950,11 +950,9 @@ mismatch weight.</p>
 <p>The estimators run <code>n_chains=4</code> chains, the number the convergence checks
 are designed for, on <code>n_jobs=None</code> threads, which is one under the joblib
 convention, so an estimator that sets nothing pays four chains on one core.
-<code>n_jobs=-1</code> runs the chains on every core for the same draws; on Friedman #1
-with n = 200 and p = 10 the fit is then about 2.7 times faster on four cores
-of a 2025 laptop. A fit at the default schedule warns on that data (smallest
-effective sample size about 290 against 400, largest R-hat about 1.014
-against 1.01); more <code>draws</code> per chain is the answer.</p>
+<code>n_jobs=-1</code> runs the chains on every core for the same draws. A fit at the
+default schedule warns on Friedman #1 with n = 200 and p = 10; more <code>draws</code>
+per chain is the answer.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -975,7 +973,7 @@ against 1.01); more <code>draws</code> per chain is the answer.</p>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"R^2:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="mi">4</span><span class="p">))</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>chains: 4
-R^2: 0.9539
+R^2: 0.9479
 </code></pre></div>
 <h2 id="seeds">Seeds<a class="headerlink" href="#seeds" title="Permanent link">&para;</a></h2>
 <p><code>random_state</code> takes an integer, a <code>numpy.random.Generator</code>, a
@@ -983,7 +981,6 @@ R^2: 0.9539
 unchanged, so the estimators and <code>Model</code> draw alike:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">thiessen</span><span class="w"> </span><span class="kn">import</span> <span class="n">Model</span><span class="p">,</span> <span class="n">TermParams</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">thiessen</span><span class="w"> </span><span class="kn">import</span> <span class="n">TermParams</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">thiessen.estimators</span><span class="w"> </span><span class="kn">import</span> <span class="n">AddiVortesRegressor</span>
 
 <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>

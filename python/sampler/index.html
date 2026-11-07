@@ -759,6 +759,7 @@ built with the core's <code>experimental</code> feature.</p>
 sweep: read the current mean function and noise level, redraw the censored
 values, and hand the response back.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">norm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">thiessen</span><span class="w"> </span><span class="kn">import</span> <span class="n">TermParams</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">thiessen.sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sampler</span>
 
@@ -775,9 +776,11 @@ values, and hand the response back.</p>
     <span class="n">mean</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">fitted_values</span><span class="p">()</span>
     <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">noise_variances</span><span class="p">())</span>
     <span class="n">working</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="c1"># A draw from the tail above the limit, by inversion.</span>
-    <span class="n">tail</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">censored</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
-    <span class="n">working</span><span class="p">[</span><span class="n">censored</span><span class="p">]</span> <span class="o">=</span> <span class="n">limit</span> <span class="o">+</span> <span class="n">scale</span><span class="p">[</span><span class="n">censored</span><span class="p">]</span> <span class="o">*</span> <span class="n">tail</span>
+    <span class="c1"># A draw from the normal truncated to the tail above the limit, by</span>
+    <span class="c1"># inversion of its distribution function.</span>
+    <span class="n">at_limit</span> <span class="o">=</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">((</span><span class="n">limit</span> <span class="o">-</span> <span class="n">mean</span><span class="p">[</span><span class="n">censored</span><span class="p">])</span> <span class="o">/</span> <span class="n">scale</span><span class="p">[</span><span class="n">censored</span><span class="p">])</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">at_limit</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">censored</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">at_limit</span><span class="p">)</span>
+    <span class="n">working</span><span class="p">[</span><span class="n">censored</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean</span><span class="p">[</span><span class="n">censored</span><span class="p">]</span> <span class="o">+</span> <span class="n">scale</span><span class="p">[</span><span class="n">censored</span><span class="p">]</span> <span class="o">*</span> <span class="n">norm</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
     <span class="n">sampler</span><span class="o">.</span><span class="n">set_response</span><span class="p">(</span><span class="n">working</span><span class="p">)</span>
     <span class="n">sampler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">sampler</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
@@ -787,8 +790,6 @@ values, and hand the response back.</p>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>draws: 40
 </code></pre></div>
-<p>The redraw above is illustrative; a faithful truncated-normal draw would
-invert the conditional tail probability, as the prototype below does.</p>
 <h2 id="prototyping-an-outcome-model">Prototyping an outcome model<a class="headerlink" href="#prototyping-an-outcome-model" title="Permanent link">&para;</a></h2>
 <p>An outcome model with a latent Gaussian representation can be prototyped
 in the loop before it earns a family: impute the latent from its

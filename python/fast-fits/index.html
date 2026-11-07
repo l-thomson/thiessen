@@ -757,8 +757,13 @@ changes where the chains start and not the posterior they target.</p>
 <span class="p">)</span>
 <span class="n">y</span> <span class="o">=</span> <span class="n">f</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">XAddiVortesRegressor</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-<span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">5</span><span class="p">])</span>
-<span class="n">model</span><span class="o">.</span><span class="n">train_score_</span>  <span class="c1"># after the build, each round and the final refit</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"predictions:"</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">5</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"training RMSE after the build:"</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">train_score_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"training RMSE after the final refit:"</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">train_score_</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>predictions: [24.17 19.86 20.7  12.68 16.84]
+training RMSE after the build: 1.148
+training RMSE after the final refit: 0.596
 </code></pre></div>
 <p>The fit time grows linearly with <code>rounds</code> (default 40); the constructor's
 defaults are the core's,
@@ -769,22 +774,46 @@ reaches the core unchanged.</p>
 <h2 id="intervals">Intervals<a class="headerlink" href="#intervals" title="Permanent link">&para;</a></h2>
 <p><code>sigma_</code> is the root of the training residual sum of squares over the residual
 degrees of freedom of the final refit. Those degrees of freedom do not count the
-choice of the cells, so the intervals of <code>predict_interval</code> are a rough guide. Split-conformal intervals (Lei and
-others, 2018) are calibrated without that assumption; MAPIE provides them
-around any scikit-learn regressor:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">mapie.regression</span><span class="w"> </span><span class="kn">import</span> <span class="n">SplitConformalRegressor</span>
-
-<span class="n">conformal</span> <span class="o">=</span> <span class="n">SplitConformalRegressor</span><span class="p">(</span>
-    <span class="n">XAddiVortesRegressor</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">confidence_level</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">prefit</span><span class="o">=</span><span class="kc">False</span>
-<span class="p">)</span>
-<span class="n">conformal</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">150</span><span class="p">],</span> <span class="n">y</span><span class="p">[:</span><span class="mi">150</span><span class="p">])</span><span class="o">.</span><span class="n">conformalize</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="mi">150</span><span class="p">:],</span> <span class="n">y</span><span class="p">[</span><span class="mi">150</span><span class="p">:])</span>
-<span class="n">prediction</span><span class="p">,</span> <span class="n">interval</span> <span class="o">=</span> <span class="n">conformal</span><span class="o">.</span><span class="n">predict_interval</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">5</span><span class="p">])</span>
+choice of the cells, so the intervals of <code>predict_interval</code> are a rough guide.
+Split-conformal intervals (Lei and others, 2018) are calibrated without that
+assumption: fit on one part of the data, and widen the prediction by the
+quantile of the absolute residuals on the other. MAPIE's
+<code>SplitConformalRegressor</code> does the same around any scikit-learn regressor.</p>
+<div class="highlight"><pre><span></span><code><span class="n">fit_rows</span><span class="p">,</span> <span class="n">calibration_rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">150</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="n">split</span> <span class="o">=</span> <span class="n">XAddiVortesRegressor</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">fit_rows</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">fit_rows</span><span class="p">])</span>
+<span class="n">residuals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">calibration_rows</span><span class="p">]</span> <span class="o">-</span> <span class="n">split</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">calibration_rows</span><span class="p">]))</span>
+<span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="mf">0.95</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">residuals</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
+<span class="n">half_width</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">residuals</span><span class="p">)[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+<span class="n">prediction</span> <span class="o">=</span> <span class="n">split</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="mi">5</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"95</span><span class="si">% c</span><span class="s2">onformal half-width:"</span><span class="p">,</span> <span class="n">half_width</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"intervals:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">prediction</span> <span class="o">-</span> <span class="n">half_width</span><span class="p">,</span> <span class="n">prediction</span> <span class="o">+</span> <span class="n">half_width</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>95% conformal half-width: 3.418
+intervals:
+[[20.88 27.72]
+ [16.01 22.85]
+ [17.55 24.39]
+ [ 9.35 16.18]
+ [13.21 20.04]]
 </code></pre></div>
 <h2 id="fast-starts">Fast starts<a class="headerlink" href="#fast-starts" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">thiessen.estimators</span><span class="w"> </span><span class="kn">import</span> <span class="n">AddiVortesRegressor</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
-<span class="n">fast</span> <span class="o">=</span> <span class="n">AddiVortesRegressor</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="s2">"fast"</span><span class="p">,</span> <span class="n">fast_settings</span><span class="o">=</span><span class="p">{</span><span class="s2">"rounds"</span><span class="p">:</span> <span class="mi">20</span><span class="p">})</span>
-<span class="n">fast</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">thiessen.estimators</span><span class="w"> </span><span class="kn">import</span> <span class="n">AddiVortesRegressor</span>
+
+<span class="n">fast</span> <span class="o">=</span> <span class="n">AddiVortesRegressor</span><span class="p">(</span>
+    <span class="n">start</span><span class="o">=</span><span class="s2">"fast"</span><span class="p">,</span> <span class="n">fast_settings</span><span class="o">=</span><span class="p">{</span><span class="s2">"rounds"</span><span class="p">:</span> <span class="mi">20</span><span class="p">},</span> <span class="n">burn_in</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">draws</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">1</span>
+<span class="p">)</span>
+<span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">caught</span><span class="p">:</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">"always"</span><span class="p">)</span>
+    <span class="n">fast</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"chains:"</span><span class="p">,</span> <span class="n">fast</span><span class="o">.</span><span class="n">n_chains</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">warning</span> <span class="ow">in</span> <span class="n">caught</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"warning:"</span><span class="p">,</span> <span class="n">warning</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>chains: 4
+warning: the chains may not have converged: largest R-hat 1.061 (threshold 1.01), smallest effective sample size 55 (threshold 400); run more draws or more chains; the chains started from their own fast fits, not from overdispersed points, so their agreement is weaker evidence of convergence
 </code></pre></div>
 <p>Each chain starts from its own fast fit, after which the configured burn-in and
 draws run. <code>fast_settings</code> takes the names of <code>XAddiVortesRegressor</code>; given

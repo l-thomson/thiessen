@@ -1506,6 +1506,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#exceptions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1521,6 +1532,17 @@
     <span class="md-ellipsis">
       
         ThiessenError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#thiessen.RequiresFeatureError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RequiresFeatureError
       
     </span>
   </a>
@@ -2478,6 +2500,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#exceptions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2493,6 +2526,17 @@
     <span class="md-ellipsis">
       
         ThiessenError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#thiessen.RequiresFeatureError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RequiresFeatureError
       
     </span>
   </a>
@@ -4395,7 +4439,7 @@ thiessen.TermParams : One ensemble's parameters.</p>
 
 <details class="note" open>
   <summary>Notes</summary>
-  <p>Stone, E. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive
+  <p>Stone, A. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive
 Voronoi tessellations. <em>Journal of Computational and Graphical
 Statistics</em>, 34(3), 859-871.</p>
 </details>
@@ -4811,7 +4855,7 @@ setting of the wrong type or out of its range, naming it.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="thiessen._native.RequiresFeatureError">RequiresFeatureError</span></code>
+                  <code><a class="autorefs autorefs-internal" title="thiessen.RequiresFeatureError (thiessen._native.RequiresFeatureError)" href="#thiessen.RequiresFeatureError">RequiresFeatureError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5253,7 +5297,7 @@ category. Experimental, with the family.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="thiessen._native.RequiresFeatureError">RequiresFeatureError</span></code>
+                  <code><a class="autorefs autorefs-internal" title="thiessen.RequiresFeatureError (thiessen._native.RequiresFeatureError)" href="#thiessen.RequiresFeatureError">RequiresFeatureError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8612,7 +8656,7 @@ Statistics 34(3), 859-871.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="thiessen._native.RequiresFeatureError">RequiresFeatureError</span></code>
+                  <code><a class="autorefs autorefs-internal" title="thiessen.RequiresFeatureError (thiessen._native.RequiresFeatureError)" href="#thiessen.RequiresFeatureError">RequiresFeatureError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9254,7 +9298,7 @@ the build, after each round and after the final refit.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="thiessen._native.RequiresFeatureError">RequiresFeatureError</span></code>
+                  <code><a class="autorefs autorefs-internal" title="thiessen.RequiresFeatureError (thiessen._native.RequiresFeatureError)" href="#thiessen.RequiresFeatureError">RequiresFeatureError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -9634,7 +9678,14 @@ family.</p>
 
     </div>
 
-</div><h2 id="exceptions">Exceptions<a class="headerlink" href="#exceptions" title="Permanent link">&para;</a></h2>
+</div><h2 id="build">Build<a class="headerlink" href="#build" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>thiessen.CORE_VERSION</code> (<code>str</code>): the version of the core crate the extension
+  was built from.</li>
+<li><code>thiessen._native.EXPERIMENTAL</code> (<code>bool</code>): whether the extension was built
+  with the core's <code>experimental</code> feature.</li>
+</ul>
+<h2 id="exceptions">Exceptions<a class="headerlink" href="#exceptions" title="Permanent link">&para;</a></h2>
 
 
 <div class="doc doc-object doc-class">
@@ -9653,6 +9704,39 @@ family.</p>
               Bases: <code><span title="ValueError">ValueError</span></code></p>
 
 
+
+        <p>Invalid configuration, data or fitted model.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="thiessen.RequiresFeatureError" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">thiessen.RequiresFeatureError</span>
+
+
+<a href="#thiessen.RequiresFeatureError" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="thiessen.ThiessenError (thiessen._native.ThiessenError)" href="#thiessen.ThiessenError">ThiessenError</a></code></p>
+
+
+
+        <p>The configuration names an item behind the core's <code>experimental</code> feature.</p>
 
 
 

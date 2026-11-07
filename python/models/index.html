@@ -847,7 +847,7 @@ AddiVortes.</p>
 <tr>
 <td>probit</td>
 <td><code>probit()</code></td>
-<td 0_="0," 1="1">labels in</td>
+<td 0_ 1>labels in</td>
 <td>empty</td>
 <td>P(y = 1 | x)</td>
 <td>not applicable</td>
@@ -944,14 +944,13 @@ others (2021) recommend for the R-hat and effective sample size checks a fit
 of two or more chains makes. The chains run on <code>n_threads=1</code> threads by
 default, the scikit-learn convention, so a call that sets nothing pays four
 chains on one core. <code>n_threads=os.cpu_count()</code> runs the chains on
-every core for the same draws, which do not depend on the thread count; on
-Friedman #1 with n = 200 and p = 10 the fit is then about 2.7 times faster on
-four cores of a 2025 laptop, so it costs about one and a half chains rather
-than four.</p>
-<p>The default schedule is short for the thresholds: on that data a default fit
-reaches a smallest effective sample size of about 290 against the threshold
-of 400 and a largest R-hat of about 1.014 against 1.01, so it warns. More
-draws per chain, <code>Model(draws=)</code>, is the answer; <code>thinning</code> is not.</p>
+every core for the same draws, which do not depend on the thread count.
+Pooling the draws and the diagnostics run on one thread after the sweeps, so
+the speed-up is less than the thread count.</p>
+<p>The default schedule is short for harder data: on Friedman #1 with n = 200
+and p = 10 a default fit falls short of the effective sample size and R-hat
+thresholds, so it warns. More draws per chain, <code>Model(draws=)</code>, is the
+answer; <code>thinning</code> is not.</p>
 <p>A fit that warned can be continued rather than rerun:
 <code>model.fit(x, y, init=fitted)</code> with the same number of chains continues each
 chain from the last draw of its counterpart in <code>fitted</code> instead of the cold
@@ -1044,20 +1043,21 @@ exposed here as any other option, with no separate opt-in.</p>
 <p><code>Model(outcome=None)</code>, the default, takes the family from the shape of
 <code>y</code> at <code>fit</code>, the rule of <code>glm</code> with "not declared" representable: a
 numeric array is the Gaussian family, a boolean array or a two-category
-pandas <code>Categorical</code> the probit family, an ordered <code>Categorical</code> the
-ordinal family (its categories the category count), a structured array
-of a boolean event indicator and a time, the layout of
-<code>sksurv.util.Surv.from_arrays</code>, the AFT family, and an array of shape
-<code>(n, 2)</code> of lower and upper bounds the interval-censored family, an
+pandas <code>Categorical</code> the probit family, and, in an experimental build,
+an ordered <code>Categorical</code> the ordinal family (its categories the category
+count), a structured array of a boolean event indicator and a time, the
+layout of <code>sksurv.util.Surv.from_arrays</code>, the AFT family, and an array of
+shape <code>(n, 2)</code> of lower and upper bounds the interval-censored family, an
 infinite bound for one-sided censoring and an equal pair for an exact
 value. A named family is checked against the shape and a mismatch is an
 error naming both; the probit family also takes the numbers 0 and 1 and
 the ordinal family integer codes 0 to K - 1 with <code>categories</code> named.
 <code>FittedModel.log_likelihood</code>, <code>to_inference_data</code>, <code>Sampler</code> and
-<code>Sampler.set_response</code> take the same shapes. <code>FittedModel.predict_proba</code>
-gives the ordinal category probabilities, and <code>dfs</code>, <code>cutpoints</code>,
-<code>bandwidths</code>, <code>inclusion_weights</code> and <code>concentrations</code> the posterior
-quantities the experimental items sample, empty where none is.</p>
+<code>Sampler.set_response</code> take the same shapes. In an experimental build,
+<code>FittedModel.predict_proba</code> gives the ordinal category probabilities, and
+<code>dfs</code>, <code>cutpoints</code>, <code>bandwidths</code>, <code>inclusion_weights</code> and <code>concentrations</code>
+the posterior quantities the experimental items sample, empty where none
+is.</p>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <p>Albert, J. H. and Chib, S. (1993). Bayesian analysis of binary and
 polychotomous response data. <em>Journal of the American Statistical
@@ -1065,7 +1065,7 @@ Association</em>, 88(422), 669-679.</p>
 <p>Eskin, E., Arnold, A., Prerau, M., Portnoy, L. and Stolfo, S. (2002). A
 geometric framework for unsupervised anomaly detection. In <em>Applications of
 Data Mining in Computer Security</em>, 77-101.</p>
-<p>Stone, E. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive Voronoi
+<p>Stone, A. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive Voronoi
 tessellations. <em>Journal of Computational and Graphical Statistics</em>, 34(3),
 859-871.</p>
 
