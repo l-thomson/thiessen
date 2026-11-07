@@ -212,6 +212,28 @@ impl OutcomeModel for Outcome {
 /// probit model the response is the labels and the fitted values are the
 /// latent mean c + f(x). The sampler owns its RNG, seeded at construction;
 /// a caller's loop consumes none of it.
+///
+/// # Examples
+///
+/// ```
+/// use thiessen::{Config, Data, Sampler};
+///
+/// let rows: Vec<[f64; 2]> = (0..40).map(|i| [i as f64 / 40.0, (i % 5) as f64 / 5.0]).collect();
+/// let y: Vec<f64> = rows.iter().map(|r| r[0] * r[0] + 0.5 * r[1]).collect();
+/// let x = Data::from_rows(&rows)?;
+/// let config = Config::new().with_m(10);
+/// let mut sampler = Sampler::new(&config, &x, &y, 1)?;
+/// for _ in 0..20 {
+///     sampler.step();
+/// }
+/// for _ in 0..40 {
+///     sampler.step();
+///     sampler.keep();
+/// }
+/// let model = sampler.finish()?;
+/// assert_eq!(model.n_draws(), 40);
+/// # Ok::<(), thiessen::Error>(())
+/// ```
 #[derive(Debug, Clone)]
 pub struct Sampler {
     rng: Rng,

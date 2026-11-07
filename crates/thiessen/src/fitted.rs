@@ -1037,6 +1037,24 @@ impl Fitted {
     /// `NotApplicable` under the probit model, which has no continuous
     /// predictive distribution; `InvalidProbability` for `level` outside
     /// (0, 1); the predict errors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use thiessen::{fit, Config, Data};
+    ///
+    /// let rows: Vec<[f64; 2]> = (0..40).map(|i| [i as f64 / 40.0, (i % 5) as f64 / 5.0]).collect();
+    /// let y: Vec<f64> = rows.iter().map(|r| r[0] * r[0] + 0.5 * r[1]).collect();
+    /// let x = Data::from_rows(&rows)?;
+    /// let config = Config::new().with_m(10).with_burn_in(20).with_draws(40);
+    /// let model = fit(&config, &x, &y, 1)?;
+    /// let mean = model.credible_interval(&x, 0.9)?;
+    /// let new = model.prediction_interval(&x, 0.9)?;
+    /// for (m, p) in mean.iter().zip(&new) {
+    ///     assert!(p.lower <= m.lower && m.upper <= p.upper);
+    /// }
+    /// # Ok::<(), thiessen::Error>(())
+    /// ```
     pub fn prediction_interval(&self, x: &Data, level: f64) -> Result<Vec<Interval>> {
         check_probability(level)?;
         self.prediction_interval_applies()?;

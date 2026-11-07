@@ -50,6 +50,21 @@ pub mod tobit;
 /// # Errors
 ///
 /// [`Sampler::new`].
+///
+/// # Examples
+///
+/// ```
+/// use thiessen::{fit, Config, Data};
+///
+/// let rows: Vec<[f64; 2]> = (0..40).map(|i| [i as f64 / 40.0, (i % 5) as f64 / 5.0]).collect();
+/// let y: Vec<f64> = rows.iter().map(|r| r[0] * r[0] + 0.5 * r[1]).collect();
+/// let x = Data::from_rows(&rows)?;
+/// let config = Config::new().with_m(10).with_burn_in(20).with_draws(40);
+/// let model = fit(&config, &x, &y, 1)?;
+/// assert_eq!(model.n_draws(), 40);
+/// assert_eq!(model.predict(&x)?.len(), 40);
+/// # Ok::<(), thiessen::Error>(())
+/// ```
 pub fn fit(config: &Config, x: &Data, y: &[f64], seed: u64) -> Result<Fitted> {
     fit_with_progress(config, x, y, seed, |_, _| {})
 }
@@ -87,6 +102,21 @@ pub fn fit_with_progress(
 /// # Errors
 ///
 /// [`Sampler::new`]; `InvalidHyperparameter` for `n_chains` of zero.
+///
+/// # Examples
+///
+/// ```
+/// use thiessen::{fit_chains, Config, Data};
+///
+/// let rows: Vec<[f64; 2]> = (0..40).map(|i| [i as f64 / 40.0, (i % 5) as f64 / 5.0]).collect();
+/// let y: Vec<f64> = rows.iter().map(|r| r[0] * r[0] + 0.5 * r[1]).collect();
+/// let x = Data::from_rows(&rows)?;
+/// let config = Config::new().with_m(10).with_burn_in(20).with_draws(40);
+/// let (model, fitted_values) = fit_chains(&config, &x, &y, 1, 4)?;
+/// assert_eq!(model.n_draws(), 4 * 40);
+/// assert_eq!(fitted_values.len(), 40);
+/// # Ok::<(), thiessen::Error>(())
+/// ```
 pub fn fit_chains(
     config: &Config,
     x: &Data,

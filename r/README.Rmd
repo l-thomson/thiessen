@@ -78,7 +78,7 @@ by default. `predict()` gives the posterior mean and, with `interval =`,
 a credible interval for the mean function or a predictive interval for
 a new observation:
 
-```{r figure}
+```{r figure, fig.alt = "Posterior mean of the mean function along the first covariate with its 90 per cent credible band, against the dashed true curve."}
 grid <- cbind(a = seq(0, 1, length.out = 100), b = 0.5)
 band <- predict(fit, grid, interval = "credible", level = 0.9)
 

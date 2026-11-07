@@ -49,6 +49,17 @@ impl Data {
     /// # Errors
     ///
     /// `InvalidDataShape` for ragged rows.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use thiessen::Data;
+    ///
+    /// let x = Data::from_rows(&[[0.0, 1.0], [0.5, 2.0], [1.0, 3.0]])?;
+    /// assert_eq!((x.n_rows(), x.n_cols()), (3, 2));
+    /// assert!(Data::from_rows(&[vec![0.0, 1.0], vec![0.5]]).is_err());
+    /// # Ok::<(), thiessen::Error>(())
+    /// ```
     pub fn from_rows<R: AsRef<[f64]>>(rows: &[R]) -> Result<Self> {
         let n_cols = rows.first().map_or(0, |r| r.as_ref().len());
         let mut values = Vec::with_capacity(rows.len() * n_cols);

@@ -241,6 +241,23 @@ pub struct FastFit {
 ///
 /// As [`Sampler::new`](crate::Sampler::new) and
 /// [`Sampler::xaddivortes`](crate::Sampler::xaddivortes).
+///
+/// # Examples
+///
+/// ```
+/// # #[cfg(feature = "experimental")] {
+/// use thiessen::{fit_xaddivortes, Config, Data, XAddiVortesParams};
+///
+/// let rows: Vec<[f64; 2]> = (0..200).map(|i| [i as f64 / 200.0, (i % 7) as f64]).collect();
+/// let y: Vec<f64> = rows.iter().map(|r| (6.0 * r[0]).sin() + 0.1 * r[1]).collect();
+/// let x = Data::from_rows(&rows)?;
+/// let params = XAddiVortesParams::default().with_rounds(5);
+/// let (model, fast) = fit_xaddivortes(&Config::new(), &x, &y, 1, &params)?;
+/// assert_eq!(fast.train_score.len(), 5 + 2);
+/// assert_eq!(model.predict(&x)?.len(), 200);
+/// # }
+/// # Ok::<(), thiessen::Error>(())
+/// ```
 pub fn fit_xaddivortes(
     config: &crate::Config,
     x: &crate::Data,

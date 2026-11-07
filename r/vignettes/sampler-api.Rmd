@@ -130,7 +130,7 @@ fit_censored$n_draws
 The censored fit recovers the upper tail that a fit to the clamped
 response flattens at the limit:
 
-```{r}
+```{r, fig.alt = "Fitted curves along the first covariate for the imputed and the clamped fits over the observed points, with the dashed true line and the dotted censoring limit."}
 clamped <- thiessen(x, y_observed, control, seed = 1, chains = 1)
 grid <- cbind(a = seq(0, 1, length.out = 100), b = 0.5)
 curves <- rbind(

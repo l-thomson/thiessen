@@ -67,11 +67,11 @@ fit reaches a smallest effective sample size of
 reaches `r round(worst(long)[["ess"]])` and
 `r round(worst(long)[["rhat"]], 3)`, and its chains overlap.
 
-```{r trace-short}
+```{r trace-short, fig.alt = "Trace plot of sigma for the short schedule, one line per chain over 100 draws."}
 bayesplot::mcmc_trace(as_draws_array(short), pars = "sigma")
 ```
 
-```{r trace-long}
+```{r trace-long, fig.alt = "Trace plot of sigma for the default schedule, one line per chain over 1000 draws."}
 bayesplot::mcmc_trace(as_draws_array(long), pars = "sigma")
 ```
 
