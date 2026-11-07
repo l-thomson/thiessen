@@ -33,8 +33,8 @@ thiessen_control(
   The outcome family, from
   [`gaussian_outcome()`](https://l-thomson.github.io/thiessen/r/reference/gaussian_outcome.md),
   [`probit_outcome()`](https://l-thomson.github.io/thiessen/r/reference/probit_outcome.md)
-  or one of the experimental constructors above. `NULL`, the default,
-  takes the family the response selects.
+  or one of the experimental constructors listed under Details. `NULL`,
+  the default, takes the family the response selects.
 
 - mean_params:
 

@@ -1,6 +1,7 @@
 # Residual standard deviation of a fitted model
 
-Residual standard deviation of a fitted model
+The `stats` generic [`sigma()`](https://rdrr.io/r/stats/sigma.html) for
+a fit: the posterior mean of the residual scale.
 
 ## Usage
 

@@ -6,7 +6,10 @@ McCulloch, 2010) as a tessellation stands to a tree: a cell is a region
 of the covariate space rather than a box, so a boundary oblique to the
 axes costs one cell rather than many splits. The priors, the Gibbs
 sampler and the posterior summaries are those of BART, so a reader who
-has fitted BART, dbarts or bartMachine will recognise every argument.
+has fitted BART, dbarts or bartMachine will recognise the structure of
+the arguments; [related
+software](https://l-thomson.github.io/thiessen/r/articles/related-software.md)
+maps the names.
 
 This page fits one data set end to end with the defaults: the fit, its
 predictions and intervals, the convergence diagnostics, and saving the

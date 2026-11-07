@@ -1,6 +1,10 @@
 # Fitted values, residuals and observation count of a fitted model
 
-Fitted values, residuals and observation count of a fitted model
+The `stats` generics
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+[`residuals()`](https://rdrr.io/r/stats/residuals.html) and
+[`nobs()`](https://rdrr.io/r/stats/nobs.html) for a fit, on the scale of
+the response.
 
 ## Usage
 

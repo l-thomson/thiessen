@@ -23,8 +23,6 @@ configuration group.
 
 - [Working with the
   posterior](https://l-thomson.github.io/thiessen/r/articles/posterior.md):
-- [Fast fits and fast
-  starts](https://l-thomson.github.io/thiessen/r/articles/fast-fits.md):
 - [Chains, convergence and
   compute](https://l-thomson.github.io/thiessen/r/articles/convergence.md):
 - [Priors and what they
@@ -33,6 +31,14 @@ configuration group.
   space](https://l-thomson.github.io/thiessen/r/articles/covariates.md):
 - [The control
   surface](https://l-thomson.github.io/thiessen/r/articles/control-surface.md):
+
+### Experimental
+
+Compiled only into a core built with its `experimental` feature and
+outside semantic versioning; see `experimental_outcomes`.
+
+- [Fast fits and fast
+  starts](https://l-thomson.github.io/thiessen/r/articles/fast-fits.md):
 
 ### Building your own model
 

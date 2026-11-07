@@ -1,6 +1,8 @@
 # The core's default XAddiVortes settings
 
-The core's default XAddiVortes settings
+Reads the default of every setting of
+[`xaddivortes_params()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes_params.md)
+from the core.
 
 ## Usage
 

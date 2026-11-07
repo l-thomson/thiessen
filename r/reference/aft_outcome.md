@@ -69,7 +69,6 @@ alternative to the Cox regression model in survival analysis.
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 aft_outcome()
-}
+#> aft_outcome(nu = 6, q = 0.85)
 ```

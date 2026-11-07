@@ -21,6 +21,10 @@ library(posterior)
 #> 
 #>     %in%, match
 
+worst <- function(fit) {
+  with(fit$convergence, c(ess = min(ess_bulk, ess_tail), rhat = rhat))
+}
+
 set.seed(1)
 n <- 200
 x <- cbind(a = runif(n), b = runif(n))
@@ -72,10 +76,10 @@ long$convergence[c("rhat", "ess_bulk", "ess_tail")]
 ```
 
 The trace of sigma over the chains shows what the schedule buys: 100
-draws per chain against 1000. The short fit fails the check on the
-effective sample size, 80 against 400, and on an R-hat of 1.06 over the
-monitored quantities; the chains of the default fit overlap and its
-smallest effective sample size is in the hundreds.
+draws per chain against 1000. Over the monitored quantities the short
+fit reaches a smallest effective sample size of 80 against 400 and a
+largest R-hat of 1.056 against 1.01; the default fit reaches 899 and
+1.008, and its chains overlap.
 
 ``` r
 
@@ -119,11 +123,31 @@ chains have longer to mix. More chains add draws at the same cost per
 draw. `thinning` reduces the stored draws without adding information, so
 it is not a remedy for a low effective sample size.
 
-The default schedule is short for a harder problem. On Friedman \#1 with
-n = 200 and p = 10 it reaches a smallest effective sample size of about
-130 and an R-hat of about 1.02, so the fit warns; the [Gaussian
+The default schedule is short for a harder problem. On Friedman \#1
+(Friedman 1991) with n = 200 and p = 10:
+
+``` r
+
+friedman <- function(n, p = 10, sd = 1) {
+  x <- matrix(runif(n * p), n, p, dimnames = list(NULL, paste0("x", 1:p)))
+  f <- 10 * sin(pi * x[, 1] * x[, 2]) + 20 * (x[, 3] - 0.5)^2 +
+    10 * x[, 4] + 5 * x[, 5]
+  list(x = x, y = f + rnorm(n, sd = sd))
+}
+hard <- friedman(200)
+hard_fit <- thiessen(hard$x, hard$y, seed = 1)
+#> Warning in thiessen(hard$x, hard$y, seed = 1): The chains may not have
+#> converged: largest R-hat 1.062 (threshold 1.01), smallest effective sample size
+#> 66 (threshold 400). Run more draws or more chains.
+worst(hard_fit)
+#>       ess      rhat 
+#> 65.893610  1.061863
+```
+
+The [Gaussian
 regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.md)
-page runs 3000 draws per chain, which clears both thresholds.
+page runs 3000 draws per chain on the same function, which clears both
+thresholds.
 
 A fit of one chain carries no diagnostics and says so:
 
@@ -150,8 +174,8 @@ draws. The draws do not depend on the thread count.
 
 Effective sample size per second is the number to compare schedules and
 thread counts by, since it measures information gained rather than draws
-stored. On the machine that built this page, the default fit on one
-thread and on two:
+stored. On the machine that built this page, the default fit on one, two
+and four threads:
 
 ``` r
 
@@ -163,15 +187,15 @@ seconds <- function(threads) {
     min_ess = round(fit$convergence$ess_bulk),
     ess_per_second = round(fit$convergence$ess_bulk / elapsed))
 }
-rbind(seconds(1), seconds(2))
+rbind(seconds(1), seconds(2), seconds(4))
 #>      threads seconds min_ess ess_per_second
-#> [1,]       1     2.8     899            327
-#> [2,]       2     1.5     899            585
+#> [1,]       1     3.2     899            281
+#> [2,]       2     1.8     899            493
+#> [3,]       4     1.7     899            529
 ```
 
 Pooling the draws and the diagnostics run on one thread after the
-sweeps, so the speed-up from more threads is less than the thread count;
-at n = 200, four threads take about 45 per cent of the one-thread time.
+sweeps, so the speed-up from more threads is less than the thread count.
 [`predict()`](https://rdrr.io/r/stats/predict.html) splits its rows over
 the fit’s thread count, or over its own `threads` argument.
 
@@ -181,6 +205,9 @@ started](https://l-thomson.github.io/thiessen/r/articles/thiessen.md)
 page shows the two lines that set one.
 
 ## References
+
+Friedman, J. H. (1991). Multivariate adaptive regression splines. *The
+Annals of Statistics* 19(1), 1-67. <doi:10.1214/aos/1176347963>
 
 Vehtari, A., Gelman, A., Simpson, D., Carpenter, B. and Buerkner, P.-C.
 (2021). Rank-normalization, folding, and localization: an improved R-hat

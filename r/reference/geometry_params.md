@@ -1,6 +1,9 @@
 # The covariate space of the ensembles
 
-The covariate space of the ensembles
+Constructs the `geometry` group of
+[`term_params()`](https://l-thomson.github.io/thiessen/r/reference/term_params.md):
+the metric of each covariate column, the prior standard deviation of a
+centre coordinate and the membership rule.
 
 ## Usage
 

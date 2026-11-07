@@ -43,11 +43,13 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="../articles/posterior.html">Working with the posterior</a></li>
-    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="../articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="../articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="../articles/covariates.html">Covariates and the covariate space</a></li>
     <li><a class="dropdown-item" href="../articles/control-surface.html">The control surface</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
+    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
@@ -81,7 +83,7 @@
       <h1>Fast fits and fast starts</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/l-thomson/thiessen/blob/dev/vignettes/fast-fits.Rmd" class="external-link"><code>vignettes/fast-fits.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/l-thomson/thiessen/blob/dev/vignettes/articles/fast-fits.Rmd" class="external-link"><code>vignettes/articles/fast-fits.Rmd</code></a></small>
       <div class="d-none name"><code>fast-fits.Rmd</code></div>
     </div>
 
@@ -97,10 +99,8 @@ damping of the cell values by generalised cross-validation. The fit has
 two uses: a fast point estimate, and the starting state of the exact
 sampler, which changes where the chains start and not the posterior they
 target. Both are experimental: they need a build with the core’s
-<code>experimental</code> feature, and each chunk is skipped in a build
-without it, so a rendering with no output below is that, not a failure.
-The <a href="https://github.com/l-thomson/thiessen/blob/dev/docs/experimental.md" class="external-link">table
-of experimental items</a> gives the install command.</p>
+<code>experimental</code> feature, and
+<code><a href="../reference/experimental_outcomes.html">?experimental_outcomes</a></code> gives the install command.</p>
 <div class="section level2">
 <h2 id="a-fast-fit">A fast fit<a class="anchor" aria-label="anchor" href="#a-fast-fit"></a>
 </h2>
@@ -118,12 +118,20 @@ of experimental items</a> gives the install command.</p>
 <span><span class="va">test</span> <span class="op">&lt;-</span> <span class="fu">friedman</span><span class="op">(</span><span class="fl">300</span><span class="op">)</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/xaddivortes.html">xaddivortes</a></span><span class="op">(</span><span class="va">train</span><span class="op">$</span><span class="va">x</span>, <span class="va">train</span><span class="op">$</span><span class="va">y</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">fit</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">test</span><span class="op">$</span><span class="va">x</span><span class="op">)</span> <span class="op">-</span> <span class="va">test</span><span class="op">$</span><span class="va">f</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#&gt; XAddiVortes fast fit (experimental)</span></span>
+<span><span class="co">#&gt; Call: xaddivortes(x = train$x, y = train$y, seed = 1)</span></span>
+<span><span class="co">#&gt; gaussian model, 300 observations, 10 covariates</span></span>
+<span><span class="co">#&gt; 200 tessellations, 40 rounds (0.04 s)</span></span>
+<span><span class="co">#&gt; In-sample RMSE 0.6798, seed 1</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">test</span><span class="op">$</span><span class="va">x</span><span class="op">)</span> <span class="op">-</span> <span class="va">test</span><span class="op">$</span><span class="va">f</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1.006713</span></span></code></pre></div>
 <p><code><a href="../reference/xaddivortes_params.html">xaddivortes_params()</a></code> holds the five settings and their
 defaults; the fit time grows linearly with <code>rounds</code> (default
 40).</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">fast</span><span class="op">$</span><span class="va">column_scores</span>, decreasing <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">fast</span><span class="op">$</span><span class="va">column_scores</span>, decreasing <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    x4    x2    x1    x3    x5    x8    x9    x7   x10    x6 </span></span>
+<span><span class="co">#&gt; 0.162 0.112 0.093 0.038 0.031 0.022 0.016 0.015 0.011 0.001</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="intervals">Intervals<a class="anchor" aria-label="anchor" href="#intervals"></a>
@@ -136,7 +144,8 @@ cover less than their level:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">y_test</span> <span class="op">&lt;-</span> <span class="va">test</span><span class="op">$</span><span class="va">f</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">test</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">naive</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">test</span><span class="op">$</span><span class="va">x</span>, interval <span class="op">=</span> <span class="st">"prediction"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">y_test</span> <span class="op">&gt;=</span> <span class="va">naive</span><span class="op">[</span>, <span class="st">"lower"</span><span class="op">]</span> <span class="op">&amp;</span> <span class="va">y_test</span> <span class="op">&lt;=</span> <span class="va">naive</span><span class="op">[</span>, <span class="st">"upper"</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">y_test</span> <span class="op">&gt;=</span> <span class="va">naive</span><span class="op">[</span>, <span class="st">"lower"</span><span class="op">]</span> <span class="op">&amp;</span> <span class="va">y_test</span> <span class="op">&lt;=</span> <span class="va">naive</span><span class="op">[</span>, <span class="st">"upper"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.83</span></span></code></pre></div>
 <p>A split-conformal interval (Lei and others, 2018) is calibrated
 without that assumption: fit on one part of the data and widen the
 prediction by a quantile of the absolute residuals on the other.</p>
@@ -146,7 +155,8 @@ prediction by a quantile of the absolute residuals on the other.</p>
 <span><span class="va">scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">train</span><span class="op">$</span><span class="va">y</span><span class="op">[</span><span class="op">-</span><span class="va">half</span><span class="op">]</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">proper</span>, <span class="va">train</span><span class="op">$</span><span class="va">x</span><span class="op">[</span><span class="op">-</span><span class="va">half</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">k</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fl">0.95</span> <span class="op">*</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">scores</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">width</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">scores</span><span class="op">)</span><span class="op">[</span><span class="va">k</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">y_test</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">proper</span>, <span class="va">test</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="va">width</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">y_test</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">proper</span>, <span class="va">test</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="va">width</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.9533333</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="fast-starts">Fast starts<a class="anchor" aria-label="anchor" href="#fast-starts"></a>
@@ -161,7 +171,12 @@ combined.</p>
 <span><span class="op">)</span></span>
 <span><span class="va">started</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/thiessen.html">thiessen</a></span><span class="op">(</span><span class="va">train</span><span class="op">$</span><span class="va">x</span>, <span class="va">train</span><span class="op">$</span><span class="va">y</span>, <span class="va">control</span>, seed <span class="op">=</span> <span class="fl">1</span>, chains <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>                    start <span class="op">=</span> <span class="st">"fast"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">started</span>, <span class="va">test</span><span class="op">$</span><span class="va">x</span><span class="op">)</span> <span class="op">-</span> <span class="va">test</span><span class="op">$</span><span class="va">f</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#&gt; Warning in thiessen(train$x, train$y, control, seed = 1, chains = 2, start =</span></span>
+<span><span class="co">#&gt; "fast"): The chains may not have converged: largest R-hat 1.225 (threshold</span></span>
+<span><span class="co">#&gt; 1.01), smallest effective sample size 7 (threshold 400). Run more draws or more</span></span>
+<span><span class="co">#&gt; chains.</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">started</span>, <span class="va">test</span><span class="op">$</span><span class="va">x</span><span class="op">)</span> <span class="op">-</span> <span class="va">test</span><span class="op">$</span><span class="va">f</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.9596422</span></span></code></pre></div>
 <p>The schedule above is short so that the page builds quickly, and the
 fit warns that the chains may not have converged. A fast start changes
 where the chains start; the convergence checks apply as they do to a

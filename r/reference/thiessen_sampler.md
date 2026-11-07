@@ -44,10 +44,6 @@ verbs above.
 
 ## Details
 
-The seven verbs below are stable. The badge covers additions to the
-object and changes to what a verb returns beyond its documented
-contract.
-
 An outcome family, a censoring scheme or an imputation scheme the
 package does not ship is written in R against this loop, with no Rust
 and no recompilation. A model is reachable exactly when it is a Gaussian

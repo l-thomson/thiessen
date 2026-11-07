@@ -1,6 +1,6 @@
 # Print an outcome family
 
-Print an outcome family
+Prints the family and its parameters on one line.
 
 ## Usage
 

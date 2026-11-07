@@ -62,7 +62,6 @@ American Statistical Association* 103(482), 681-686.
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 laplace_outcome()
-}
+#> laplace_outcome(nu = 6, q = 0.85)
 ```

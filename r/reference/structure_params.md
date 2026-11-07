@@ -1,6 +1,9 @@
 # The covariate-inclusion prior of the ensembles
 
-The covariate-inclusion prior of the ensembles
+Constructs the `structure` group of
+[`term_params()`](https://l-thomson.github.io/thiessen/r/reference/term_params.md):
+the prior on the number of covariates a tessellation uses and on which
+it uses.
 
 ## Usage
 

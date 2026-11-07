@@ -1,6 +1,8 @@
 # Outcome families behind the core's experimental feature
 
-Outcome families behind the core's experimental feature
+The tobit, AFT, interval-censored, ordinal, Student-t and Laplace
+families are compiled only into a core built with its `experimental`
+feature. This page states the policy they share.
 
 ## Arguments
 

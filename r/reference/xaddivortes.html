@@ -47,11 +47,13 @@ the burn-in."><meta name="robots" content="noindex, nofollow"></head><body>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="../articles/posterior.html">Working with the posterior</a></li>
-    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="../articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="../articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="../articles/covariates.html">Covariates and the covariate space</a></li>
     <li><a class="dropdown-item" href="../articles/control-surface.html">The control surface</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
+    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
@@ -190,8 +192,9 @@ fit time.</p>
 of squares over the residual degrees of freedom of the final refit.
 Those degrees of freedom do not count the choice of the cells, so the
 intervals of <code>predict(fit, interval = "prediction")</code> can cover less than
-their level; <code><a href="../articles/fast-fits.html">vignette("fast-fits", package = "thiessen")</a></code> measures the
-coverage on held-out data. Split-conformal intervals around the fit (Lei
+their level; the
+<a href="https://l-thomson.github.io/thiessen/r/articles/fast-fits.html">fast fits article</a>
+measures the coverage on held-out data. Split-conformal intervals around the fit (Lei
 and others, 2018) are calibrated without that assumption: fit on one
 part of the data and widen the prediction by the <code>level</code> quantile of the
 absolute residuals on the other part.</p>
@@ -224,18 +227,26 @@ Statistics</em> 34(3), 859-871. <a href="https://doi.org/10.1080/10618600.2024.2
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># core_experimental()</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">400</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fl">6</span> <span class="op">*</span> <span class="va">x</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span> <span class="va">x</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">200</span>, sd <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">control</span> <span class="op">&lt;-</span> <span class="fu"><a href="thiessen_control.html">thiessen_control</a></span><span class="op">(</span>tessellations <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">xaddivortes</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span>, params <span class="op">=</span> <span class="fu"><a href="xaddivortes_params.html">xaddivortes_params</a></span><span class="op">(</span>rounds <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                   control <span class="op">=</span> <span class="va">control</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> XAddiVortes fast fit (experimental)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Call: xaddivortes(x = x, y = y, params = xaddivortes_params(rounds = 10),      control = control, seed = 1)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> gaussian model, 200 observations, 2 covariates</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20 tessellations, 10 rounds (0.00 s)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> In-sample RMSE 0.0799, seed 1</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">frame</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, a <span class="op">=</span> <span class="va">x</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>, b <span class="op">=</span> <span class="va">x</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">xaddivortes</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">a</span> <span class="op">+</span> <span class="va">b</span>, <span class="va">frame</span>, control <span class="op">=</span> <span class="va">control</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> XAddiVortes fast fit (experimental)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Call: xaddivortes(formula = y ~ a + b, data = frame, control = control,      seed = 1)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> gaussian model, 200 observations, 2 covariates</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20 tessellations, 40 rounds (0.00 s)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> In-sample RMSE 0.09383, seed 1</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

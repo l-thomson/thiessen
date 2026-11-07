@@ -43,11 +43,13 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="../articles/posterior.html">Working with the posterior</a></li>
-    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="../articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="../articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="../articles/covariates.html">Covariates and the covariate space</a></li>
     <li><a class="dropdown-item" href="../articles/control-surface.html">The control surface</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
+    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
@@ -106,6 +108,10 @@ what the chains cost in time.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     %in%, match</span></span>
 <span></span>
+<span><span class="va">worst</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">convergence</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ess <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">ess_bulk</span>, <span class="va">ess_tail</span><span class="op">)</span>, rhat <span class="op">=</span> <span class="va">rhat</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">200</span></span>
 <span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, b <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span><span class="op">)</span></span>
@@ -148,10 +154,10 @@ passes on these data:</p>
 <span><span class="co">#&gt; $ess_tail</span></span>
 <span><span class="co">#&gt; [1] 1877.808</span></span></code></pre></div>
 <p>The trace of sigma over the chains shows what the schedule buys: 100
-draws per chain against 1000. The short fit fails the check on the
-effective sample size, 80 against 400, and on an R-hat of 1.06 over the
-monitored quantities; the chains of the default fit overlap and its
-smallest effective sample size is in the hundreds.</p>
+draws per chain against 1000. Over the monitored quantities the short
+fit reaches a smallest effective sample size of 80 against 400 and a
+largest R-hat of 1.056 against 1.01; the default fit reaches 899 and
+1.008, and its chains overlap.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-traces.html" class="external-link">mcmc_trace</a></span><span class="op">(</span><span class="fu"><a href="https://mc-stan.org/posterior/reference/draws_array.html" class="external-link">as_draws_array</a></span><span class="op">(</span><span class="va">short</span><span class="op">)</span>, pars <span class="op">=</span> <span class="st">"sigma"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="convergence_files/figure-html/trace-short-1.png" class="r-plt" alt="" width="100%"></p>
@@ -184,11 +190,26 @@ same cost per draw. <code>thinning</code> reduces the stored draws
 without adding information, so it is not a remedy for a low effective
 sample size.</p>
 <p>The default schedule is short for a harder problem. On Friedman #1
-with n = 200 and p = 10 it reaches a smallest effective sample size of
-about 130 and an R-hat of about 1.02, so the fit warns; the <a href="gaussian.html">Gaussian regression</a> page runs 3000 draws per
-chain, which clears both thresholds.</p>
-<p>A fit of one chain carries no diagnostics and says so:</p>
+(Friedman 1991) with n = 200 and p = 10:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">friedman</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n</span>, <span class="va">p</span> <span class="op">=</span> <span class="fl">10</span>, <span class="va">sd</span> <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span> <span class="op">*</span> <span class="va">p</span><span class="op">)</span>, <span class="va">n</span>, <span class="va">p</span>, dimnames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="cn">NULL</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">p</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">f</span> <span class="op">&lt;-</span> <span class="fl">10</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="va">pi</span> <span class="op">*</span> <span class="va">x</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="va">x</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span> <span class="fl">20</span> <span class="op">*</span> <span class="op">(</span><span class="va">x</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span> <span class="op">-</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span></span>
+<span>    <span class="fl">10</span> <span class="op">*</span> <span class="va">x</span><span class="op">[</span>, <span class="fl">4</span><span class="op">]</span> <span class="op">+</span> <span class="fl">5</span> <span class="op">*</span> <span class="va">x</span><span class="op">[</span>, <span class="fl">5</span><span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">f</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, sd <span class="op">=</span> <span class="va">sd</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">hard</span> <span class="op">&lt;-</span> <span class="fu">friedman</span><span class="op">(</span><span class="fl">200</span><span class="op">)</span></span>
+<span><span class="va">hard_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/thiessen.html">thiessen</a></span><span class="op">(</span><span class="va">hard</span><span class="op">$</span><span class="va">x</span>, <span class="va">hard</span><span class="op">$</span><span class="va">y</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in thiessen(hard$x, hard$y, seed = 1): The chains may not have</span></span>
+<span><span class="co">#&gt; converged: largest R-hat 1.062 (threshold 1.01), smallest effective sample size</span></span>
+<span><span class="co">#&gt; 66 (threshold 400). Run more draws or more chains.</span></span>
+<span><span class="fu">worst</span><span class="op">(</span><span class="va">hard_fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       ess      rhat </span></span>
+<span><span class="co">#&gt; 65.893610  1.061863</span></span></code></pre></div>
+<p>The <a href="gaussian.html">Gaussian regression</a> page runs 3000
+draws per chain on the same function, which clears both thresholds.</p>
+<p>A fit of one chain carries no diagnostics and says so:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">one</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/thiessen.html">thiessen</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span>, seed <span class="op">=</span> <span class="fl">1</span>, chains <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">one</span></span>
 <span><span class="co">#&gt; AddiVortes fit</span></span>
@@ -211,8 +232,8 @@ draws. The draws do not depend on the thread count.</p>
 <p>Effective sample size per second is the number to compare schedules
 and thread counts by, since it measures information gained rather than
 draws stored. On the machine that built this page, the default fit on
-one thread and on two:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+one, two and four threads:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">seconds</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">threads</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">elapsed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span></span>
 <span>    <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/thiessen.html">thiessen</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span>, seed <span class="op">=</span> <span class="fl">1</span>, threads <span class="op">=</span> <span class="va">threads</span><span class="op">)</span></span>
@@ -221,13 +242,13 @@ one thread and on two:</p>
 <span>    min_ess <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">convergence</span><span class="op">$</span><span class="va">ess_bulk</span><span class="op">)</span>,</span>
 <span>    ess_per_second <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">convergence</span><span class="op">$</span><span class="va">ess_bulk</span> <span class="op">/</span> <span class="va">elapsed</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu">seconds</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, <span class="fu">seconds</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu">seconds</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, <span class="fu">seconds</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>, <span class="fu">seconds</span><span class="op">(</span><span class="fl">4</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;      threads seconds min_ess ess_per_second</span></span>
-<span><span class="co">#&gt; [1,]       1     2.8     899            327</span></span>
-<span><span class="co">#&gt; [2,]       2     1.5     899            585</span></span></code></pre></div>
+<span><span class="co">#&gt; [1,]       1     3.2     899            281</span></span>
+<span><span class="co">#&gt; [2,]       2     1.8     899            493</span></span>
+<span><span class="co">#&gt; [3,]       4     1.7     899            529</span></span></code></pre></div>
 <p>Pooling the draws and the diagnostics run on one thread after the
-sweeps, so the speed-up from more threads is less than the thread count;
-at n = 200, four threads take about 45 per cent of the one-thread time.
+sweeps, so the speed-up from more threads is less than the thread count.
 <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> splits its rows over the fit’s thread count, or
 over its own <code>threads</code> argument.</p>
 <p>Progress over the whole fit is signalled with progressr, so nothing
@@ -237,6 +258,8 @@ set one.</p>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
+<p>Friedman, J. H. (1991). Multivariate adaptive regression splines.
+<em>The Annals of Statistics</em> 19(1), 1-67. <a href="doi:10.1214/aos/1176347963" class="uri">doi:10.1214/aos/1176347963</a></p>
 <p>Vehtari, A., Gelman, A., Simpson, D., Carpenter, B. and Buerkner,
 P.-C. (2021). Rank-normalization, folding, and localization: an improved
 R-hat for assessing convergence of MCMC. <em>Bayesian Analysis</em>

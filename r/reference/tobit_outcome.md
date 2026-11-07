@@ -69,7 +69,6 @@ variables. *Econometrica* 26(1), 24-36.
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 tobit_outcome(lower = 0)
-}
+#> tobit_outcome(lower = 0, nu = 6, q = 0.85)
 ```

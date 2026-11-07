@@ -158,9 +158,9 @@ page shows the count.
 The configuration, or a saved fit, uses an outcome family or a component
 option compiled only into a build made with `THIESSEN_EXPERIMENTAL=1`.
 The condition carries the class `thiessen_requires_feature`, so it is
-told apart from an invalid configuration. The
-[experimental](https://l-thomson.github.io/thiessen/r/articles/experimental.md)
-page has the install command and the catalogue;
+told apart from an invalid configuration.
+[`?experimental_outcomes`](https://l-thomson.github.io/thiessen/r/reference/experimental_outcomes.md)
+gives the install command and links the catalogue;
 [`core_experimental()`](https://l-thomson.github.io/thiessen/r/reference/core_experimental.md)
 reports the setting of the build in use.
 
@@ -168,7 +168,7 @@ reports the setting of the build in use.
 
 c(core = core_version(), experimental = core_experimental())
 #>         core experimental 
-#>      "0.3.0"      "FALSE"
+#>      "0.3.0"       "TRUE"
 ```
 
 ## A saved fit will not load

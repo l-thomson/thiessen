@@ -1,6 +1,8 @@
 # The within-cell response surface of the ensembles
 
-The within-cell response surface of the ensembles
+Constructs the `cell` group of
+[`term_params()`](https://l-thomson.github.io/thiessen/r/reference/term_params.md):
+the value each cell of a tessellation holds.
 
 ## Usage
 

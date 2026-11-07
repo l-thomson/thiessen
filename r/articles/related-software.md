@@ -43,8 +43,8 @@ survival (`abart`, `surv.bart`), competing-risks and recurrent-events
 outcomes, with the DART sparsity prior. Of those, this package’s
 published surface has the continuous and probit models; the
 accelerated-failure-time, Student-t, Laplace and DART variants exist
-behind the [experimental
-build](https://l-thomson.github.io/thiessen/r/articles/experimental.md)
+behind the experimental build
+([`?experimental_outcomes`](https://l-thomson.github.io/thiessen/r/reference/experimental_outcomes.md))
 until each is calibrated and derived.
 
 [dbarts](https://cran.r-project.org/package=dbarts) (Dorie and others)

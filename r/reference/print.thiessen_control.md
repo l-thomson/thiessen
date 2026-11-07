@@ -1,6 +1,6 @@
 # Print a control object
 
-Print a control object
+Prints the outcome family and each parameter group, one per line.
 
 ## Usage
 

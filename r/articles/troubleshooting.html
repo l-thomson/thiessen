@@ -43,11 +43,13 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="../articles/posterior.html">Working with the posterior</a></li>
-    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="../articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="../articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="../articles/covariates.html">Covariates and the covariate space</a></li>
     <li><a class="dropdown-item" href="../articles/control-surface.html">The control surface</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
+    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
@@ -236,14 +238,14 @@ answer, not a different estimator. The <a href="posterior.html">posterior</a> pa
 component option compiled only into a build made with
 <code>THIESSEN_EXPERIMENTAL=1</code>. The condition carries the class
 <code>thiessen_requires_feature</code>, so it is told apart from an
-invalid configuration. The <a href="experimental.html">experimental</a>
-page has the install command and the catalogue;
+invalid configuration. <code><a href="../reference/experimental_outcomes.html">?experimental_outcomes</a></code> gives the
+install command and links the catalogue;
 <code><a href="../reference/core_experimental.html">core_experimental()</a></code> reports the setting of the build in
 use.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>core <span class="op">=</span> <span class="fu"><a href="../reference/core_version.html">core_version</a></span><span class="op">(</span><span class="op">)</span>, experimental <span class="op">=</span> <span class="fu"><a href="../reference/core_experimental.html">core_experimental</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         core experimental </span></span>
-<span><span class="co">#&gt;      "0.3.0"      "FALSE"</span></span></code></pre></div>
+<span><span class="co">#&gt;      "0.3.0"       "TRUE"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="a-saved-fit-will-not-load">A saved fit will not load<a class="anchor" aria-label="anchor" href="#a-saved-fit-will-not-load"></a>

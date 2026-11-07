@@ -1,6 +1,6 @@
 # Number of draws and chains of a fitted model
 
-Number of draws and chains of a fitted model
+The `posterior` generics `ndraws()` and `nchains()` for a fit.
 
 ## Usage
 

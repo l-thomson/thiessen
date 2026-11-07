@@ -1,6 +1,6 @@
 # Print a sampler
 
-Print a sampler
+Prints the number of draws kept so far, or that the sampler is finished.
 
 ## Usage
 

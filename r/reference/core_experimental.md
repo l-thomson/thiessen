@@ -26,5 +26,5 @@ A logical of length one: whether the core in use was built with the
 
 ``` r
 core_experimental()
-#> [1] FALSE
+#> [1] TRUE
 ```

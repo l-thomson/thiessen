@@ -45,11 +45,13 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="articles/posterior.html">Working with the posterior</a></li>
-    <li><a class="dropdown-item" href="articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="articles/covariates.html">Covariates and the covariate space</a></li>
     <li><a class="dropdown-item" href="articles/control-surface.html">The control surface</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
+    <li><a class="dropdown-item" href="articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="articles/sampler-api.html">The sampler API</a></li>
@@ -91,7 +93,7 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"l-thomson/thiessen"</span>, subdir <span class="op">=</span> <span class="st">"r"</span><span class="op">)</span></span></code></pre></div>
-<p>The vignettes are on the website named below, so the install leaves them out. <code>build_vignettes = TRUE</code> installs them locally instead, and needs <code>knitr</code> and <code>rmarkdown</code> present to build them.</p>
+<p>The install leaves the vignettes out; the <a href="https://l-thomson.github.io/thiessen/r/">package website</a> renders every page with its output.</p>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
@@ -130,11 +132,11 @@
 </h2>
 <p>The <a href="https://l-thomson.github.io/thiessen/r/">package website</a> renders every page below with its output, beside the reference pages. Pages marked (website) take longer to run than a package check allows and are not installed as vignettes.</p>
 <ul>
-<li>Get started: <code><a href="articles/thiessen.html">vignette("thiessen")</a></code>, one data set end to end.</li>
-<li>Models (website): <a href="https://l-thomson.github.io/thiessen/r/articles/gaussian.html">Gaussian regression</a>, <a href="https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.html">Binary AddiVortes</a> and <a href="https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html">H-AddiVortes</a>, one page per published model on one template, with <code><a href="articles/model-description.html">vignette("model-description")</a></code> holding the notation and the symbol-to-argument table.</li>
-<li>Using a fit: <code><a href="articles/posterior.html">vignette("posterior")</a></code> for the draws through posterior, bayesplot, loo and tidybayes; <a href="https://l-thomson.github.io/thiessen/r/articles/convergence.html">chains and convergence</a> (website) for the chains, R-hat, effective sample size and compute; <code><a href="articles/priors.html">vignette("priors")</a></code> for what each prior does; <a href="https://l-thomson.github.io/thiessen/r/articles/covariates.html">covariates</a> (website) for factors, scaling and the covariate space; <code><a href="articles/control-surface.html">vignette("control-surface")</a></code> for every configuration group.</li>
-<li>Building your own model: <code><a href="articles/sampler-api.html">vignette("sampler-api")</a></code>, the Gibbs loop driven from R, so an outcome family the package does not ship is built without Rust.</li>
-<li>Help: <code><a href="articles/troubleshooting.html">vignette("troubleshooting")</a></code> and <code><a href="articles/related-software.html">vignette("related-software")</a></code>.</li>
+<li>Get started: <a href="https://l-thomson.github.io/thiessen/r/articles/thiessen.html">thiessen</a>, one data set end to end.</li>
+<li>Models (website): <a href="https://l-thomson.github.io/thiessen/r/articles/gaussian.html">Gaussian regression</a>, <a href="https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.html">Binary AddiVortes</a> and <a href="https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html">H-AddiVortes</a>, one page per published model on one template, with <a href="https://l-thomson.github.io/thiessen/r/articles/model-description.html">model description</a> holding the notation and the symbol-to-argument table.</li>
+<li>Using a fit: <a href="https://l-thomson.github.io/thiessen/r/articles/posterior.html">posterior</a> for the draws through posterior, bayesplot, loo and tidybayes; <a href="https://l-thomson.github.io/thiessen/r/articles/convergence.html">chains and convergence</a> (website) for the chains, R-hat, effective sample size and compute; <a href="https://l-thomson.github.io/thiessen/r/articles/fast-fits.html">fast fits</a> (website, experimental) for the point fit and the warm start; <a href="https://l-thomson.github.io/thiessen/r/articles/priors.html">priors</a> for what each prior does; <a href="https://l-thomson.github.io/thiessen/r/articles/covariates.html">covariates</a> (website) for factors, scaling and the covariate space; <a href="https://l-thomson.github.io/thiessen/r/articles/control-surface.html">control surface</a> for every configuration group.</li>
+<li>Building your own model: <a href="https://l-thomson.github.io/thiessen/r/articles/sampler-api.html">sampler API</a>, the Gibbs loop driven from R, so an outcome family the package does not ship is built without Rust.</li>
+<li>Help: <a href="https://l-thomson.github.io/thiessen/r/articles/troubleshooting.html">troubleshooting</a> and <a href="https://l-thomson.github.io/thiessen/r/articles/related-software.html">related software</a>.</li>
 </ul>
 </div>
 <div class="section level2">

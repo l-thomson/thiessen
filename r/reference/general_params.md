@@ -1,6 +1,9 @@
 # The sweep schedule of a fit
 
-The sweep schedule of a fit
+Constructs the `general_params` group of
+[`thiessen_control()`](https://l-thomson.github.io/thiessen/r/reference/thiessen_control.md):
+burn-in, kept draws, thinning, and whether the likelihood is switched
+off.
 
 ## Usage
 

@@ -62,7 +62,6 @@ Bayesian additive regression trees. *Journal of Statistical Software*
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 structure_params(inclusion = weighted_inclusion(c(2, 1, 1)))
-}
+#> structure_params(inclusion = weighted_inclusion(weights = c(2, 1, 1)))
 ```

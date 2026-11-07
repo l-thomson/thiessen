@@ -112,8 +112,8 @@ The noise estimate `sigma(fit)` is the root of the training residual sum
 of squares over the residual degrees of freedom of the final refit.
 Those degrees of freedom do not count the choice of the cells, so the
 intervals of `predict(fit, interval = "prediction")` can cover less than
-their level;
-[`vignette("fast-fits", package = "thiessen")`](https://l-thomson.github.io/thiessen/r/articles/fast-fits.md)
+their level; the [fast fits
+article](https://l-thomson.github.io/thiessen/r/articles/fast-fits.html)
 measures the coverage on held-out data. Split-conformal intervals around
 the fit (Lei and others, 2018) are calibrated without that assumption:
 fit on one part of the data and widen the prediction by the `level`
@@ -160,7 +160,6 @@ Statistics* 34(3), 859-871.
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 set.seed(1)
 x <- matrix(runif(400), ncol = 2)
 y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
@@ -168,8 +167,17 @@ control <- thiessen_control(tessellations = 20)
 fit <- xaddivortes(x, y, params = xaddivortes_params(rounds = 10),
                    control = control, seed = 1)
 fit
+#> XAddiVortes fast fit (experimental)
+#> Call: xaddivortes(x = x, y = y, params = xaddivortes_params(rounds = 10),      control = control, seed = 1)
+#> gaussian model, 200 observations, 2 covariates
+#> 20 tessellations, 10 rounds (0.00 s)
+#> In-sample RMSE 0.0799, seed 1
 
 frame <- data.frame(y = y, a = x[, 1], b = x[, 2])
 xaddivortes(y ~ a + b, frame, control = control, seed = 1)
-}
+#> XAddiVortes fast fit (experimental)
+#> Call: xaddivortes(formula = y ~ a + b, data = frame, control = control,      seed = 1)
+#> gaussian model, 200 observations, 2 covariates
+#> 20 tessellations, 40 rounds (0.00 s)
+#> In-sample RMSE 0.09383, seed 1
 ```

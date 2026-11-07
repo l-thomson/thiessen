@@ -43,11 +43,13 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="../articles/posterior.html">Working with the posterior</a></li>
-    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="../articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="../articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="../articles/covariates.html">Covariates and the covariate space</a></li>
     <li><a class="dropdown-item" href="../articles/control-surface.html">The control surface</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
+    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
@@ -95,9 +97,8 @@ be rewritten between sweeps, which is what a latent-Gaussian data
 augmentation needs. This page drives a fit by hand, builds a
 censored-response model in a dozen lines, and reimplements the probit
 family to show that the loop reaches a shipped model.</p>
-<p>The seven verbs are stable. The experimental badge on the object
-covers additions to it and changes to what a verb returns beyond its
-documented contract.</p>
+<p>The sampler is experimental: its verbs and what they return may
+change in any release.</p>
 <p>It follows the updatable sampler object of dbarts and the low-level
 interface of stochtree: construct with the configuration, the data and a
 seed, then drive the loop yourself. Burn-in and thinning are the

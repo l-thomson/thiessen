@@ -39,11 +39,13 @@ splits."><meta name="robots" content="noindex, nofollow"></head><body>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="../articles/posterior.html">Working with the posterior</a></li>
-    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="../articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="../articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="../articles/covariates.html">Covariates and the covariate space</a></li>
     <li><a class="dropdown-item" href="../articles/control-surface.html">The control surface</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
+    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
@@ -277,14 +279,11 @@ chain says so instead.</p>
 <p>A default fit runs four chains of 200 burn-in and 1000 draws each, on
 <code>getOption("mc.cores", 1L)</code> threads, so on one thread it costs four
 chains; <code>options(mc.cores = 4)</code> runs the chains on four cores for the
-same draws, and the fit then takes less than half the one-thread time
-(about 45 per cent at n = 200 on four cores of a 2025 laptop; pooling
-the draws and the diagnostics run on one thread), so it costs under
-two chains rather than four. On Friedman #1 with n = 200 and p = 10 the
-smallest effective sample size over the monitored points is about 100
-(threshold 400) and the largest R-hat about 1.05 (threshold 1.01), so
-the default fit warns. More draws per chain, <code>general_params(draws = )</code>,
-is the answer; <code>thinning</code> is not.</p>
+same draws. Pooling the draws and the diagnostics run on one thread, so
+the speed-up is less than the thread count. On Friedman #1 with n = 200
+and p = 10 the default schedule falls short of both thresholds, so the
+default fit warns. More draws per chain, <code>general_params(draws = )</code>, is
+the answer; <code>thinning</code> is not.</p>
     </div>
     <div class="section level2">
     <h2 id="progress">Progress<a class="anchor" aria-label="anchor" href="#progress"></a></h2>

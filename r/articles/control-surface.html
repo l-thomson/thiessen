@@ -43,11 +43,13 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="../articles/posterior.html">Working with the posterior</a></li>
-    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="../articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="../articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="../articles/covariates.html">Covariates and the covariate space</a></li>
     <li><a class="dropdown-item" href="../articles/control-surface.html">The control surface</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
+    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
@@ -118,9 +120,9 @@ the Gaussian family to the heteroscedastic model. <code>outcome</code>
 left <code>NULL</code>, the default, takes the family from the response
 at fit: a numeric vector the Gaussian family and a two-level factor the
 probit family, with the experimental families selected by their own
-response shapes (the <a href="experimental.html">experimental</a> page
-lists them). A family named here is checked against the response and a
-mismatch is an error naming both.</p>
+response shapes (the <code><a href="../reference/experimental_outcomes.html">?experimental_outcomes</a></code> lists them). A
+family named here is checked against the response and a mismatch is an
+error naming both.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gaussian_outcome.html">gaussian_outcome</a></span><span class="op">(</span>nu <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt; gaussian_outcome(nu = 3, q = 0.85)</span></span>

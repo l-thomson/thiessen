@@ -64,7 +64,6 @@ Society: Series B* 80(5), 1087-1110.
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 geometry_params(membership = soft_membership(rate = 10))
-}
+#> geometry_params(sigma_c = 0.8, membership = soft_membership(rate = 10))
 ```

@@ -43,11 +43,13 @@
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Using a fit</h6></li>
     <li><a class="dropdown-item" href="../articles/posterior.html">Working with the posterior</a></li>
-    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><a class="dropdown-item" href="../articles/convergence.html">Chains, convergence and compute</a></li>
     <li><a class="dropdown-item" href="../articles/priors.html">Priors and what they do</a></li>
     <li><a class="dropdown-item" href="../articles/covariates.html">Covariates and the covariate space</a></li>
     <li><a class="dropdown-item" href="../articles/control-surface.html">The control surface</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Experimental</h6></li>
+    <li><a class="dropdown-item" href="../articles/fast-fits.html">Fast fits and fast starts</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Extending</h6></li>
     <li><a class="dropdown-item" href="../articles/sampler-api.html">The sampler API</a></li>
@@ -220,8 +222,9 @@ binary, multinomial, survival (<code>abart</code>,
 <code>surv.bart</code>), competing-risks and recurrent-events outcomes,
 with the DART sparsity prior. Of those, this package’s published surface
 has the continuous and probit models; the accelerated-failure-time,
-Student-t, Laplace and DART variants exist behind the <a href="experimental.html">experimental build</a> until each is calibrated
-and derived.</p>
+Student-t, Laplace and DART variants exist behind the experimental build
+(<code><a href="../reference/experimental_outcomes.html">?experimental_outcomes</a></code>) until each is calibrated and
+derived.</p>
 <p><a href="https://cran.r-project.org/package=dbarts" class="external-link">dbarts</a> (Dorie
 and others) fits continuous and binary BART with a sampler object the
 caller can drive and modify between sweeps, the pattern this package’s

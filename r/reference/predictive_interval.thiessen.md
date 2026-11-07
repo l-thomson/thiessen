@@ -1,6 +1,9 @@
 # Central posterior predictive interval
 
-Central posterior predictive interval
+The `rstantools` generic
+[`predictive_interval()`](https://mc-stan.org/rstantools/reference/predictive_interval.html)
+for a fit: the central interval of the posterior predictive distribution
+at each row.
 
 ## Usage
 

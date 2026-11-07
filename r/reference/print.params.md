@@ -1,6 +1,6 @@
 # Print a parameter group
 
-Print a parameter group
+Prints the settings of the group on one line.
 
 ## Usage
 

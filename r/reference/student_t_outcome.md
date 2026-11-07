@@ -68,7 +68,6 @@ linear model. *Journal of Applied Econometrics* 8(S1), S19-S40.
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 student_t_outcome(df = c(3, 6, 12))
-}
+#> student_t_outcome(df = c(3, 6, 12), nu = 6, q = 0.85)
 ```

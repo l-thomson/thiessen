@@ -75,18 +75,26 @@ fit
 #> 4 chains, largest R-hat 1.003, smallest effective sample size 2341
 ```
 
-The posterior mean of s(x) along `a`, with `b` fixed, against the scale
-the data were made with:
+The posterior mean of s(x) along `a`, with `b` fixed, and its 95 per
+cent credible band, against the scale the data were made with:
 
 ``` r
 
 grid <- cbind(a = seq(0, 1, length.out = 100), b = 0.5)
-estimate <- sqrt(colMeans(predict(fit, grid, type = "variance")))
+s <- sqrt(predict(fit, grid, type = "variance"))
+band <- apply(s, 2, quantile, probs = c(0.025, 0.975))
 
-ggplot(data.frame(a = grid[, "a"], estimate, truth = scale(grid)), aes(a)) +
+ggplot(
+  data.frame(
+    a = grid[, "a"], estimate = colMeans(s),
+    lower = band[1, ], upper = band[2, ], truth = scale(grid)
+  ),
+  aes(a)
+) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "steelblue", alpha = 0.2) +
   geom_line(aes(y = estimate), colour = "steelblue") +
   geom_line(aes(y = truth), linetype = "dashed") +
-  labs(y = "s(x), posterior mean")
+  labs(y = "s(x)")
 ```
 
 ![](h-addivortes_files/figure-html/figure-1.png)

@@ -69,8 +69,8 @@ first level as reference, as
 AddiVortes encode one. Each indicator is then a Euclidean column, so a
 tessellation can split on it, and the levels are ordered by nothing. A
 two-level factor response selects the probit model; an ordered factor
-selects the ordinal model, which needs the [experimental
-build](https://l-thomson.github.io/thiessen/r/articles/experimental.md).
+selects the ordinal model, which needs the experimental build
+([`?experimental_outcomes`](https://l-thomson.github.io/thiessen/r/reference/experimental_outcomes.md)).
 
 The alternative is to declare a `metric`, one entry per column, and mark
 the factor `"categorical"`: the column then passes as integer level

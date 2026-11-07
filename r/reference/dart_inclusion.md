@@ -77,7 +77,6 @@ Association* 113(522), 626-636.
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 structure_params(inclusion = dart_inclusion())
-}
+#> structure_params(inclusion = dart_inclusion(a = 0.5, b = 1))
 ```

@@ -10,9 +10,8 @@ drives a fit by hand, builds a censored-response model in a dozen lines,
 and reimplements the probit family to show that the loop reaches a
 shipped model.
 
-The seven verbs are stable. The experimental badge on the object covers
-additions to it and changes to what a verb returns beyond its documented
-contract.
+The sampler is experimental: its verbs and what they return may change
+in any release.
 
 It follows the updatable sampler object of dbarts and the low-level
 interface of stochtree: construct with the configuration, the data and a

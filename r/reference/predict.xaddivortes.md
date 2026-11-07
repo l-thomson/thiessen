@@ -57,7 +57,6 @@ A numeric vector, or with an interval a matrix with columns `fit`,
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 set.seed(1)
 x <- matrix(runif(400), ncol = 2)
 y <- sin(6 * x[, 1]) + x[, 2] + rnorm(200, sd = 0.1)
@@ -65,6 +64,13 @@ fit <- xaddivortes(x, y, params = xaddivortes_params(rounds = 10),
                    control = thiessen_control(tessellations = 20),
                    seed = 1)
 head(predict(fit, x))
+#> [1]  1.28280718  0.99914551  0.34048830 -0.47108886  1.02117761 -0.07060789
 head(predict(fit, x, interval = "prediction"))
-}
+#>              fit      lower      upper
+#> [1,]  1.28280718  1.0553143  1.5103001
+#> [2,]  0.99914551  0.7716526  1.2266384
+#> [3,]  0.34048830  0.1129954  0.5679812
+#> [4,] -0.47108886 -0.6985818 -0.2435960
+#> [5,]  1.02117761  0.7936847  1.2486705
+#> [6,] -0.07060789 -0.2981008  0.1568850
 ```

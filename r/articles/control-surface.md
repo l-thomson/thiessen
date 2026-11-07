@@ -37,9 +37,9 @@ Gaussian family to the heteroscedastic model. `outcome` left `NULL`, the
 default, takes the family from the response at fit: a numeric vector the
 Gaussian family and a two-level factor the probit family, with the
 experimental families selected by their own response shapes (the
-[experimental](https://l-thomson.github.io/thiessen/r/articles/experimental.md)
-page lists them). A family named here is checked against the response
-and a mismatch is an error naming both.
+[`?experimental_outcomes`](https://l-thomson.github.io/thiessen/r/reference/experimental_outcomes.md)
+lists them). A family named here is checked against the response and a
+mismatch is an error naming both.
 
 ``` r
 

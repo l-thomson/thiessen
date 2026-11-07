@@ -10,10 +10,8 @@ final refit chooses the damping of the cell values by generalised
 cross-validation. The fit has two uses: a fast point estimate, and the
 starting state of the exact sampler, which changes where the chains
 start and not the posterior they target. Both are experimental: they
-need a build with the core’s `experimental` feature, and each chunk is
-skipped in a build without it, so a rendering with no output below is
-that, not a failure. The [table of experimental
-items](https://github.com/l-thomson/thiessen/blob/dev/docs/experimental.md)
+need a build with the core’s `experimental` feature, and
+[`?experimental_outcomes`](https://l-thomson.github.io/thiessen/r/reference/experimental_outcomes.md)
 gives the install command.
 
 ## A fast fit
@@ -34,7 +32,13 @@ train <- friedman(300)
 test <- friedman(300)
 fit <- xaddivortes(train$x, train$y, seed = 1)
 fit
+#> XAddiVortes fast fit (experimental)
+#> Call: xaddivortes(x = train$x, y = train$y, seed = 1)
+#> gaussian model, 300 observations, 10 covariates
+#> 200 tessellations, 40 rounds (0.04 s)
+#> In-sample RMSE 0.6798, seed 1
 sqrt(mean((predict(fit, test$x) - test$f)^2))
+#> [1] 1.006713
 ```
 
 [`xaddivortes_params()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes_params.md)
@@ -44,6 +48,8 @@ with `rounds` (default 40).
 ``` r
 
 round(sort(fit$fast$column_scores, decreasing = TRUE), 3)
+#>    x4    x2    x1    x3    x5    x8    x9    x7   x10    x6 
+#> 0.162 0.112 0.093 0.038 0.031 0.022 0.016 0.015 0.011 0.001
 ```
 
 ## Intervals
@@ -58,6 +64,7 @@ freedom do not count the choice of the cells, so the intervals of
 y_test <- test$f + rnorm(nrow(test$x))
 naive <- predict(fit, test$x, interval = "prediction")
 mean(y_test >= naive[, "lower"] & y_test <= naive[, "upper"])
+#> [1] 0.83
 ```
 
 A split-conformal interval (Lei and others, 2018) is calibrated without
@@ -72,6 +79,7 @@ scores <- abs(train$y[-half] - predict(proper, train$x[-half, ]))
 k <- ceiling(0.95 * (length(scores) + 1))
 width <- sort(scores)[k]
 mean(abs(y_test - predict(proper, test$x)) <= width)
+#> [1] 0.9533333
 ```
 
 ## Fast starts
@@ -87,7 +95,12 @@ control <- thiessen_control(
 )
 started <- thiessen(train$x, train$y, control, seed = 1, chains = 2,
                     start = "fast")
+#> Warning in thiessen(train$x, train$y, control, seed = 1, chains = 2, start =
+#> "fast"): The chains may not have converged: largest R-hat 1.225 (threshold
+#> 1.01), smallest effective sample size 7 (threshold 400). Run more draws or more
+#> chains.
 sqrt(mean((predict(started, test$x) - test$f)^2))
+#> [1] 0.9596422
 ```
 
 The schedule above is short so that the page builds quickly, and the fit

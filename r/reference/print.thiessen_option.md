@@ -1,6 +1,6 @@
 # Print a component option
 
-Print a component option
+Prints the option and its settings on one line.
 
 ## Usage
 
@@ -30,7 +30,6 @@ print(x, ...)
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 print(dart_inclusion())
-}
+#> dart_inclusion(a = 0.5, b = 1)
 ```

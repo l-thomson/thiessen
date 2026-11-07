@@ -1,6 +1,7 @@
 # Summarise a fitted model
 
-Summarise a fitted model
+Collects the model, the schedule, the in-sample error, residual and
+sigma quantiles and the convergence diagnostics of a fit.
 
 ## Usage
 

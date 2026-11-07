@@ -1,6 +1,6 @@
 # Version of the core crate
 
-Version of the core crate
+Reports the version of the Rust core compiled into the package.
 
 ## Usage
 

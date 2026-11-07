@@ -7,7 +7,10 @@
 - [`thiessen_control()`](https://l-thomson.github.io/thiessen/r/reference/thiessen_control.md)
   : Configuration of a fit
 
-## Fast fits
+## Experimental fast fits
+
+Compiled only into a core built with its `experimental` feature; see
+`experimental_outcomes`.
 
 - [`xaddivortes()`](https://l-thomson.github.io/thiessen/r/reference/xaddivortes.md)
   : Fit XAddiVortes, the fast fit of AddiVortes

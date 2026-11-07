@@ -1,6 +1,8 @@
 # Posterior predictions from a fitted model
 
-Posterior predictions from a fitted model
+The posterior mean of the response, its draws, the latent mean or the
+variance, at new rows or the training rows, with an optional credible or
+predictive interval.
 
 ## Usage
 
@@ -35,10 +37,11 @@ predict(
   The quantity: `"mean"`, the posterior mean of the response (the
   probability under the probit model, the expected category under the
   ordinal model, f(x) on the log-time scale under the AFT model);
-  `"draws"`, that quantity for every kept draw; `"latent"`, the mean
-  function f for every kept draw; `"variance"`, the variance of y given
-  f for every kept draw; `"probs"`, under the ordinal model only, the
-  posterior-mean probability of each category, the
+  `"draws"`, that quantity for every kept draw; `"latent"`, the latent
+  mean for every kept draw, f(x), or c + f(x) under the probit model;
+  `"variance"`, the variance of y given f for every kept draw;
+  `"probs"`, under the ordinal model only, the posterior-mean
+  probability of each category, the
   [`MASS::polr`](https://rdrr.io/pkg/MASS/man/polr.html) name.
 
 - interval:

@@ -74,7 +74,6 @@ applications to survival data. *Biometrics* 57(3), 829-836.
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 ordinal_outcome(categories = 4)
-}
+#> ordinal_outcome(categories = 4, cutpoint_sd = 1)
 ```

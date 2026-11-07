@@ -72,7 +72,6 @@ Time Data*. Springer.
 ## Examples
 
 ``` r
-if (FALSE) { # core_experimental()
 interval_censored_outcome()
-}
+#> interval_censored_outcome(nu = 6, q = 0.85)
 ```

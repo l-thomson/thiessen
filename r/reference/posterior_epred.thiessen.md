@@ -1,6 +1,8 @@
 # Draw from the posterior distribution of the expected response
 
-Draw from the posterior distribution of the expected response
+The `rstantools` generic
+[`posterior_epred()`](https://mc-stan.org/rstantools/reference/posterior_epred.html)
+for a fit: the expected response for every kept draw.
 
 ## Usage
 
