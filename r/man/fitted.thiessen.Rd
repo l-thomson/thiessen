@@ -24,7 +24,8 @@ and the response less that mean. For \code{nobs()}, the number of
 observations.
 }
 \description{
-Fitted values, residuals and observation count of a fitted model
+The \code{stats} generics \code{fitted()}, \code{residuals()} and \code{nobs()} for a fit,
+on the scale of the response.
 }
 \examples{
 n <- 60

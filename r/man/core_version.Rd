@@ -12,7 +12,7 @@ package was built with, equal to the \code{Config/thiessen/core-version}
 field of the package \code{DESCRIPTION}.
 }
 \description{
-Version of the core crate
+Reports the version of the Rust core compiled into the package.
 }
 \examples{
 core_version()

@@ -18,7 +18,7 @@ pip install ./python --config-settings build-args="--features experimental"
 
 ## A fast fit
 
-```python
+```python exec="on" source="above" result="text" session="fast-fits"
 import numpy as np
 from thiessen.estimators import XAddiVortesRegressor
 
@@ -32,8 +32,9 @@ f = (
 )
 y = f + rng.normal(size=300)
 model = XAddiVortesRegressor(random_state=1).fit(X, y)
-model.predict(X[:5])
-model.train_score_  # after the build, each round and the final refit
+print("predictions:", model.predict(X[:5]).round(2))
+print("training RMSE after the build:", model.train_score_[0].round(3))
+print("training RMSE after the final refit:", model.train_score_[-1].round(3))
 ```
 
 The fit time grows linearly with `rounds` (default 40); the constructor's
@@ -47,27 +48,40 @@ reaches the core unchanged.
 
 `sigma_` is the root of the training residual sum of squares over the residual
 degrees of freedom of the final refit. Those degrees of freedom do not count the
-choice of the cells, so the intervals of `predict_interval` are a rough guide. Split-conformal intervals (Lei and
-others, 2018) are calibrated without that assumption; MAPIE provides them
-around any scikit-learn regressor:
+choice of the cells, so the intervals of `predict_interval` are a rough guide.
+Split-conformal intervals (Lei and others, 2018) are calibrated without that
+assumption: fit on one part of the data, and widen the prediction by the
+quantile of the absolute residuals on the other. MAPIE's
+`SplitConformalRegressor` does the same around any scikit-learn regressor.
 
-```python
-from mapie.regression import SplitConformalRegressor
-
-conformal = SplitConformalRegressor(
-    XAddiVortesRegressor(random_state=1), confidence_level=0.95, prefit=False
-)
-conformal.fit(X[:150], y[:150]).conformalize(X[150:], y[150:])
-prediction, interval = conformal.predict_interval(X[:5])
+```python exec="on" source="above" result="text" session="fast-fits"
+fit_rows, calibration_rows = np.arange(150), np.arange(150, 300)
+split = XAddiVortesRegressor(random_state=1).fit(X[fit_rows], y[fit_rows])
+residuals = np.abs(y[calibration_rows] - split.predict(X[calibration_rows]))
+k = int(np.ceil(0.95 * (len(residuals) + 1)))
+half_width = np.sort(residuals)[k - 1]
+prediction = split.predict(X[:5])
+print("95% conformal half-width:", half_width.round(3))
+print("intervals:")
+print(np.column_stack([prediction - half_width, prediction + half_width]).round(2))
 ```
 
 ## Fast starts
 
-```python
+```python exec="on" source="above" result="text" session="fast-fits"
+import warnings
+
 from thiessen.estimators import AddiVortesRegressor
 
-fast = AddiVortesRegressor(start="fast", fast_settings={"rounds": 20})
-fast.fit(X, y)
+fast = AddiVortesRegressor(
+    start="fast", fast_settings={"rounds": 20}, burn_in=100, draws=200, random_state=1
+)
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter("always")
+    fast.fit(X, y)
+print("chains:", fast.n_chains)
+for warning in caught:
+    print("warning:", warning.message)
 ```
 
 Each chain starts from its own fast fit, after which the configured burn-in and

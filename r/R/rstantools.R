@@ -185,6 +185,9 @@ noise_at <- function(state, design, draws) {
 
 #' Draw from the posterior distribution of the expected response
 #'
+#' The `rstantools` generic `posterior_epred()` for a fit: the expected
+#' response for every kept draw.
+#'
 #' @param object An object of class `"thiessen"`.
 #' @param newdata New covariates, as [predict.thiessen()] takes them.
 #'   `NULL`, the default, is the training rows.
@@ -257,6 +260,9 @@ log_lik.thiessen <- function(object, newdata = NULL, y = NULL, ...) {
 }
 
 #' Central posterior predictive interval
+#'
+#' The `rstantools` generic `predictive_interval()` for a fit: the
+#' central interval of the posterior predictive distribution at each row.
 #'
 #' @param object An object of class `"thiessen"`.
 #' @param prob The mass of the interval. Default 0.9.

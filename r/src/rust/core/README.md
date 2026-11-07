@@ -30,13 +30,14 @@ interactions between its covariates without deep splits.
 
 The intended users are statisticians and data scientists who would
 otherwise reach for BART: the R and Python packages give the familiar
-fit and predict surface, and the Rust core gives one audited, fast,
+fit and predict surface, and the Rust core gives one tested,
 reproducible sampler underneath both.
 
 ## Install
 
 Until the first release, each package installs from this repository
-and compiles the Rust core, so each needs rustc 1.74 or later with Cargo.
+and compiles the Rust core, so each needs Cargo and rustc: 1.74 or later
+for the crate and the R package, 1.83 or later for the Python package.
 
 Rust:
 

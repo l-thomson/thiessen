@@ -82,7 +82,7 @@ class Model(Params):
 
     Notes
     -----
-    Stone, E. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive
+    Stone, A. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive
     Voronoi tessellations. *Journal of Computational and Graphical
     Statistics*, 34(3), 859-871.
 

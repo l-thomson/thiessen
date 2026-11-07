@@ -1,5 +1,9 @@
 #' Posterior predictions from a fitted model
 #'
+#' The posterior mean of the response, its draws, the latent mean or the
+#' variance, at new rows or the training rows, with an optional credible
+#' or predictive interval.
+#'
 #' @param object An object of class `"thiessen"`.
 #' @param newdata New covariates. A fit from a formula or a data frame takes
 #'   a data frame, whose columns are matched to the fitted design by name and
@@ -8,10 +12,11 @@
 #' @param type The quantity: `"mean"`, the posterior mean of the response
 #'   (the probability under the probit model, the expected category under
 #'   the ordinal model, f(x) on the log-time scale under the AFT model);
-#'   `"draws"`, that quantity for every kept draw; `"latent"`, the mean
-#'   function f for every kept draw; `"variance"`, the variance of y given
-#'   f for every kept draw; `"probs"`, under the ordinal model only, the
-#'   posterior-mean probability of each category, the `MASS::polr` name.
+#'   `"draws"`, that quantity for every kept draw; `"latent"`, the latent
+#'   mean for every kept draw, f(x), or c + f(x) under the probit model;
+#'   `"variance"`, the variance of y given f for every kept draw;
+#'   `"probs"`, under the ordinal model only, the posterior-mean
+#'   probability of each category, the `MASS::polr` name.
 #' @param interval `"none"`, the default; `"credible"` for the interval of
 #'   the posterior mean; `"prediction"` for the posterior predictive
 #'   interval. Only with `type = "mean"`.
@@ -81,6 +86,9 @@ predict.thiessen <- function(object, newdata = NULL,
 
 #' Residual standard deviation of a fitted model
 #'
+#' The `stats` generic `sigma()` for a fit: the posterior mean of the
+#' residual scale.
+#'
 #' @param object An object of class `"thiessen"`.
 #' @param ... Ignored.
 #'
@@ -141,6 +149,9 @@ residual_scale.thiessen_ordinal <- function(outcome, object) {
 
 #' Fitted values, residuals and observation count of a fitted model
 #'
+#' The `stats` generics `fitted()`, `residuals()` and `nobs()` for a fit,
+#' on the scale of the response.
+#'
 #' @param object An object of class `"thiessen"`.
 #' @param ... Ignored.
 #'
@@ -182,6 +193,9 @@ nobs.thiessen <- function(object, ...) {
 
 #' Print a fitted model
 #'
+#' Prints the call, the model and its dimensions, the sweep schedule, the
+#' in-sample error, the seed and the convergence check.
+#'
 #' @param x An object of class `"thiessen"`.
 #' @param ... Ignored.
 #' @return `x`, invisibly.
@@ -217,6 +231,9 @@ print.thiessen <- function(x, ...) {
 }
 
 #' Summarise a fitted model
+#'
+#' Collects the model, the schedule, the in-sample error, residual and
+#' sigma quantiles and the convergence diagnostics of a fit.
 #'
 #' @param object An object of class `"thiessen"`.
 #' @param ... Ignored.

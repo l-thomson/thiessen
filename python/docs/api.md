@@ -72,6 +72,15 @@ feature; a configuration naming one otherwise raises
 
 ::: thiessen.sampler.Sampler
 
+## Build
+
+- `thiessen.CORE_VERSION` (`str`): the version of the core crate the extension
+  was built from.
+- `thiessen._native.EXPERIMENTAL` (`bool`): whether the extension was built
+  with the core's `experimental` feature.
+
 ## Exceptions
 
 ::: thiessen.ThiessenError
+
+::: thiessen.RequiresFeatureError

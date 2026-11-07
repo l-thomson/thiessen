@@ -26,7 +26,8 @@ diagnostics where two or more chains ran.
 \code{x}, invisibly.
 }
 \description{
-Summarise a fitted model
+Collects the model, the schedule, the in-sample error, residual and
+sigma quantiles and the convergence diagnostics of a fit.
 }
 \examples{
 n <- 60

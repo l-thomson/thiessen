@@ -89,8 +89,9 @@ The noise estimate \code{sigma(fit)} is the root of the training residual sum
 of squares over the residual degrees of freedom of the final refit.
 Those degrees of freedom do not count the choice of the cells, so the
 intervals of \code{predict(fit, interval = "prediction")} can cover less than
-their level; \code{vignette("fast-fits", package = "thiessen")} measures the
-coverage on held-out data. Split-conformal intervals around the fit (Lei
+their level; the
+\href{https://l-thomson.github.io/thiessen/r/articles/fast-fits.html}{fast fits article}
+measures the coverage on held-out data. Split-conformal intervals around the fit (Lei
 and others, 2018) are calibrated without that assumption: fit on one
 part of the data and widen the prediction by the \code{level} quantile of the
 absolute residuals on the other part.

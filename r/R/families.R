@@ -51,6 +51,10 @@ probit_outcome <- function(offset = NULL) {
 
 #' Outcome families behind the core's experimental feature
 #'
+#' The tobit, AFT, interval-censored, ordinal, Student-t and Laplace
+#' families are compiled only into a core built with its `experimental`
+#' feature. This page states the policy they share.
+#'
 #' @section Experimental:
 #'
 #' This family is compiled only into a core built with its `experimental`
@@ -339,6 +343,8 @@ format.thiessen_outcome <- function(x, ...) {
 }
 
 #' Print an outcome family
+#'
+#' Prints the family and its parameters on one line.
 #'
 #' @param x An object of class `"thiessen_outcome"`.
 #' @param ... Ignored.

@@ -19,7 +19,8 @@ published prior, \code{\link[=weighted_inclusion]{weighted_inclusion()}} or \cod
 An object of class \code{"structure_params"}.
 }
 \description{
-The covariate-inclusion prior of the ensembles
+Constructs the \code{structure} group of \code{\link[=term_params]{term_params()}}: the prior on the
+number of covariates a tessellation uses and on which it uses.
 }
 \examples{
 structure_params(omega = 2)

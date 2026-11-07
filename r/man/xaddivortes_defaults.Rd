@@ -11,7 +11,8 @@ A named list: every setting of \code{\link[=xaddivortes_params]{xaddivortes_para
 default, as the core defines them.
 }
 \description{
-The core's default XAddiVortes settings
+Reads the default of every setting of \code{\link[=xaddivortes_params]{xaddivortes_params()}} from the
+core.
 }
 \examples{
 xaddivortes_defaults()

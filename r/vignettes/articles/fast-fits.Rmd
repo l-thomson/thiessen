@@ -1,16 +1,12 @@
 ---
 title: "Fast fits and fast starts"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Fast fits and fast starts}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
-                      eval = thiessen::core_experimental())
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
+
+`r lifecycle::badge("experimental")`
 
 `xaddivortes()` fits the AddiVortes model, a sum of Voronoi tessellations,
 by a fast point fit in place of Markov chain Monte Carlo. The columns are
@@ -22,10 +18,7 @@ cross-validation. The fit has two uses: a
 fast point estimate, and the starting state of the exact sampler, which
 changes where the chains start and not the posterior they target. Both are
 experimental: they need a build with the core's `experimental` feature,
-and each chunk is skipped in a build without it, so a rendering with no
-output below is that, not a failure. The
-[table of experimental items](https://github.com/l-thomson/thiessen/blob/dev/docs/experimental.md)
-gives the install command.
+and `?experimental_outcomes` gives the install command.
 
 ## A fast fit
 

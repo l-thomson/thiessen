@@ -38,7 +38,7 @@ x <- cbind(a = runif(n), b = runif(n))
 y <- 2 * (x[, "a"] - 0.5)^2 + 0.5 * x[, "b"] + rnorm(n, sd = 0.1)
 grid <- cbind(a = seq(0, 1, length.out = 100), b = 0.5)
 
-prior_draws <- function(setting, ...) {
+prior_draws <- function(...) {
   control <- thiessen_control(
     tessellations = 50,
     general_params = general_params(burn_in = 1000, draws = 200,

@@ -21,10 +21,10 @@ print("posterior:", sorted(data["posterior"].dataset.data_vars))
 
 | Group | Variables |
 | --- | --- |
-| `posterior` | `mu`, the mean function per draw; `sigma` under a model with a global sampled scale; `cell_count`; `dimension_count`; where the model samples them, `df`, `cutpoint`, `bandwidth`, `inclusion_weight` and `concentration` |
+| `posterior` | `mu`, the mean function per draw; `sigma` under a model with a global sampled scale; `cell_count`; `dimension_count`; under the experimental items that sample them, `df`, `cutpoint`, `bandwidth`, `inclusion_weight` and `concentration` |
 | `posterior_predictive` | `y`, one replicate per draw under the family's own observation model |
 | `log_likelihood` | `y`, pointwise per draw |
-| `observed_data` | `y`; `time` and `event` under the AFT family; `lower` and `upper` under the interval-censored family |
+| `observed_data` | `y`; `time` and `event` under the experimental AFT family; `lower` and `upper` under the experimental interval-censored family |
 
 The chain dimension of every group holds the chains of the fit, so a fit of
 one chain has one chain and R-hat is `NaN`. The observation dimension is

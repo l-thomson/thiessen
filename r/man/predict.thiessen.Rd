@@ -25,10 +25,11 @@ columns. \code{NULL}, the default, predicts at the training rows.}
 \item{type}{The quantity: \code{"mean"}, the posterior mean of the response
 (the probability under the probit model, the expected category under
 the ordinal model, f(x) on the log-time scale under the AFT model);
-\code{"draws"}, that quantity for every kept draw; \code{"latent"}, the mean
-function f for every kept draw; \code{"variance"}, the variance of y given
-f for every kept draw; \code{"probs"}, under the ordinal model only, the
-posterior-mean probability of each category, the \code{MASS::polr} name.}
+\code{"draws"}, that quantity for every kept draw; \code{"latent"}, the latent
+mean for every kept draw, f(x), or c + f(x) under the probit model;
+\code{"variance"}, the variance of y given f for every kept draw;
+\code{"probs"}, under the ordinal model only, the posterior-mean
+probability of each category, the \code{MASS::polr} name.}
 
 \item{interval}{\code{"none"}, the default; \code{"credible"} for the interval of
 the posterior mean; \code{"prediction"} for the posterior predictive
@@ -50,7 +51,9 @@ named by the levels of the response. For the other types, a matrix
 of one row per kept draw and one column per row of \code{newdata}.
 }
 \description{
-Posterior predictions from a fitted model
+The posterior mean of the response, its draws, the latent mean or the
+variance, at new rows or the training rows, with an optional credible
+or predictive interval.
 }
 \details{
 The rows of \code{newdata} are split over \code{threads} threads, each

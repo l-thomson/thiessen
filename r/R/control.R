@@ -49,7 +49,8 @@
 #' verified.
 #'
 #' @param outcome The outcome family, from [gaussian_outcome()],
-#'   [probit_outcome()] or one of the experimental constructors above.
+#'   [probit_outcome()] or one of the experimental constructors listed
+#'   under Details.
 #'   `NULL`, the default, takes the family the response selects.
 #' @param mean_params The ensemble describing the average, from
 #'   [term_params()].
@@ -127,6 +128,8 @@ thiessen_control <- function(outcome = NULL,
 }
 
 #' Print a control object
+#'
+#' Prints the outcome family and each parameter group, one per line.
 #'
 #' @param x An object of class `"thiessen_control"`.
 #' @param ... Ignored.

@@ -39,7 +39,9 @@ default, is none. Experimental, as the metric it serves.}
 An object of class \code{"geometry_params"}.
 }
 \description{
-The covariate space of the ensembles
+Constructs the \code{geometry} group of \code{\link[=term_params]{term_params()}}: the metric of each
+covariate column, the prior standard deviation of a centre coordinate
+and the membership rule.
 }
 \section{Experimental metrics}{
 

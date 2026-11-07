@@ -12,7 +12,9 @@ requires nu > 2.}
 Pr(sigma < sigma_hat) = q. Default 0.85.}
 }
 \description{
-Outcome families behind the core's experimental feature
+The tobit, AFT, interval-censored, ordinal, Student-t and Laplace
+families are compiled only into a core built with its \code{experimental}
+feature. This page states the policy they share.
 }
 \section{Experimental}{
 

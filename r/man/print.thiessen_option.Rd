@@ -16,7 +16,7 @@
 \code{x}, invisibly.
 }
 \description{
-Print a component option
+Prints the option and its settings on one line.
 }
 \examples{
 \dontshow{if (core_experimental()) withAutoprint(\{ # examplesIf}

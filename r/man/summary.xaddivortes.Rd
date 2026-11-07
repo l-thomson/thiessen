@@ -25,7 +25,8 @@ the column scores, highest first.
 \code{x}, invisibly.
 }
 \description{
-Summarise an XAddiVortes fit
+Collects the model, the dimensions, the fast-fit settings, the
+in-sample error and the column scores of a fast fit.
 }
 \examples{
 \dontshow{if (core_experimental()) withAutoprint(\{ # examplesIf}

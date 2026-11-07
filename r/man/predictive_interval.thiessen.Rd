@@ -21,7 +21,8 @@ A double matrix of one row per row of \code{newdata}, with the lower
 and upper bounds as columns named by their percentiles.
 }
 \description{
-Central posterior predictive interval
+The \code{rstantools} generic \code{predictive_interval()} for a fit: the
+central interval of the posterior predictive distribution at each row.
 }
 \examples{
 n <- 60

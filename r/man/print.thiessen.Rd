@@ -15,7 +15,8 @@
 \code{x}, invisibly.
 }
 \description{
-Print a fitted model
+Prints the call, the model and its dimensions, the sweep schedule, the
+in-sample error, the seed and the convergence check.
 }
 \examples{
 n <- 60

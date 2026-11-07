@@ -15,7 +15,7 @@
 \code{x}, invisibly.
 }
 \description{
-Print an outcome family
+Prints the family and its parameters on one line.
 }
 \examples{
 print(gaussian_outcome())

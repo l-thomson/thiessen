@@ -52,7 +52,7 @@ so the parameters carry over directly.
 
 | thiessen | BART, dbarts | Meaning |
 | --- | --- | --- |
-| `m` | `ntree` | ensemble size |
+| `tessellations` | `ntree` | ensemble size m |
 | `k` | `k` | cell-mean prior spread |
 | `nu` | `sigdf` | sigma^2 prior degrees of freedom |
 | `q` | `sigquant` | sigma^2 prior calibration quantile |

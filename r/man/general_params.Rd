@@ -21,7 +21,9 @@ the prior and \code{predict()} gives prior predictive draws. Default
 An object of class \code{"general_params"}.
 }
 \description{
-The sweep schedule of a fit
+Constructs the \code{general_params} group of \code{\link[=thiessen_control]{thiessen_control()}}:
+burn-in, kept draws, thinning, and whether the likelihood is switched
+off.
 }
 \examples{
 general_params(burn_in = 100, draws = 500)

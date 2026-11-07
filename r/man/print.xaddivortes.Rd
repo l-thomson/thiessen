@@ -15,7 +15,8 @@
 \code{x}, invisibly.
 }
 \description{
-Print an XAddiVortes fit
+Prints the call, the model and its dimensions, the fast-fit settings,
+the in-sample error and the seed.
 }
 \examples{
 \dontshow{if (core_experimental()) withAutoprint(\{ # examplesIf}
