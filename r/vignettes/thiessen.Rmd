@@ -85,7 +85,7 @@ predict(fit, new, interval = "prediction", level = 0.9)
 The figure follows the fit along `a` with `b` and `g` held fixed, the
 90 per cent credible band around it and the noise-free truth dashed.
 
-```{r transect}
+```{r transect, fig.alt = "Posterior mean of the mean function along the first covariate with its credible band, against the dashed true curve."}
 grid <- data.frame(
   a = seq(0, 1, length.out = 100), b = 0.5,
   g = factor("low", levels(d$g))
@@ -126,7 +126,7 @@ quantity and one line per chain: the residual scale, the mean cells per
 tessellation and the mean active covariates per tessellation. It is a
 convergence check rather than a display of the fit.
 
-```{r trace, fig.height = 6}
+```{r trace, fig.height = 6, fig.alt = "Trace plots of sigma, the mean cell count and the mean active covariate count per tessellation, one line per chain."}
 plot(fit)
 ```
 

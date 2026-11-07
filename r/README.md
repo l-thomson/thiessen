@@ -82,7 +82,7 @@ polygon(c(grid[, "a"], rev(grid[, "a"])), c(band[, "lower"], rev(band[, "upper"]
 lines(grid[, "a"], 2 * (grid[, "a"] - 0.5)^2 + 0.25, lty = 2)
 ```
 
-<img src="man/figures/README-figure-1.png" alt="" width="100%" />
+<img src="man/figures/README-figure-1.png" alt="Posterior mean of the mean function along the first covariate with its 90 per cent credible band, against the dashed true curve." width="100%" />
 
 The dashed line is the truth. `sigma()`, `summary()`, `plot()`,
 `posterior::as_draws_df()` and `loo::loo(log_lik(fit))` all take the

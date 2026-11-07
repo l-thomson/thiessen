@@ -92,7 +92,7 @@ head(predictive_interval(fit, newdata = x, prob = 0.9), 3)
 bayesplot takes the draws object as it stands. Trace plots of the
 scalar variables, one line per chain:
 
-```{r trace}
+```{r trace, fig.alt = "Trace plots of sigma and of the cell count, one line per chain."}
 bayesplot::mcmc_trace(as_draws_array(fit), pars = c("sigma", "cell_count"))
 ```
 
@@ -100,7 +100,7 @@ A posterior predictive check compares the observed response with
 replicates from `posterior_predict()`: the density of `y` over the
 densities of fifty replicate data sets.
 
-```{r ppc}
+```{r ppc, fig.alt = "Density of the observed response overlaid with the densities of 50 posterior predictive replicates."}
 replicates <- posterior_predict(fit)
 bayesplot::ppc_dens_overlay(y, replicates[1:50, ])
 ```
@@ -152,7 +152,7 @@ head(mu, 3)
 The posterior of the mean function at those rows, as point and
 interval summaries, against the noise-free truth:
 
-```{r pointinterval}
+```{r pointinterval, fig.alt = "Posterior point estimates and intervals of the mean function at selected training rows against the first covariate, with crosses marking the true values."}
 mu$a <- x[mu$i, "a"]
 truth <- data.frame(a = x[rows, "a"],
                     f = 2 * (x[rows, "a"] - 0.5)^2 + 0.5 * x[rows, "b"])

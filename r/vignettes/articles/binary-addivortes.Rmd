@@ -100,7 +100,7 @@ data.frame(
 The figure plots the estimated probability against the true one for the
 held-out rows, coloured by the label that was drawn.
 
-```{r figure}
+```{r figure, fig.alt = "Scatter plot of the posterior mean probability against the true probability for the held-out rows, coloured by the drawn label, with the dashed identity line for reference."}
 ggplot(data.frame(truth = test$p, estimate, label = test$label),
        aes(truth, fit, colour = label)) +
   geom_abline(linetype = "dashed") +

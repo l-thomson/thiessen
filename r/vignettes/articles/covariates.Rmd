@@ -152,7 +152,7 @@ handful of Voronoi cells, each with one value. The posterior mean of a
 full ensemble on the same two covariates, right, is the sum of two
 hundred such partitions averaged over the draws, and is smooth.
 
-```{r cells, fig.height = 3.5}
+```{r cells, fig.height = 3.5, fig.alt = "Two heat maps of the fitted surface over the two numeric covariates: left, one tessellation at one draw, a few constant Voronoi cells; right, the posterior mean of 200 tessellations, a smooth surface."}
 grid <- as.matrix(expand.grid(a = seq(0, 1, length.out = 80),
                               b = seq(0, 1, length.out = 80)))
 xy <- as.matrix(d[c("a", "b")])

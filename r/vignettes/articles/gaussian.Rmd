@@ -121,7 +121,7 @@ data.frame(
 The figure plots the posterior mean against the truth for sixty of the
 held-out rows, with the 90 per cent credible interval as the bar.
 
-```{r figure}
+```{r figure, fig.alt = "Posterior mean of f(x) with its credible interval against the noise-free truth for 60 held-out rows, with the dashed identity line for reference."}
 shown <- sample(nrow(test$x), 60)
 ggplot(data.frame(truth = test$f[shown], credible[shown, ]),
        aes(truth, fit)) +

@@ -80,7 +80,7 @@ fit
 The posterior mean of s(x) along `a`, with `b` fixed, and its 95 per
 cent credible band, against the scale the data were made with:
 
-```{r figure}
+```{r figure, fig.alt = "Posterior mean of the noise scale s(x) along the first covariate, with a 95 per cent credible band, against the dashed line of the true scale, which rises linearly from 0.05 to 0.35."}
 grid <- cbind(a = seq(0, 1, length.out = 100), b = 0.5)
 s <- sqrt(predict(fit, grid, type = "variance"))
 band <- apply(s, 2, quantile, probs = c(0.025, 0.975))

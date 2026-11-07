@@ -58,7 +58,7 @@ every cell towards zero and the ensemble towards its centre; the
 default k = 3 puts most of the prior mass of f(x) across the range of
 the data. Twenty prior draws of f along `a` at three values of k:
 
-```{r k}
+```{r k, fig.alt = "Prior draws of the mean function along the first covariate in three panels, k equal to 1, 3 and 10; the spread of the draws narrows as k grows."}
 draws_of_f <- function(k) {
   fit <- prior_draws(mean_params = term_params(k = k))
   f <- predict(fit, grid, type = "draws")[1:20, ]
@@ -89,7 +89,7 @@ sit well below 1 + lambda_c. The histograms below are of the mean
 count over the fifty tessellations, per draw, so they are narrower
 than the count of one tessellation:
 
-```{r lambda}
+```{r lambda, fig.alt = "Histograms of the prior mean cell count per tessellation in three panels, lambda_c equal to 2, 5 and 25."}
 cells <- function(lambda_c) {
   fit <- prior_draws(mean_params = term_params(lambda_c = lambda_c))
   data.frame(lambda_c = paste("lambda_c =", lambda_c),
@@ -115,7 +115,7 @@ them, and the count cannot move. With eight covariates, the prior
 distribution of the mean active covariates per tessellation at three
 values of omega:
 
-```{r omega}
+```{r omega, fig.alt = "Histograms of the prior mean number of active covariates per tessellation in three panels, omega equal to 1, 3 and 8."}
 x8 <- cbind(x, matrix(runif(6 * n), n, 6))
 dimensions <- function(omega) {
   control <- thiessen_control(

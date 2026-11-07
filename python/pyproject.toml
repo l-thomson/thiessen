@@ -99,7 +99,7 @@ disallow_untyped_calls = false
 disallow_untyped_decorators = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "python/thiessen"]
 # The benchmarks need pytest-benchmark and take minutes; they are run by
 # hand against two revisions and reported in the pull request, never in CI.
-addopts = "--ignore=tests/benchmarks"
+addopts = "--ignore=tests/benchmarks --doctest-modules"

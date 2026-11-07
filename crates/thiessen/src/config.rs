@@ -974,6 +974,21 @@ impl Default for GeneralParams {
 /// structure setters write both slots, since the ensembles must declare
 /// identical geometry while per-ensemble geometry awaits its
 /// identification argument.
+///
+/// # Examples
+///
+/// ```
+/// use thiessen::{Config, Outcome};
+///
+/// let config = Config::paper()
+///     .with_outcome(Outcome::probit())
+///     .with_m(50)
+///     .with_draws(500);
+/// config.validate()?;
+/// assert_eq!(config.mean_params.tessellations, Some(50));
+/// assert_eq!(config.mean_params.lambda_c, 25.0);
+/// # Ok::<(), thiessen::Error>(())
+/// ```
 #[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "ConfigParts")]
 #[non_exhaustive]
