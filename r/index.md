@@ -82,7 +82,9 @@ polygon(c(grid[, "a"], rev(grid[, "a"])), c(band[, "lower"], rev(band[, "upper"]
 lines(grid[, "a"], 2 * (grid[, "a"] - 0.5)^2 + 0.25, lty = 2)
 ```
 
-![](reference/figures/README-figure-1.png)
+![Posterior mean of the mean function along the first covariate with its
+90 per cent credible band, against the dashed true
+curve.](reference/figures/README-figure-1.png)
 
 The dashed line is the truth.
 [`sigma()`](https://rdrr.io/r/stats/sigma.html),

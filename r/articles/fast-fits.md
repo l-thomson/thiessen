@@ -35,7 +35,7 @@ fit
 #> XAddiVortes fast fit (experimental)
 #> Call: xaddivortes(x = train$x, y = train$y, seed = 1)
 #> gaussian model, 300 observations, 10 covariates
-#> 200 tessellations, 40 rounds (0.04 s)
+#> 200 tessellations, 40 rounds (0.02 s)
 #> In-sample RMSE 0.6798, seed 1
 sqrt(mean((predict(fit, test$x) - test$f)^2))
 #> [1] 1.006713

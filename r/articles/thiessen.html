@@ -180,7 +180,7 @@ and the noise-free truth dashed.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">fit</span><span class="op">)</span>, colour <span class="op">=</span> <span class="st">"steelblue"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">truth</span><span class="op">)</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>y <span class="op">=</span> <span class="st">"f(a, b = 0.5, g = low)"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="thiessen_files/figure-html/transect-1.png" class="r-plt" alt="" width="100%"></p>
+<p><img src="thiessen_files/figure-html/transect-1.png" class="r-plt" alt="Posterior mean of the mean function along the first covariate with its credible band, against the dashed true curve." width="100%"></p>
 <p><code>predict(type = "draws")</code> returns the per-draw values, one
 row per kept draw, for any summary the two intervals do not give.</p>
 </div>
@@ -223,7 +223,7 @@ cells per tessellation and the mean active covariates per tessellation.
 It is a convergence check rather than a display of the fit.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
-<p><img src="thiessen_files/figure-html/trace-1.png" class="r-plt" alt="" width="100%"></p>
+<p><img src="thiessen_files/figure-html/trace-1.png" class="r-plt" alt="Trace plots of sigma, the mean cell count and the mean active covariate count per tessellation, one line per chain." width="100%"></p>
 </div>
 <div class="section level2">
 <h2 id="which-covariates-the-ensemble-uses">Which covariates the ensemble uses<a class="anchor" aria-label="anchor" href="#which-covariates-the-ensemble-uses"></a>

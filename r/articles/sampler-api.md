@@ -140,7 +140,10 @@ ggplot(curves, aes(a, f, colour = fit)) +
   labs(y = "f(a, b = 0.5)", colour = NULL)
 ```
 
-![](sampler-api_files/figure-html/unnamed-chunk-4-1.png)
+![Fitted curves along the first covariate for the imputed and the
+clamped fits over the observed points, with the dashed true line and the
+dotted censoring
+limit.](sampler-api_files/figure-html/unnamed-chunk-4-1.png)
 
 The dashed line is the truth, the dotted one the censoring limit.
 

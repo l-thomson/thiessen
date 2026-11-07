@@ -186,7 +186,10 @@ ggplot(surfaces, aes(a, b, fill = f)) +
   labs(fill = "f(a, b)")
 ```
 
-![](covariates_files/figure-html/cells-1.png)
+![Two heat maps of the fitted surface over the two numeric covariates:
+left, one tessellation at one draw, a few constant Voronoi cells; right,
+the posterior mean of 200 tessellations, a smooth
+surface.](covariates_files/figure-html/cells-1.png)
 
 ## References
 

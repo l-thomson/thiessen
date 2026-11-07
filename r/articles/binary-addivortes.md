@@ -120,7 +120,10 @@ ggplot(data.frame(truth = test$p, estimate, label = test$label),
   labs(x = "P(y = yes | x), truth", y = "posterior mean probability")
 ```
 
-![](binary-addivortes_files/figure-html/figure-1.png)
+![Scatter plot of the posterior mean probability against the true
+probability for the held-out rows, coloured by the drawn label, with the
+dashed identity line for
+reference.](binary-addivortes_files/figure-html/figure-1.png)
 
 ## References
 

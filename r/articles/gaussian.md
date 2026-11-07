@@ -144,7 +144,9 @@ ggplot(data.frame(truth = test$f[shown], credible[shown, ]),
   labs(x = "f(x), noise-free truth", y = "posterior mean of f(x)")
 ```
 
-![](gaussian_files/figure-html/figure-1.png)
+![Posterior mean of f(x) with its credible interval against the
+noise-free truth for 60 held-out rows, with the dashed identity line for
+reference.](gaussian_files/figure-html/figure-1.png)
 
 [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html) at
 new data gives the log predictive density of each held-out observation,

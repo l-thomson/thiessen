@@ -107,7 +107,9 @@ ggplot(cbind(grid, band), aes(a)) +
   labs(y = "f(a, b = 0.5, g = low)")
 ```
 
-![](thiessen_files/figure-html/transect-1.png)
+![Posterior mean of the mean function along the first covariate with its
+credible band, against the dashed true
+curve.](thiessen_files/figure-html/transect-1.png)
 
 `predict(type = "draws")` returns the per-draw values, one row per kept
 draw, for any summary the two intervals do not give.
@@ -164,7 +166,9 @@ than a display of the fit.
 plot(fit)
 ```
 
-![](thiessen_files/figure-html/trace-1.png)
+![Trace plots of sigma, the mean cell count and the mean active
+covariate count per tessellation, one line per
+chain.](thiessen_files/figure-html/trace-1.png)
 
 ## Which covariates the ensemble uses
 

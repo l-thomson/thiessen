@@ -86,14 +86,16 @@ largest R-hat of 1.056 against 1.01; the default fit reaches 899 and
 bayesplot::mcmc_trace(as_draws_array(short), pars = "sigma")
 ```
 
-![](convergence_files/figure-html/trace-short-1.png)
+![Trace plot of sigma for the short schedule, one line per chain over
+100 draws.](convergence_files/figure-html/trace-short-1.png)
 
 ``` r
 
 bayesplot::mcmc_trace(as_draws_array(long), pars = "sigma")
 ```
 
-![](convergence_files/figure-html/trace-long-1.png)
+![Trace plot of sigma for the default schedule, one line per chain over
+1000 draws.](convergence_files/figure-html/trace-long-1.png)
 
 [`summarise_draws()`](https://mc-stan.org/posterior/reference/draws_summary.html)
 gives the per-variable numbers behind the check. Here, sigma and the
@@ -189,9 +191,9 @@ seconds <- function(threads) {
 }
 rbind(seconds(1), seconds(2), seconds(4))
 #>      threads seconds min_ess ess_per_second
-#> [1,]       1     3.2     899            281
-#> [2,]       2     1.8     899            493
-#> [3,]       4     1.7     899            529
+#> [1,]       1     2.3     899            393
+#> [2,]       2     1.3     899            714
+#> [3,]       4     1.0     899            869
 ```
 
 Pooling the draws and the diagnostics run on one thread after the

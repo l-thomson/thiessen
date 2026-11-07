@@ -63,7 +63,9 @@ ggplot(prior_f, aes(a, f, group = draw)) +
   labs(y = "f(a, b = 0.5), prior draws")
 ```
 
-![](priors_files/figure-html/k-1.png)
+![Prior draws of the mean function along the first covariate in three
+panels, k equal to 1, 3 and 10; the spread of the draws narrows as k
+grows.](priors_files/figure-html/k-1.png)
 
 ## lambda_c: how many cells a tessellation has
 
@@ -97,7 +99,9 @@ ggplot(prior_cells, aes(cell_count)) +
   labs(x = "mean cells per tessellation, prior draws")
 ```
 
-![](priors_files/figure-html/lambda-1.png)
+![Histograms of the prior mean cell count per tessellation in three
+panels, lambda_c equal to 2, 5 and
+25.](priors_files/figure-html/lambda-1.png)
 
 ## omega: how many covariates a tessellation uses
 
@@ -132,7 +136,9 @@ ggplot(prior_dimensions, aes(dimension_count)) +
   labs(x = "mean active covariates per tessellation, prior draws")
 ```
 
-![](priors_files/figure-html/omega-1.png)
+![Histograms of the prior mean number of active covariates per
+tessellation in three panels, omega equal to 1, 3 and
+8.](priors_files/figure-html/omega-1.png)
 
 ## The noise prior
 

@@ -97,7 +97,10 @@ ggplot(
   labs(y = "s(x)")
 ```
 
-![](h-addivortes_files/figure-html/figure-1.png)
+![Posterior mean of the noise scale s(x) along the first covariate, with
+a 95 per cent credible band, against the dashed line of the true scale,
+which rises linearly from 0.05 to
+0.35.](h-addivortes_files/figure-html/figure-1.png)
 
 Predictive intervals widen where the variance is high, which is the
 point of the model. The mean width of the 90 per cent interval over the

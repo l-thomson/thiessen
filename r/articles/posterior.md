@@ -114,7 +114,8 @@ variables, one line per chain:
 bayesplot::mcmc_trace(as_draws_array(fit), pars = c("sigma", "cell_count"))
 ```
 
-![](posterior_files/figure-html/trace-1.png)
+![Trace plots of sigma and of the cell count, one line per
+chain.](posterior_files/figure-html/trace-1.png)
 
 A posterior predictive check compares the observed response with
 replicates from
@@ -127,7 +128,8 @@ replicates <- posterior_predict(fit)
 bayesplot::ppc_dens_overlay(y, replicates[1:50, ])
 ```
 
-![](posterior_files/figure-html/ppc-1.png)
+![Density of the observed response overlaid with the densities of 50
+posterior predictive replicates.](posterior_files/figure-html/ppc-1.png)
 
 `mcmc_areas()`, `mcmc_dens()` and `mcmc_intervals()` take the same draws
 object for distributional displays.
@@ -209,7 +211,9 @@ ggplot(mu, aes(x = a, y = mu)) +
   labs(y = "mu[i]")
 ```
 
-![](posterior_files/figure-html/pointinterval-1.png)
+![Posterior point estimates and intervals of the mean function at
+selected training rows against the first covariate, with crosses marking
+the true values.](posterior_files/figure-html/pointinterval-1.png)
 
 ## References
 
