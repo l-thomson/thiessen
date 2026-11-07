@@ -33,7 +33,7 @@
 \code{x}, invisibly.
 }
 \description{
-Print a parameter group
+Prints the settings of the group on one line.
 }
 \examples{
 print(term_params(tessellations = 40))

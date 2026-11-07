@@ -55,9 +55,9 @@ install.packages("remotes")
 remotes::install_github("l-thomson/thiessen", subdir = "r")
 ```
 
-The vignettes are on the website named below, so the install leaves
-them out. `build_vignettes = TRUE` installs them locally instead, and
-needs `knitr` and `rmarkdown` present to build them.
+The install leaves the vignettes out; the
+[package website](https://l-thomson.github.io/thiessen/r/) renders every
+page with its output.
 
 ## Example
 
@@ -100,26 +100,27 @@ every page below with its output, beside the reference pages. Pages
 marked (website) take longer to run than a package check allows and are
 not installed as vignettes.
 
-- Get started: `vignette("thiessen")`, one data set end to end.
+- Get started: [thiessen](https://l-thomson.github.io/thiessen/r/articles/thiessen.html), one data set end to end.
 - Models (website): [Gaussian regression](https://l-thomson.github.io/thiessen/r/articles/gaussian.html),
-  [Binary AddiVortes](https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.html)
-  and [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html),
-  one page per published model on one template, with
-  `vignette("model-description")` holding the notation and the
-  symbol-to-argument table.
-- Using a fit: `vignette("posterior")` for the draws through
+  [Binary AddiVortes](https://l-thomson.github.io/thiessen/r/articles/binary-addivortes.html) and
+  [H-AddiVortes](https://l-thomson.github.io/thiessen/r/articles/h-addivortes.html), one page per published model on
+  one template, with [model description](https://l-thomson.github.io/thiessen/r/articles/model-description.html)
+  holding the notation and the symbol-to-argument table.
+- Using a fit: [posterior](https://l-thomson.github.io/thiessen/r/articles/posterior.html) for the draws through
   posterior, bayesplot, loo and tidybayes;
-  [chains and convergence](https://l-thomson.github.io/thiessen/r/articles/convergence.html)
-  (website) for the chains, R-hat, effective sample size and compute;
-  `vignette("priors")` for what each prior does;
-  [covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.html)
-  (website) for factors, scaling and the covariate space;
-  `vignette("control-surface")` for every configuration group.
-- Building your own model: `vignette("sampler-api")`, the Gibbs loop
-  driven from R, so an outcome family the package does not ship is
+  [chains and convergence](https://l-thomson.github.io/thiessen/r/articles/convergence.html) (website) for the chains,
+  R-hat, effective sample size and compute;
+  [fast fits](https://l-thomson.github.io/thiessen/r/articles/fast-fits.html) (website, experimental) for the point fit
+  and the warm start;
+  [priors](https://l-thomson.github.io/thiessen/r/articles/priors.html) for what each prior does;
+  [covariates](https://l-thomson.github.io/thiessen/r/articles/covariates.html) (website) for factors, scaling and the
+  covariate space; [control surface](https://l-thomson.github.io/thiessen/r/articles/control-surface.html) for every
+  configuration group.
+- Building your own model: [sampler API](https://l-thomson.github.io/thiessen/r/articles/sampler-api.html), the Gibbs
+  loop driven from R, so an outcome family the package does not ship is
   built without Rust.
-- Help: `vignette("troubleshooting")` and
-  `vignette("related-software")`.
+- Help: [troubleshooting](https://l-thomson.github.io/thiessen/r/articles/troubleshooting.html) and
+  [related software](https://l-thomson.github.io/thiessen/r/articles/related-software.html).
 
 ## Scope
 

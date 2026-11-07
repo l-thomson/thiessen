@@ -55,6 +55,10 @@ term_params <- function(tessellations = NULL, k = 3, lambda_c = 5,
 
 #' The covariate space of the ensembles
 #'
+#' Constructs the `geometry` group of [term_params()]: the metric of each
+#' covariate column, the prior standard deviation of a centre coordinate
+#' and the membership rule.
+#'
 #' @section Experimental metrics:
 #'
 #' The entries beyond `"euclidean"`, `"categorical"` and the sphere are
@@ -116,6 +120,9 @@ geometry_params <- function(metric = NULL, sigma_c = 0.8, membership = NULL,
 
 #' The covariate-inclusion prior of the ensembles
 #'
+#' Constructs the `structure` group of [term_params()]: the prior on the
+#' number of covariates a tessellation uses and on which it uses.
+#'
 #' @param omega Dimension-count prior parameter omega; omega / p is the
 #'   prior probability of including a covariate. `NULL`, the default,
 #'   resolves to min(3, p) at fit. Must satisfy 0 < omega <= p.
@@ -141,6 +148,9 @@ structure_params <- function(omega = NULL, inclusion = NULL) {
 
 #' The within-cell response surface of the ensembles
 #'
+#' Constructs the `cell` group of [term_params()]: the value each cell of
+#' a tessellation holds.
+#'
 #' @param basis The value a cell holds: `"constant"`, one value per cell,
 #'   the published basis; or `"linear"`, a value that tilts across the
 #'   cell, mu + beta' (x_A - c) over the active covariates centred at the
@@ -164,6 +174,10 @@ cell_params <- function(basis = NULL) {
 }
 
 #' The sweep schedule of a fit
+#'
+#' Constructs the `general_params` group of [thiessen_control()]:
+#' burn-in, kept draws, thinning, and whether the likelihood is switched
+#' off.
 #'
 #' @param burn_in Sweeps discarded before the kept draws. Default 200.
 #' @param draws Posterior draws kept. Default 1000.
@@ -394,6 +408,8 @@ format.thiessen_option <- function(x, ...) {
 
 #' Print a parameter group
 #'
+#' Prints the settings of the group on one line.
+#'
 #' @param x A parameter group from [term_params()], [geometry_params()],
 #'   [structure_params()], [cell_params()], [general_params()] or
 #'   [xaddivortes_params()].
@@ -428,6 +444,8 @@ print.cell_params <- print.term_params
 print.general_params <- print.term_params
 
 #' Print a component option
+#'
+#' Prints the option and its settings on one line.
 #'
 #' @param x An option from [soft_membership()], [weighted_inclusion()] or
 #'   [dart_inclusion()].

@@ -15,7 +15,8 @@
 \code{x}, invisibly.
 }
 \description{
-Print a sampler
+Prints the number of draws kept so far, or that the sampler is
+finished.
 }
 \examples{
 design <- matrix(seq(0, 1, length.out = 40), ncol = 1)

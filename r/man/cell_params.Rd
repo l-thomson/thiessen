@@ -20,7 +20,8 @@ the default, is \code{"constant"}.}
 An object of class \code{"cell_params"}.
 }
 \description{
-The within-cell response surface of the ensembles
+Constructs the \code{cell} group of \code{\link[=term_params]{term_params()}}: the value each cell of
+a tessellation holds.
 }
 \examples{
 cell_params(basis = "constant")

@@ -7,10 +7,16 @@ import numpy as np
 import numpy.typing as npt
 
 CORE_VERSION: str
-EXPERIMENTAL: bool
+"""The version of the core crate the extension was built from."""
 
-class ThiessenError(ValueError): ...
-class RequiresFeatureError(ThiessenError): ...
+EXPERIMENTAL: bool
+"""Whether the extension was built with the core's `experimental` feature."""
+
+class ThiessenError(ValueError):
+    """Invalid configuration, data or fitted model."""
+
+class RequiresFeatureError(ThiessenError):
+    """The configuration names an item behind the core's `experimental` feature."""
 
 class Fitted:
     @property

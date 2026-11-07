@@ -15,7 +15,7 @@
 \code{x}, invisibly.
 }
 \description{
-Print a control object
+Prints the outcome family and each parameter group, one per line.
 }
 \examples{
 print(thiessen_control(tessellations = 50))

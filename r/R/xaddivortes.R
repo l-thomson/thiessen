@@ -50,6 +50,9 @@ print.xaddivortes_params <- print.term_params
 
 #' The core's default XAddiVortes settings
 #'
+#' Reads the default of every setting of [xaddivortes_params()] from the
+#' core.
+#'
 #' @return A named list: every setting of [xaddivortes_params()] and its
 #'   default, as the core defines them.
 #' @examples
@@ -96,8 +99,9 @@ fast_json <- function(params, arg = "params", call = rlang::caller_env()) {
 #' of squares over the residual degrees of freedom of the final refit.
 #' Those degrees of freedom do not count the choice of the cells, so the
 #' intervals of `predict(fit, interval = "prediction")` can cover less than
-#' their level; `vignette("fast-fits", package = "thiessen")` measures the
-#' coverage on held-out data. Split-conformal intervals around the fit (Lei
+#' their level; the
+#' [fast fits article](https://l-thomson.github.io/thiessen/r/articles/fast-fits.html)
+#' measures the coverage on held-out data. Split-conformal intervals around the fit (Lei
 #' and others, 2018) are calibrated without that assumption: fit on one
 #' part of the data and widen the prediction by the `level` quantile of the
 #' absolute residuals on the other part.
@@ -299,6 +303,9 @@ predict.xaddivortes <- function(object, newdata = NULL,
 
 #' Print an XAddiVortes fit
 #'
+#' Prints the call, the model and its dimensions, the fast-fit settings,
+#' the in-sample error and the seed.
+#'
 #' @param x An object of class `"xaddivortes"`.
 #' @param ... Ignored.
 #' @return `x`, invisibly.
@@ -334,6 +341,9 @@ fast_line <- function(tessellations, fast) {
 }
 
 #' Summarise an XAddiVortes fit
+#'
+#' Collects the model, the dimensions, the fast-fit settings, the
+#' in-sample error and the column scores of a fast fit.
 #'
 #' @param object An object of class `"xaddivortes"`.
 #' @param ... Ignored.

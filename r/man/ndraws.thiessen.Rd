@@ -17,7 +17,7 @@ The number of kept draws over every chain, and the number of
 chains the fit ran.
 }
 \description{
-Number of draws and chains of a fitted model
+The \code{posterior} generics \code{ndraws()} and \code{nchains()} for a fit.
 }
 \examples{
 n <- 60

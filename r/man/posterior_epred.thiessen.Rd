@@ -20,7 +20,8 @@ A double matrix, one row per kept draw and one column per row of
 model.
 }
 \description{
-Draw from the posterior distribution of the expected response
+The \code{rstantools} generic \code{posterior_epred()} for a fit: the expected
+response for every kept draw.
 }
 \examples{
 n <- 60

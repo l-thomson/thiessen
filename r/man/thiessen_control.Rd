@@ -14,7 +14,8 @@ thiessen_control(
 }
 \arguments{
 \item{outcome}{The outcome family, from \code{\link[=gaussian_outcome]{gaussian_outcome()}},
-\code{\link[=probit_outcome]{probit_outcome()}} or one of the experimental constructors above.
+\code{\link[=probit_outcome]{probit_outcome()}} or one of the experimental constructors listed
+under Details.
 \code{NULL}, the default, takes the family the response selects.}
 
 \item{mean_params}{The ensemble describing the average, from

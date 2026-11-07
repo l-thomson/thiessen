@@ -70,7 +70,7 @@ encode one. Each indicator is then a Euclidean column, so a
 tessellation can split on it, and the levels are ordered by nothing.
 A two-level factor response selects the probit model; an ordered
 factor selects the ordinal model, which needs the
-[experimental build](experimental.html).
+experimental build (`?experimental_outcomes`).
 
 The alternative is to declare a `metric`, one entry per column, and
 mark the factor `"categorical"`: the column then passes as integer

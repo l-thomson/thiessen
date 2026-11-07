@@ -32,11 +32,17 @@ articles:
     space, and every configuration group.
   contents:
   - posterior
-  - fast-fits
   - articles/convergence
   - priors
   - articles/covariates
   - control-surface
+- title: Experimental
+  navbar: Experimental
+  desc: >
+    Compiled only into a core built with its `experimental` feature and
+    outside semantic versioning; see `experimental_outcomes`.
+  contents:
+  - articles/fast-fits
 - title: Building your own model
   navbar: Extending
   desc: >
@@ -55,7 +61,10 @@ reference:
   contents:
   - thiessen
   - thiessen_control
-- title: Fast fits
+- title: Experimental fast fits
+  desc: >
+    Compiled only into a core built with its `experimental` feature; see
+    `experimental_outcomes`.
   contents:
   - xaddivortes
   - predict.xaddivortes

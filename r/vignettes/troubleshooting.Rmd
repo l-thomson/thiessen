@@ -150,8 +150,8 @@ The configuration, or a saved fit, uses an outcome family or a
 component option compiled only into a build made with
 `THIESSEN_EXPERIMENTAL=1`. The condition carries the class
 `thiessen_requires_feature`, so it is told apart from an invalid
-configuration. The [experimental](experimental.html) page has
-the install command and the catalogue; `core_experimental()` reports
+configuration. `?experimental_outcomes` gives
+the install command and links the catalogue; `core_experimental()` reports
 the setting of the build in use.
 
 ```{r build}

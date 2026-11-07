@@ -108,6 +108,8 @@ as_draws_array.thiessen <- function(x, ...) {
 
 #' Number of draws and chains of a fitted model
 #'
+#' The `posterior` generics `ndraws()` and `nchains()` for a fit.
+#'
 #' @param x An object of class `"thiessen"`.
 #'
 #' @return The number of kept draws over every chain, and the number of

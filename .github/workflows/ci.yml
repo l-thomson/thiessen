@@ -485,6 +485,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # The site documents the experimental items as well, so the package is
+    # built with them and their examples run.
+    env:
+      THIESSEN_EXPERIMENTAL: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
@@ -579,8 +583,11 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      # The examples run at build, so the package and both extras are needed.
-      - run: pip install -e ".[sklearn,arviz]" -r requirements-docs.txt
+      # The examples run at build, so the package and both extras are needed;
+      # the experimental feature is on because the site documents it.
+      - run: >-
+          pip install -e ".[sklearn,arviz]" -r requirements-docs.txt
+          --config-settings build-args="--features experimental"
         working-directory: python
       - run: mkdocs build --strict
         working-directory: python

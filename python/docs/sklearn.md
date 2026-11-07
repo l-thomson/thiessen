@@ -140,7 +140,7 @@ expanded = AddiVortesRegressor(
     draws=100,
     random_state=1,
 ).fit(x, y)
-print("columns the core sees:", len(expanded._encoding.core_metric))
+print("R^2, indicator columns:", round(expanded.score(x, y), 4))
 
 codes = AddiVortesRegressor(
     categorical_features=[1],
@@ -152,7 +152,7 @@ codes = AddiVortesRegressor(
     draws=100,
     random_state=1,
 ).fit(x, y)
-print("under the categorical metric:", codes._encoding.core_metric)
+print("R^2, categorical metric:", round(codes.score(x, y), 4))
 ```
 
 Three levels become two indicator columns under the Euclidean metric, or stay
@@ -164,11 +164,9 @@ mismatch weight.
 The estimators run `n_chains=4` chains, the number the convergence checks
 are designed for, on `n_jobs=None` threads, which is one under the joblib
 convention, so an estimator that sets nothing pays four chains on one core.
-`n_jobs=-1` runs the chains on every core for the same draws; on Friedman #1
-with n = 200 and p = 10 the fit is then about 2.7 times faster on four cores
-of a 2025 laptop. A fit at the default schedule warns on that data (smallest
-effective sample size about 290 against 400, largest R-hat about 1.014
-against 1.01); more `draws` per chain is the answer.
+`n_jobs=-1` runs the chains on every core for the same draws. A fit at the
+default schedule warns on Friedman #1 with n = 200 and p = 10; more `draws`
+per chain is the answer.
 
 ```python exec="on" source="above" result="text"
 import warnings
@@ -200,7 +198,6 @@ unchanged, so the estimators and `Model` draw alike:
 ```python exec="on" source="above" result="text"
 import numpy as np
 from thiessen import Model, TermParams
-from thiessen import TermParams
 from thiessen.estimators import AddiVortesRegressor
 
 rng = np.random.default_rng(0)

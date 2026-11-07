@@ -55,6 +55,7 @@ values, and hand the response back.
 
 ```python exec="on" source="above" result="text"
 import numpy as np
+from scipy.stats import norm
 from thiessen import TermParams
 from thiessen.sampler import Sampler
 
@@ -71,9 +72,11 @@ for _ in range(40):
     mean = sampler.fitted_values()
     scale = np.sqrt(sampler.noise_variances())
     working = y.copy()
-    # A draw from the tail above the limit, by inversion.
-    tail = 1.0 - rng.uniform(size=censored.sum())
-    working[censored] = limit + scale[censored] * tail
+    # A draw from the normal truncated to the tail above the limit, by
+    # inversion of its distribution function.
+    at_limit = norm.cdf((limit - mean[censored]) / scale[censored])
+    u = at_limit + rng.uniform(size=censored.sum()) * (1.0 - at_limit)
+    working[censored] = mean[censored] + scale[censored] * norm.ppf(u)
     sampler.set_response(working)
     sampler.step(1)
     sampler.keep()
@@ -81,9 +84,6 @@ for _ in range(40):
 fitted = sampler.finish()
 print("draws:", fitted.n_draws)
 ```
-
-The redraw above is illustrative; a faithful truncated-normal draw would
-invert the conditional tail probability, as the prototype below does.
 
 ## Prototyping an outcome model
 

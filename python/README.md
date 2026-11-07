@@ -26,7 +26,7 @@ regression, binary probit and the heteroscedastic variant.
 ## Installation
 
 The package builds the core crate from source, so a Rust toolchain
-(`cargo`, `rustc` >= 1.74) is required until wheels are published.
+(`cargo`, `rustc` >= 1.83) is required until wheels are published.
 
 ```sh
 pip install "thiessen @ git+https://github.com/l-thomson/thiessen#subdirectory=python"

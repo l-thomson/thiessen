@@ -99,15 +99,14 @@ others (2021) recommend for the R-hat and effective sample size checks a fit
 of two or more chains makes. The chains run on `n_threads=1` threads by
 default, the scikit-learn convention, so a call that sets nothing pays four
 chains on one core. `n_threads=os.cpu_count()` runs the chains on
-every core for the same draws, which do not depend on the thread count; on
-Friedman #1 with n = 200 and p = 10 the fit is then about 2.7 times faster on
-four cores of a 2025 laptop, so it costs about one and a half chains rather
-than four.
+every core for the same draws, which do not depend on the thread count.
+Pooling the draws and the diagnostics run on one thread after the sweeps, so
+the speed-up is less than the thread count.
 
-The default schedule is short for the thresholds: on that data a default fit
-reaches a smallest effective sample size of about 290 against the threshold
-of 400 and a largest R-hat of about 1.014 against 1.01, so it warns. More
-draws per chain, `Model(draws=)`, is the answer; `thinning` is not.
+The default schedule is short for harder data: on Friedman #1 with n = 200
+and p = 10 a default fit falls short of the effective sample size and R-hat
+thresholds, so it warns. More draws per chain, `Model(draws=)`, is the
+answer; `thinning` is not.
 
 A fit that warned can be continued rather than rerun:
 `model.fit(x, y, init=fitted)` with the same number of chains continues each
@@ -189,20 +188,21 @@ exposed here as any other option, with no separate opt-in.
 `Model(outcome=None)`, the default, takes the family from the shape of
 `y` at `fit`, the rule of `glm` with "not declared" representable: a
 numeric array is the Gaussian family, a boolean array or a two-category
-pandas `Categorical` the probit family, an ordered `Categorical` the
-ordinal family (its categories the category count), a structured array
-of a boolean event indicator and a time, the layout of
-`sksurv.util.Surv.from_arrays`, the AFT family, and an array of shape
-`(n, 2)` of lower and upper bounds the interval-censored family, an
+pandas `Categorical` the probit family, and, in an experimental build,
+an ordered `Categorical` the ordinal family (its categories the category
+count), a structured array of a boolean event indicator and a time, the
+layout of `sksurv.util.Surv.from_arrays`, the AFT family, and an array of
+shape `(n, 2)` of lower and upper bounds the interval-censored family, an
 infinite bound for one-sided censoring and an equal pair for an exact
 value. A named family is checked against the shape and a mismatch is an
 error naming both; the probit family also takes the numbers 0 and 1 and
 the ordinal family integer codes 0 to K - 1 with `categories` named.
 `FittedModel.log_likelihood`, `to_inference_data`, `Sampler` and
-`Sampler.set_response` take the same shapes. `FittedModel.predict_proba`
-gives the ordinal category probabilities, and `dfs`, `cutpoints`,
-`bandwidths`, `inclusion_weights` and `concentrations` the posterior
-quantities the experimental items sample, empty where none is.
+`Sampler.set_response` take the same shapes. In an experimental build,
+`FittedModel.predict_proba` gives the ordinal category probabilities, and
+`dfs`, `cutpoints`, `bandwidths`, `inclusion_weights` and `concentrations`
+the posterior quantities the experimental items sample, empty where none
+is.
 
 ## References
 
@@ -214,6 +214,6 @@ Eskin, E., Arnold, A., Prerau, M., Portnoy, L. and Stolfo, S. (2002). A
 geometric framework for unsupervised anomaly detection. In *Applications of
 Data Mining in Computer Security*, 77-101.
 
-Stone, E. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive Voronoi
+Stone, A. and Gosling, J. P. (2025). AddiVortes: (Bayesian) additive Voronoi
 tessellations. *Journal of Computational and Graphical Statistics*, 34(3),
 859-871.

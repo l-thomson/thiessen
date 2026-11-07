@@ -42,14 +42,21 @@ options of `docs/experimental.md`, whose table names the entry point of
 each; this table does not list them. R's `outcome` defaults to `NULL`
 and Python's to `None`, the family then taken from the response.
 
-Every name is identical across the three surfaces but for the outcome
-constructors, which carry an `_outcome` suffix in R: `gaussian()` there
-would mask the exported `stats::gaussian()`, and every family takes the
-suffix rather than only the one that clashes. The serialised name is
-unchanged, so the stored configuration is the same on every surface. Python
-groups run-length settings flat on the estimator and `Model`; R groups them
-in `general_params()`. The one R shortcut,
-`thiessen_control(tessellations =)`, sets `mean_params.tessellations`.
+The serialised names, and so the stored configuration, are the same on
+every surface. Three constructors depart from them:
+
+- The outcome constructors carry an `_outcome` suffix in R: `gaussian()`
+  there would mask the exported `stats::gaussian()`, and every family
+  takes the suffix rather than only the one that clashes.
+- The Rust builder sets the two ensemble sizes with `Config::with_m` and
+  `Config::with_m_var`, the paper's m and m'. Every other option has a
+  `with_` method of the field's name, which sets a field the two
+  ensembles share on both.
+- The one R shortcut, `thiessen_control(tessellations =)`, sets
+  `mean_params.tessellations`.
+
+Python groups run-length settings flat on the estimator and `Model`; R
+groups them in `general_params()`.
 
 | Core option | Python | R |
 | --- | --- | --- |
@@ -61,9 +68,11 @@ no field on the stable surface; the within-cell basis is experimental,
 `cell_params(basis = )` in R and `CellParams(basis=)` in Python
 (`docs/experimental.md`).
 
-The seed is not part of the configuration: it is `random_state` in Python
-and `seed` in R, resolved by each language's rule and passed to the core
-unchanged.
+The seed and the thread count are not part of the configuration. The seed
+is `random_state` in Python and `seed` in R, resolved by each language's
+rule and passed to the core unchanged. The thread count is `n_threads` on
+Python's `Model`, `n_jobs` on its estimators (the scikit-learn name) and
+`threads` in R.
 """
 
 

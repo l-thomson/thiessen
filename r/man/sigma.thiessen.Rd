@@ -20,7 +20,8 @@ latent scale is fixed. The heteroscedastic model has no single
 residual scale; use \code{predict(type = "variance")}.
 }
 \description{
-Residual standard deviation of a fitted model
+The \code{stats} generic \code{sigma()} for a fit: the posterior mean of the
+residual scale.
 }
 \examples{
 n <- 60
